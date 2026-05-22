@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Game {
+  id         Int       @id @default(autoincrement())
+  slug       String    @unique
+  name       String
+  category   String
+  coverImage String?
+  isActive   Boolean   @default(true)
+  sortOrder  Int       @default(0)
+  createdAt  DateTime  @default(now())
+  services   Service[]
+}
+
+model Service {
+  id          Int      @id @default(autoincrement())
+  gameId      Int
+  game        Game     @relation(fields: [gameId], references: [id])
+  name        String
+  slug        String
+  priceType   String   @default("fixed")
+  basePrice   Float
+  description String?
+  features    Json?
+  imageUrl    String?
+  options     Json?
+  isActive    Boolean  @default(true)
+  isHot       Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  orders       Order[]
+  booster      Booster?
+}
+
+model Booster {
+  id             Int      @id @default(autoincrement())
+  userId         Int      @unique
+  user           User     @relation(fields: [userId], references: [id])
+  discordId      String?
+  games          Json?
+  status         String   @default("active")
+  completedCount Int      @default(0)
+  rating         Float    @default(0)
+  createdAt      DateTime @default(now())
+  orders         Order[]
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  orderNumber String   @unique
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  serviceId   Int
+  service     Service  @relation(fields: [serviceId], references: [id])
+  boosterId   Int?
+  booster     Booster? @relation(fields: [boosterId], references: [id])
+  status      String   @default("pending")
+  price       Float
+  currency    String   @default("TRY")
+  details     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
