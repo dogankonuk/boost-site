@@ -1,14 +1,45 @@
 'use client'
 import { useState, useEffect } from 'react'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+
+const CATEGORIES = [
+  'Battle Royale',
+  'MMO',
+  'MMORPG',
+  'ARPG',
+  'Extraction',
+  'Hero Shooter',
+  'RPG',
+  'FPS',
+  'Strategy',
+  'Sports',
+]
 
 export default function AdminGames({ secret }) {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddGame, setShowAddGame] = useState(false)
   const [showAddService, setShowAddService] = useState(null)
+  const [editGame, setEditGame] = useState(null)
+  const [editGameForm, setEditGameForm] = useState({})
   const [editService, setEditService] = useState(null)
   const [editForm, setEditForm] = useState({})
-  const [gameForm, setGameForm] = useState({ name: '', slug: '', category: '', sortOrder: 0 })
+  const [gameForm, setGameForm] = useState({ name: '', slug: '', categories: [], sortOrder: 0 })
   const [serviceForm, setServiceForm] = useState({
     name: '', slug: '', basePrice: '', priceType: 'fixed',
     description: '', features: '', imageUrl: '', isHot: false,
@@ -17,33 +48,93 @@ export default function AdminGames({ secret }) {
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
+
   useEffect(() => { fetchGames() }, [])
 
   async function fetchGames() {
     setLoading(true)
-    const res = await fetch('/api/admin?type=games', { headers })
-    const d = await res.json()
-    if (d.success) setGames(d.data)
+    try {
+      const res = await fetch('/api/admin?type=games', { headers })
+      const d = await res.json()
+      if (d.success) setGames(d.data)
+    } catch (e) {
+      console.error(e)
+    }
     setLoading(false)
   }
 
+  async function handleDragEnd(event) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = games.findIndex(g => g.id === active.id)
+    const newIndex = games.findIndex(g => g.id === over.id)
+    const newGames = arrayMove(games, oldIndex, newIndex)
+    setGames(newGames)
+    await Promise.all(newGames.map((game, index) =>
+      fetch('/api/admin', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          type: 'game',
+          id: parseInt(game.id),
+          data: { sortOrder: index + 1 }
+        }),
+      })
+    ))
+  }
+
   async function addGame() {
-    if (!gameForm.name || !gameForm.slug || !gameForm.category) {
-      setMsg('Tüm alanları doldurun'); return
+    if (!gameForm.name || !gameForm.slug || gameForm.categories.length === 0) {
+      setMsg('Zorunlu alanları doldurun'); return
     }
     const res = await fetch('/api/games', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...gameForm, sortOrder: parseInt(gameForm.sortOrder) || 0 }),
+      body: JSON.stringify({
+        name: gameForm.name,
+        slug: gameForm.slug,
+        category: gameForm.categories.join(', '),
+        sortOrder: parseInt(gameForm.sortOrder) || games.length + 1,
+      }),
     })
     const d = await res.json()
     if (d.success) {
       setMsg('Oyun eklendi')
-      setGameForm({ name: '', slug: '', category: '', sortOrder: 0 })
+      setGameForm({ name: '', slug: '', categories: [], sortOrder: 0 })
       setShowAddGame(false)
       fetchGames()
     } else {
       setMsg(d.error || 'Hata')
+    }
+  }
+
+  async function saveEditGame() {
+    const res = await fetch('/api/admin', {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        type: 'game',
+        id: parseInt(editGame),
+        data: {
+          name: editGameForm.name,
+          category: (editGameForm.categories || []).join(', '),
+          bannerImage: editGameForm.bannerImage || null,
+          description: editGameForm.description || null,
+          sortOrder: parseInt(editGameForm.sortOrder) || 0,
+        }
+      }),
+    })
+    const d = await res.json()
+    if (d.success) {
+      setMsg('Oyun güncellendi')
+      setEditGame(null)
+      fetchGames()
+    } else {
+      setMsg('Hata: ' + (d.error || 'bilinmiyor'))
     }
   }
 
@@ -60,7 +151,9 @@ export default function AdminGames({ secret }) {
         basePrice: parseFloat(serviceForm.basePrice),
         priceType: serviceForm.priceType,
         description: serviceForm.description || null,
-        features: serviceForm.features ? serviceForm.features.split('\n').map(f => f.trim()).filter(Boolean) : null,
+        features: serviceForm.features
+          ? serviceForm.features.split('\n').map(f => f.trim()).filter(Boolean)
+          : null,
         imageUrl: serviceForm.imageUrl || null,
         isHot: serviceForm.isHot,
       }),
@@ -77,32 +170,39 @@ export default function AdminGames({ secret }) {
   }
 
   async function saveEditService() {
-    await fetch('/api/admin', {
+    const res = await fetch('/api/admin', {
       method: 'PATCH',
       headers,
       body: JSON.stringify({
         type: 'service',
-        id: editService,
+        id: parseInt(editService),
         data: {
           name: editForm.name,
           basePrice: parseFloat(editForm.basePrice),
           description: editForm.description || null,
-          features: editForm.features ? editForm.features.split('\n').map(f => f.trim()).filter(Boolean) : null,
+          features: editForm.features
+            ? editForm.features.split('\n').map(f => f.trim()).filter(Boolean)
+            : null,
           imageUrl: editForm.imageUrl || null,
           isHot: editForm.isHot,
         }
       }),
     })
-    setMsg('Hizmet güncellendi')
-    setEditService(null)
-    fetchGames()
+    const d = await res.json()
+    if (d.success) {
+      setMsg('Hizmet güncellendi')
+      setEditService(null)
+      fetchGames()
+    } else {
+      setMsg('Hata: ' + (d.error || 'bilinmiyor'))
+    }
   }
 
   async function toggleGame(id, isActive) {
     await fetch('/api/admin', {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ type: 'game', id, data: { isActive: !isActive } }),
+      body: JSON.stringify({ type: 'game', id: parseInt(id), data: { isActive: !isActive } }),
     })
     fetchGames()
   }
@@ -111,7 +211,7 @@ export default function AdminGames({ secret }) {
     await fetch('/api/admin', {
       method: 'PATCH',
       headers,
-      body: JSON.stringify({ type: 'service', id, data: { isActive: !isActive } }),
+      body: JSON.stringify({ type: 'service', id: parseInt(id), data: { isActive: !isActive } }),
     })
     fetchGames()
   }
@@ -144,10 +244,35 @@ export default function AdminGames({ secret }) {
               onChange={v => setGameForm(f => ({ ...f, name: v }))} />
             <Field label="Slug *" placeholder="fortnite" value={gameForm.slug}
               onChange={v => setGameForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s/g, '-') }))} />
-            <Field label="Kategori *" placeholder="Battle Royale" value={gameForm.category}
-              onChange={v => setGameForm(f => ({ ...f, category: v }))} />
             <Field label="Sıra" type="number" value={gameForm.sortOrder}
               onChange={v => setGameForm(f => ({ ...f, sortOrder: v }))} />
+            <div />
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
+                Kategoriler *
+              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {CATEGORIES.map(cat => (
+                  <button key={cat} type="button"
+                    onClick={() => setGameForm(f => ({
+                      ...f,
+                      categories: f.categories.includes(cat)
+                        ? f.categories.filter(c => c !== cat)
+                        : [...f.categories, cat]
+                    }))}
+                    style={{
+                      padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
+                      fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+                      cursor: 'pointer', border: '1px solid',
+                      background: gameForm.categories.includes(cat) ? 'var(--gold)' : 'transparent',
+                      color: gameForm.categories.includes(cat) ? '#0a0a0a' : 'var(--text-muted)',
+                      borderColor: gameForm.categories.includes(cat) ? 'var(--gold)' : 'var(--border)',
+                    }}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button className="btn-primary" onClick={addGame}>Kaydet</button>
@@ -156,250 +281,365 @@ export default function AdminGames({ secret }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {games.map(game => (
-          <div key={game.id} style={{
-            background: 'var(--bg-card)', border: '1px solid var(--border)',
-            borderRadius: '12px', overflow: 'hidden',
-          }}>
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 20px',
-              borderBottom: (game.services?.length || showAddService === game.id) ? '1px solid var(--border)' : 'none',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span className="h4" style={{ color: '#fff' }}>{game.name}</span>
-                <span style={{ color: 'var(--text-dim)', fontSize: '12px' }}>/{game.slug}</span>
-                <span style={{
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                  borderRadius: '20px', padding: '2px 10px',
-                  fontSize: '11px', color: 'var(--gold)',
-                  fontFamily: 'var(--font-montserrat)', fontWeight: '600',
-                }}>{game.category}</span>
-                {!game.isActive && (
-                  <span style={{
-                    background: '#2a1a1a', border: '1px solid #4a2a2a',
-                    borderRadius: '20px', padding: '2px 10px',
-                    fontSize: '11px', color: '#ff6666',
-                  }}>Pasif</span>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}
-                  onClick={() => setShowAddService(showAddService === game.id ? null : game.id)}>
-                  + Hizmet
-                </button>
-                <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}
-                  onClick={() => toggleGame(game.id, game.isActive)}>
-                  {game.isActive ? 'Pasif Yap' : 'Aktif Yap'}
-                </button>
-              </div>
-            </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={games.map(g => g.id)} strategy={verticalListSortingStrategy}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {games.map(game => (
+              <SortableGameRow
+                key={game.id}
+                game={game}
+                editGame={editGame}
+                editGameForm={editGameForm}
+                setEditGame={setEditGame}
+                setEditGameForm={setEditGameForm}
+                showAddService={showAddService}
+                setShowAddService={setShowAddService}
+                editService={editService}
+                setEditService={setEditService}
+                editForm={editForm}
+                setEditForm={setEditForm}
+                serviceForm={serviceForm}
+                setServiceForm={setServiceForm}
+                saveEditGame={saveEditGame}
+                saveEditService={saveEditService}
+                addService={addService}
+                toggleGame={toggleGame}
+                toggleService={toggleService}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    </div>
+  )
+}
 
-            {showAddService === game.id && (
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-                <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
-                  {game.name} — Yeni Hizmet
-                </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-                  <Field label="Hizmet Adı *" value={serviceForm.name}
-                    onChange={v => setServiceForm(f => ({ ...f, name: v }))} />
-                  <Field label="Slug *" value={serviceForm.slug}
-                    onChange={v => setServiceForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s/g, '-') }))} />
-                  <Field label="Fiyat (₺) *" type="number" value={serviceForm.basePrice}
-                    onChange={v => setServiceForm(f => ({ ...f, basePrice: v }))} />
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat Tipi</label>
-                    <select value={serviceForm.priceType}
-                      onChange={e => setServiceForm(f => ({ ...f, priceType: e.target.value }))}
-                      style={{
-                        width: '100%', background: 'var(--bg-elevated)',
-                        border: '1px solid var(--border)', borderRadius: '6px',
-                        padding: '8px 10px', color: '#fff', fontSize: '13px',
-                        fontFamily: 'var(--font-inter)', outline: 'none',
-                      }}>
-                      <option value="fixed">Sabit</option>
-                      <option value="variable">Değişken</option>
-                    </select>
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                  <Field label="Görsel URL" placeholder="https://..." value={serviceForm.imageUrl}
-                    onChange={v => setServiceForm(f => ({ ...f, imageUrl: v }))} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '20px' }}>
-                    <input type="checkbox" id="isHotNew" checked={serviceForm.isHot}
-                      onChange={e => setServiceForm(f => ({ ...f, isHot: e.target.checked }))} />
-                    <label htmlFor="isHotNew" style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                      HOT olarak işaretle
-                    </label>
-                  </div>
-                </div>
-                <div style={{ marginBottom: '10px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
-                  <textarea value={serviceForm.description}
-                    onChange={e => setServiceForm(f => ({ ...f, description: e.target.value }))}
-                    placeholder="Hizmet açıklaması..." rows={3}
-                    style={{
-                      width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
-                      borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
-                      fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
-                    }} />
-                </div>
-                <div style={{ marginBottom: '12px' }}>
-                  <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                    Özellikler (her satır ayrı madde)
-                  </label>
-                  <textarea value={serviceForm.features}
-                    onChange={e => setServiceForm(f => ({ ...f, features: e.target.value }))}
-                    placeholder={'Tüm seviyelerde boost\nHesap güvenliği garantili\nVPN koruması'} rows={4}
-                    style={{
-                      width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
-                      borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
-                      fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
-                    }} />
-                </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                    onClick={() => addService(game.id)}>Kaydet</button>
-                  <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                    onClick={() => setShowAddService(null)}>İptal</button>
-                </div>
-              </div>
-            )}
+function SortableGameRow({ game, editGame, editGameForm, setEditGame, setEditGameForm, showAddService, setShowAddService, editService, setEditService, editForm, setEditForm, serviceForm, setServiceForm, saveEditGame, saveEditService, addService, toggleGame, toggleService }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: game.id })
 
-            {game.services?.length > 0 && (
-              <div style={{ padding: '12px 20px' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      {['Hizmet', 'Fiyat', 'Tip', 'Durum', 'İşlemler'].map(h => (
-                        <th key={h} style={{
-                          textAlign: 'left', fontSize: '11px',
-                          color: 'var(--text-dim)', fontWeight: '600',
-                          fontFamily: 'var(--font-montserrat)',
-                          padding: '6px 8px', borderBottom: '1px solid var(--border)',
-                        }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {game.services.map(s => (
-                      <>
-                        <tr key={s.id}>
-                          <td style={{ padding: '10px 8px', fontSize: '13px', color: '#fff' }}>
-                            {s.name}
-                            {s.isHot && (
-                              <span style={{
-                                marginLeft: '6px', background: '#ff4444', color: '#fff',
-                                fontSize: '9px', fontWeight: '700', padding: '1px 5px',
-                                borderRadius: '3px', fontFamily: 'var(--font-montserrat)',
-                              }}>HOT</span>
-                            )}
-                          </td>
-                          <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>
-                            {s.basePrice.toLocaleString('tr-TR')} ₺
-                          </td>
-                          <td style={{ padding: '10px 8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                            {s.priceType === 'fixed' ? 'Sabit' : 'Değişken'}
-                          </td>
-                          <td style={{ padding: '10px 8px' }}>
-                            <span style={{
-                              fontSize: '11px', padding: '2px 8px', borderRadius: '20px',
-                              background: s.isActive ? '#1a2a1a' : '#2a1a1a',
-                              color: s.isActive ? '#4caf50' : '#ff6666',
-                              border: `1px solid ${s.isActive ? '#2a4a2a' : '#4a2a2a'}`,
-                            }}>{s.isActive ? 'Aktif' : 'Pasif'}</span>
-                          </td>
-                          <td style={{ padding: '10px 8px' }}>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button style={{
-                                background: 'transparent', border: '1px solid var(--gold)',
-                                borderRadius: '6px', padding: '4px 10px',
-                                fontSize: '11px', color: 'var(--gold)', cursor: 'pointer',
-                              }} onClick={() => {
-                                setEditService(editService === s.id ? null : s.id)
-                                setEditForm({
-                                  name: s.name,
-                                  basePrice: s.basePrice,
-                                  description: s.description || '',
-                                  features: (s.features || []).join('\n'),
-                                  imageUrl: s.imageUrl || '',
-                                  isHot: s.isHot || false,
-                                })
-                              }}>Düzenle</button>
-                              <button style={{
-                                background: 'transparent', border: '1px solid var(--border)',
-                                borderRadius: '6px', padding: '4px 10px',
-                                fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer',
-                              }} onClick={() => toggleService(s.id, s.isActive)}>
-                                {s.isActive ? 'Pasif' : 'Aktif'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                        {editService === s.id && (
-                          <tr key={`edit-${s.id}`}>
-                            <td colSpan={5} style={{ padding: '0 8px 12px' }}>
-                              <div style={{
-                                background: 'var(--bg-elevated)', borderRadius: '10px',
-                                border: '1px solid var(--gold)', padding: '16px',
-                              }}>
-                                <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
-                                  Düzenle — {s.name}
-                                </h4>
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                                  <Field label="Hizmet Adı" value={editForm.name}
-                                    onChange={v => setEditForm(f => ({ ...f, name: v }))} />
-                                  <Field label="Fiyat (₺)" type="number" value={editForm.basePrice}
-                                    onChange={v => setEditForm(f => ({ ...f, basePrice: v }))} />
-                                  <Field label="Görsel URL" value={editForm.imageUrl}
-                                    onChange={v => setEditForm(f => ({ ...f, imageUrl: v }))} />
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                                  <input type="checkbox" id={`hot-${s.id}`} checked={editForm.isHot}
-                                    onChange={e => setEditForm(f => ({ ...f, isHot: e.target.checked }))} />
-                                  <label htmlFor={`hot-${s.id}`} style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>HOT</label>
-                                </div>
-                                <div style={{ marginBottom: '10px' }}>
-                                  <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
-                                  <textarea value={editForm.description}
-                                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
-                                    rows={3} style={{
-                                      width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
-                                      borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
-                                      fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
-                                    }} />
-                                </div>
-                                <div style={{ marginBottom: '12px' }}>
-                                  <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
-                                    Özellikler (her satır ayrı madde)
-                                  </label>
-                                  <textarea value={editForm.features}
-                                    onChange={e => setEditForm(f => ({ ...f, features: e.target.value }))}
-                                    rows={4} style={{
-                                      width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
-                                      borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
-                                      fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
-                                    }} />
-                                </div>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                                    onClick={saveEditService}>Kaydet</button>
-                                  <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                                    onClick={() => setEditService(null)}>İptal</button>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: '12px', overflow: 'hidden',
+      }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '16px 20px', borderBottom: '1px solid var(--border)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div {...attributes} {...listeners} style={{
+              cursor: 'grab', color: 'var(--text-dim)', fontSize: '18px',
+              padding: '0 4px', userSelect: 'none',
+            }}>⠿</div>
+            <span className="h4" style={{ color: '#fff' }}>{game.name}</span>
+            <span style={{ color: 'var(--text-dim)', fontSize: '12px' }}>/{game.slug}</span>
+            <span style={{
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '20px', padding: '2px 10px',
+              fontSize: '11px', color: 'var(--gold)',
+              fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+            }}>{game.category}</span>
+            {!game.isActive && (
+              <span style={{
+                background: '#2a1a1a', border: '1px solid #4a2a2a',
+                borderRadius: '20px', padding: '2px 10px',
+                fontSize: '11px', color: '#ff6666',
+              }}>Pasif</span>
             )}
           </div>
-        ))}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}
+              onClick={() => {
+                setEditGame(editGame === game.id ? null : game.id)
+                setEditGameForm({
+                  name: game.name,
+                  categories: game.category ? game.category.split(', ') : [],
+                  bannerImage: game.bannerImage || '',
+                  description: game.description || '',
+                  sortOrder: game.sortOrder || 0,
+                })
+              }}>
+              {editGame === game.id ? 'Kapat' : 'Düzenle'}
+            </button>
+            <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}
+              onClick={() => setShowAddService(showAddService === game.id ? null : game.id)}>
+              + Hizmet
+            </button>
+            <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}
+              onClick={() => toggleGame(game.id, game.isActive)}>
+              {game.isActive ? 'Pasif Yap' : 'Aktif Yap'}
+            </button>
+          </div>
+        </div>
+
+        {editGame === game.id && (
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+            <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '16px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
+              Oyun Düzenle — {game.name}
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <Field label="Oyun Adı" value={editGameForm.name}
+                onChange={v => setEditGameForm(f => ({ ...f, name: v }))} />
+              <Field label="Sıra" type="number" value={editGameForm.sortOrder}
+                onChange={v => setEditGameForm(f => ({ ...f, sortOrder: v }))} />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Kategoriler</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {CATEGORIES.map(cat => (
+                  <button key={cat} type="button"
+                    onClick={() => setEditGameForm(f => ({
+                      ...f,
+                      categories: (f.categories || []).includes(cat)
+                        ? (f.categories || []).filter(c => c !== cat)
+                        : [...(f.categories || []), cat]
+                    }))}
+                    style={{
+                      padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
+                      fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+                      cursor: 'pointer', border: '1px solid',
+                      background: (editGameForm.categories || []).includes(cat) ? 'var(--gold)' : 'transparent',
+                      color: (editGameForm.categories || []).includes(cat) ? '#0a0a0a' : 'var(--text-muted)',
+                      borderColor: (editGameForm.categories || []).includes(cat) ? 'var(--gold)' : 'var(--border)',
+                    }}>
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <Field label="Banner Görsel URL" placeholder="https://..." value={editGameForm.bannerImage}
+                onChange={v => setEditGameForm(f => ({ ...f, bannerImage: v }))} />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
+              <textarea value={editGameForm.description}
+                onChange={e => setEditGameForm(f => ({ ...f, description: e.target.value }))}
+                rows={3} placeholder="Oyun hakkında kısa açıklama..."
+                style={{
+                  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+                  borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
+                  fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
+                }} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                onClick={saveEditGame}>Kaydet</button>
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                onClick={() => setEditGame(null)}>İptal</button>
+            </div>
+          </div>
+        )}
+
+        {showAddService === game.id && (
+          <div style={{ padding: '20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
+            <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
+              {game.name} — Yeni Hizmet
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+              <Field label="Hizmet Adı *" value={serviceForm.name}
+                onChange={v => setServiceForm(f => ({ ...f, name: v }))} />
+              <Field label="Slug *" value={serviceForm.slug}
+                onChange={v => setServiceForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s/g, '-') }))} />
+              <Field label="Fiyat (₺) *" type="number" value={serviceForm.basePrice}
+                onChange={v => setServiceForm(f => ({ ...f, basePrice: v }))} />
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat Tipi</label>
+                <select value={serviceForm.priceType}
+                  onChange={e => setServiceForm(f => ({ ...f, priceType: e.target.value }))}
+                  style={{
+                    width: '100%', background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)', borderRadius: '6px',
+                    padding: '8px 10px', color: '#fff', fontSize: '13px',
+                    fontFamily: 'var(--font-inter)', outline: 'none',
+                  }}>
+                  <option value="fixed">Sabit</option>
+                  <option value="variable">Değişken</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <Field label="Görsel URL" placeholder="https://..." value={serviceForm.imageUrl}
+                onChange={v => setServiceForm(f => ({ ...f, imageUrl: v }))} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '20px' }}>
+                <input type="checkbox" id="isHotNew" checked={serviceForm.isHot}
+                  onChange={e => setServiceForm(f => ({ ...f, isHot: e.target.checked }))} />
+                <label htmlFor="isHotNew" style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>HOT olarak işaretle</label>
+              </div>
+            </div>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
+              <textarea value={serviceForm.description}
+                onChange={e => setServiceForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Hizmet açıklaması..." rows={3}
+                style={{
+                  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+                  borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
+                  fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
+                }} />
+            </div>
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Özellikler (her satır ayrı madde)
+              </label>
+              <textarea value={serviceForm.features}
+                onChange={e => setServiceForm(f => ({ ...f, features: e.target.value }))}
+                placeholder={'Tüm seviyelerde boost\nHesap güvenliği garantili\nVPN koruması'} rows={4}
+                style={{
+                  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+                  borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
+                  fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
+                }} />
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                onClick={() => addService(game.id)}>Kaydet</button>
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                onClick={() => setShowAddService(null)}>İptal</button>
+            </div>
+          </div>
+        )}
+
+        {game.services?.length > 0 && (
+          <div style={{ padding: '12px 20px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  {['Hizmet', 'Fiyat', 'Tip', 'Durum', 'İşlemler'].map(h => (
+                    <th key={h} style={{
+                      textAlign: 'left', fontSize: '11px',
+                      color: 'var(--text-dim)', fontWeight: '600',
+                      fontFamily: 'var(--font-montserrat)',
+                      padding: '6px 8px', borderBottom: '1px solid var(--border)',
+                    }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {game.services.map(s => (
+                  <>
+                    <tr key={s.id}>
+                      <td style={{ padding: '10px 8px', fontSize: '13px', color: '#fff' }}>
+                        {s.name}
+                        {s.isHot && (
+                          <span style={{
+                            marginLeft: '6px', background: '#ff4444', color: '#fff',
+                            fontSize: '9px', fontWeight: '700', padding: '1px 5px',
+                            borderRadius: '3px', fontFamily: 'var(--font-montserrat)',
+                          }}>HOT</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>
+                        {s.basePrice.toLocaleString('tr-TR')} ₺
+                      </td>
+                      <td style={{ padding: '10px 8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {s.priceType === 'fixed' ? 'Sabit' : 'Değişken'}
+                      </td>
+                      <td style={{ padding: '10px 8px' }}>
+                        <span style={{
+                          fontSize: '11px', padding: '2px 8px', borderRadius: '20px',
+                          background: s.isActive ? '#1a2a1a' : '#2a1a1a',
+                          color: s.isActive ? '#4caf50' : '#ff6666',
+                          border: `1px solid ${s.isActive ? '#2a4a2a' : '#4a2a2a'}`,
+                        }}>{s.isActive ? 'Aktif' : 'Pasif'}</span>
+                      </td>
+                      <td style={{ padding: '10px 8px' }}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button style={{
+                            background: 'transparent', border: '1px solid var(--gold)',
+                            borderRadius: '6px', padding: '4px 10px',
+                            fontSize: '11px', color: 'var(--gold)', cursor: 'pointer',
+                          }} onClick={() => {
+                            setEditService(editService === s.id ? null : s.id)
+                            setEditForm({
+                              name: s.name,
+                              basePrice: s.basePrice,
+                              description: s.description || '',
+                              features: (s.features || []).join('\n'),
+                              imageUrl: s.imageUrl || '',
+                              isHot: s.isHot || false,
+                            })
+                          }}>
+                            {editService === s.id ? 'Kapat' : 'Düzenle'}
+                          </button>
+                          <button style={{
+                            background: 'transparent', border: '1px solid var(--border)',
+                            borderRadius: '6px', padding: '4px 10px',
+                            fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer',
+                          }} onClick={() => toggleService(s.id, s.isActive)}>
+                            {s.isActive ? 'Pasif' : 'Aktif'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {editService === s.id && (
+                      <tr key={`edit-${s.id}`}>
+                        <td colSpan={5} style={{ padding: '0 8px 12px' }}>
+                          <div style={{
+                            background: 'var(--bg-elevated)', borderRadius: '10px',
+                            border: '1px solid var(--gold)', padding: '16px', marginTop: '8px',
+                          }}>
+                            <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
+                              Düzenle — {s.name}
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                              <Field label="Hizmet Adı" value={editForm.name}
+                                onChange={v => setEditForm(f => ({ ...f, name: v }))} />
+                              <Field label="Fiyat (₺)" type="number" value={editForm.basePrice}
+                                onChange={v => setEditForm(f => ({ ...f, basePrice: v }))} />
+                              <Field label="Görsel URL" value={editForm.imageUrl}
+                                onChange={v => setEditForm(f => ({ ...f, imageUrl: v }))} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                              <input type="checkbox" id={`hot-${s.id}`} checked={editForm.isHot}
+                                onChange={e => setEditForm(f => ({ ...f, isHot: e.target.checked }))} />
+                              <label htmlFor={`hot-${s.id}`} style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>HOT</label>
+                            </div>
+                            <div style={{ marginBottom: '10px' }}>
+                              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
+                              <textarea value={editForm.description}
+                                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                                rows={3} style={{
+                                  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+                                  borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
+                                  fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
+                                }} />
+                            </div>
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                                Özellikler (her satır ayrı madde)
+                              </label>
+                              <textarea value={editForm.features}
+                                onChange={e => setEditForm(f => ({ ...f, features: e.target.value }))}
+                                rows={4} style={{
+                                  width: '100%', background: 'var(--bg)', border: '1px solid var(--border)',
+                                  borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px',
+                                  fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical',
+                                }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                                onClick={saveEditService}>Kaydet</button>
+                              <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                                onClick={() => setEditService(null)}>İptal</button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   )

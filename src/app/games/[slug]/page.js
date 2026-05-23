@@ -23,12 +23,12 @@ export default async function GamePage({ params }) {
   const categories = ['Tümü', ...new Set(game.services.map(s => s.options?.category || 'Genel'))]
 
   return (
-    <main>
+    <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
       <div style={{
         position: 'relative',
-        height: '320px',
+        height: '520px',
         overflow: 'hidden',
         background: '#0a0a0a',
       }}>
@@ -66,7 +66,7 @@ export default async function GamePage({ params }) {
         </div>
       </div>
 
-      <Container style={{ paddingTop: '32px', paddingBottom: '48px' }}>
+      <Container style={{ paddingTop: '32px', paddingBottom: '48px', flex: 1 }}>
         {game.description && (
           <div style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',

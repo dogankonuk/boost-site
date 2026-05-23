@@ -7,7 +7,7 @@ import Footer from '@/components/Footer'
 
 export default function HomePage() {
   return (
-    <main>
+    <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <HeroSection />
       <GamesSlider />

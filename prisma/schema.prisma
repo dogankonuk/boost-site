@@ -9,15 +9,17 @@ datasource db {
 }
 
 model Game {
-  id         Int       @id @default(autoincrement())
-  slug       String    @unique
-  name       String
-  category   String
-  coverImage String?
-  isActive   Boolean   @default(true)
-  sortOrder  Int       @default(0)
-  createdAt  DateTime  @default(now())
-  services   Service[]
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique
+  name        String
+  category    String
+  coverImage  String?
+  bannerImage String?
+  description String?
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  services    Service[]
 }
 
 model Service {
