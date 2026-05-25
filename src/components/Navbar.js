@@ -1,9 +1,36 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
 export default function Navbar() {
   const [search, setSearch] = useState('')
+  const [user, setUser] = useState(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+  const router = useRouter()
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const username = localStorage.getItem('username')
+    if (token && username) setUser({ username })
+
+    function handleClick(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function logout() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    setUser(null)
+    setDropdownOpen(false)
+    router.push('/')
+  }
 
   return (
     <nav style={{
@@ -70,10 +97,97 @@ export default function Navbar() {
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
           <NavIcon href="/notifications" label="Bildirimler"><BellIcon /></NavIcon>
           <NavIcon href="/cart" label="Sepet"><CartIcon /></NavIcon>
-          <NavIcon href="/login" label="Hesap"><UserIcon /></NavIcon>
+
+          {user ? (
+            <div ref={dropdownRef} style={{ position: 'relative' }}>
+              <button onClick={() => setDropdownOpen(v => !v)} style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                borderRadius: '8px', padding: '6px 12px',
+                cursor: 'pointer', transition: 'border-color 0.2s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <div style={{
+                  width: '24px', height: '24px',
+                  background: 'var(--gold)', borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '11px', fontWeight: '800', color: '#0a0a0a',
+                  fontFamily: 'var(--font-montserrat)',
+                }}>
+                  {user.username[0].toUpperCase()}
+                </div>
+                <span style={{ fontSize: '13px', color: '#fff', fontFamily: 'var(--font-inter)', fontWeight: '500' }}>
+                  {user.username}
+                </span>
+                <svg width="12" height="12" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              {dropdownOpen && (
+                <div style={{
+                  position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                  background: 'var(--bg-card)', border: '1px solid var(--border)',
+                  borderRadius: '12px', padding: '8px',
+                  minWidth: '180px', zIndex: 200,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                }}>
+                  <DropdownItem href="/dashboard" icon="📦" label="Siparişlerim" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard" icon="⚙️" label="Hesabım" onClick={() => setDropdownOpen(false)} />
+                  <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+                  <button onClick={logout} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    width: '100%', padding: '8px 12px', borderRadius: '8px',
+                    background: 'transparent', border: 'none',
+                    color: '#ff6666', fontSize: '13px', cursor: 'pointer',
+                    fontFamily: 'var(--font-inter)', transition: 'background 0.15s',
+                    textAlign: 'left',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,100,100,0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>🚪</span> Çıkış Yap
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link href="/login" style={{ textDecoration: 'none' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: 'var(--gold)', border: 'none',
+                borderRadius: '8px', padding: '7px 16px',
+                cursor: 'pointer', fontFamily: 'var(--font-montserrat)',
+                fontWeight: '600', fontSize: '13px', color: '#0a0a0a',
+              }}>
+                Giriş Yap
+              </button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>
+  )
+}
+
+function DropdownItem({ href, icon, label, onClick }) {
+  return (
+    <Link href={href} onClick={onClick} style={{ textDecoration: 'none' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '10px',
+        padding: '8px 12px', borderRadius: '8px',
+        color: 'var(--text-muted)', fontSize: '13px',
+        fontFamily: 'var(--font-inter)', transition: 'background 0.15s',
+        cursor: 'pointer',
+      }}
+        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+      >
+        <span>{icon}</span> {label}
+      </div>
+    </Link>
   )
 }
 
@@ -94,8 +208,8 @@ function NavIcon({ href, label, children }) {
 function BellIcon() {
   return (
     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   )
 }
@@ -103,17 +217,8 @@ function BellIcon() {
 function CartIcon() {
   return (
     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
-      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-    </svg>
-  )
-}
-
-function UserIcon() {
-  return (
-    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
+      <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
     </svg>
   )
 }
