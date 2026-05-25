@@ -57,6 +57,9 @@ export default function GamesSlider() {
                   width: `${cardW}px`,
                   height: '280px',
                   background: 'var(--bg-elevated)',
+                  backgroundImage: game.coverImage ? `url(${game.coverImage})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
                   border: '2px solid var(--gold)',
                   borderRadius: '16px',
                   display: 'flex',
@@ -65,29 +68,30 @@ export default function GamesSlider() {
                   justifyContent: 'flex-end',
                   padding: '16px',
                   cursor: 'pointer',
-                  transition: 'transform 0.15s, border-color 0.2s',
+                  transition: 'transform 0.15s',
                   position: 'relative',
                   overflow: 'hidden',
                 }}
                   onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-6px)'}
                   onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                 >
+                  {game.coverImage && (
+                    <div style={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.85) 100%)',
+                      borderRadius: '14px',
+                    }} />
+                  )}
                   <div style={{
                     fontFamily: 'var(--font-montserrat)',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    color: '#fff',
-                    textAlign: 'center',
-                    lineHeight: '1.3',
-                    zIndex: 1,
+                    fontSize: '14px', fontWeight: '700',
+                    color: '#fff', textAlign: 'center',
+                    lineHeight: '1.3', position: 'relative', zIndex: 1,
                   }}>{game.name}</div>
                   <div style={{
-                    fontSize: '12px',
-                    color: 'var(--gold)',
-                    marginTop: '6px',
-                    fontFamily: 'var(--font-inter)',
-                    fontWeight: '500',
-                    zIndex: 1,
+                    fontSize: '12px', color: 'var(--gold)',
+                    marginTop: '6px', fontFamily: 'var(--font-inter)',
+                    fontWeight: '500', position: 'relative', zIndex: 1,
                   }}>{game.category}</div>
                 </div>
               </Link>

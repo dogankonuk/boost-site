@@ -70,20 +70,23 @@ export async function PATCH(request) {
     }
 
     if (type === 'service') {
-      const service = await prisma.service.update({
-        where: { id: parseInt(id) },
-        data: {
-          name: data.name,
-          basePrice: parseFloat(data.basePrice),
-          description: data.description ?? null,
-          features: data.features ?? null,
-          imageUrl: data.imageUrl ?? null,
-          isHot: data.isHot ?? false,
-          ...(data.isActive !== undefined && { isActive: data.isActive }),
-        }
-      })
-      return NextResponse.json({ success: true, data: service })
-    }
+  const service = await prisma.service.update({
+      where: { id: parseInt(id) },
+      data: {
+        name: data.name,
+        basePrice: parseFloat(data.basePrice),
+        description: data.description ?? null,
+        features: data.features ?? null,
+        imageUrl: data.imageUrl ?? null,
+        isHot: data.isHot ?? false,
+        serviceCategory: data.serviceCategory ?? 'Genel',
+        priceType: data.priceType ?? 'fixed',
+        options: data.options ?? null,
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+      }
+    })
+    return NextResponse.json({ success: true, data: service })
+  }
 
     return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
   } catch (error) {

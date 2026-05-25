@@ -5,7 +5,7 @@ export async function POST(request, { params }) {
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, slug, basePrice, priceType, options } = body
+    const { name, slug, basePrice, priceType, options, description, features, imageUrl, isHot, serviceCategory } = body
 
     if (!name || !slug || !basePrice) {
       return NextResponse.json(
@@ -22,11 +22,16 @@ export async function POST(request, { params }) {
         basePrice: parseFloat(basePrice),
         priceType: priceType || 'fixed',
         options: options || null,
+        description: description || null,
+        features: features || null,
+        imageUrl: imageUrl || null,
+        isHot: isHot || false,
+        serviceCategory: serviceCategory || 'Genel',
       }
     })
 
     return NextResponse.json({ success: true, data: service }, { status: 201 })
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

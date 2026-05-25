@@ -28,7 +28,7 @@ export default async function GamePage({ params }) {
 
       <div style={{
         position: 'relative',
-        height: '520px',
+        height: '550px',
         overflow: 'hidden',
         background: '#0a0a0a',
       }}>
@@ -78,7 +78,7 @@ export default async function GamePage({ params }) {
           </div>
         )}
 
-        <GameServices services={game.services} gameName={game.name} />
+        <GameServices services={game.services} gameName={game.name} game={game} />
       </Container>
 
       <Footer />
