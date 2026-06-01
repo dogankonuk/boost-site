@@ -40,24 +40,17 @@ export default function AdminPage() {
           <p className="body-small" style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
             ShadowBoosting yönetim paneli
           </p>
-          <input
-            type="password"
-            placeholder="Şifre"
-            value={password}
+          <input type="password" placeholder="Şifre" value={password}
             onChange={e => setPassword(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && login()}
             style={{
               width: '100%', background: 'var(--bg-elevated)',
               border: '1px solid var(--border)', borderRadius: '8px',
               padding: '10px 14px', color: '#fff', fontSize: '14px',
-              fontFamily: 'var(--font-inter)', outline: 'none',
-              marginBottom: '12px',
-            }}
-          />
+              fontFamily: 'var(--font-inter)', outline: 'none', marginBottom: '12px',
+            }} />
           {error && <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
-          <button className="btn-primary" style={{ width: '100%' }} onClick={login}>
-            Giriş Yap
-          </button>
+          <button className="btn-primary" style={{ width: '100%' }} onClick={login}>Giriş Yap</button>
         </div>
       </div>
     )
@@ -65,39 +58,36 @@ export default function AdminPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '16px 32px', borderBottom: '1px solid var(--border)',
-        background: 'var(--bg)',
-      }}>
-        <div style={{
-          fontFamily: 'var(--font-montserrat)', fontWeight: '700',
-          fontSize: '16px', color: 'var(--gold)',
-        }}>ShadowBoosting — Admin</div>
-        <button className="btn-secondary" style={{ fontSize: '13px', padding: '8px 16px' }}
-          onClick={() => { localStorage.removeItem('admin_auth'); setAuth(false) }}>
-          Çıkış
-        </button>
+      {/* Header */}
+      <div style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: 'var(--gold)' }}>
+            ShadowBoosting — Admin
+          </div>
+          <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }}
+            onClick={() => { localStorage.removeItem('admin_auth'); setAuth(false) }}>
+            Çıkış
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)' }}>
-        {[
-          { key: 'games', label: 'Oyunlar & Hizmetler' },
-          { key: 'orders', label: 'Siparişler' },
-        ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} style={{
-            padding: '14px 24px',
-            background: 'transparent',
-            border: 'none',
-            borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
-            color: tab === t.key ? 'var(--gold)' : 'var(--text-muted)',
-            fontFamily: 'var(--font-montserrat)', fontWeight: '600', fontSize: '14px',
-            cursor: 'pointer', transition: 'color 0.2s',
-          }}>{t.label}</button>
-        ))}
+      {/* Tabs */}
+      <div style={{ borderBottom: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', display: 'flex' }}>
+          {[{ key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }].map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)} style={{
+              padding: '14px 20px', background: 'transparent', border: 'none',
+              borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
+              color: tab === t.key ? 'var(--gold)' : 'var(--text-muted)',
+              fontFamily: 'var(--font-montserrat)', fontWeight: '600', fontSize: '14px',
+              cursor: 'pointer', transition: 'color 0.2s',
+            }}>{t.label}</button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ padding: '32px' }}>
+      {/* Content */}
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 48px' }}>
         {tab === 'games' && <AdminGames secret={ADMIN_SECRET} />}
         {tab === 'orders' && <AdminOrders secret={ADMIN_SECRET} />}
       </div>

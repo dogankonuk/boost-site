@@ -37,6 +37,22 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: games })
     }
 
+    if (type === 'gameCategories') {
+      const games = await prisma.game.findMany({
+        select: { category: true },
+        where: { isActive: true }
+      })
+      const autoCategories = [...new Set(
+        games.flatMap(g => g.category ? g.category.split(', ') : [])
+      )]
+      
+      const setting = await prisma.setting.findUnique({ where: { key: 'gameCategories' } })
+      const manualCategories = (setting?.value || [])
+      
+      const all = [...new Set([...autoCategories, ...manualCategories])].sort()
+      return NextResponse.json({ success: true, data: all, manual: manualCategories })
+    }
+
     return NextResponse.json({ success: false, error: 'type parametresi gerekli' }, { status: 400 })
   } catch (error) {
     console.error('Admin GET error:', error)
@@ -59,6 +75,27 @@ export async function PATCH(request) {
         data
       })
       return NextResponse.json({ success: true, data: order })
+    }
+    if (type === 'gameCategories') {
+      const { action, value } = body
+      let setting = null
+      try {
+        setting = await prisma.setting.findUnique({ where: { key: 'gameCategories' } })
+      } catch {}
+
+      let current = (setting?.value || [])
+      if (action === 'add' && !current.includes(value)) {
+        current = [...current, value]
+      } else if (action === 'remove') {
+        current = current.filter(c => c !== value)
+      }
+
+      await prisma.setting.upsert({
+        where: { key: 'gameCategories' },
+        update: { value: current },
+        create: { key: 'gameCategories', value: current },
+      })
+      return NextResponse.json({ success: true, data: current })
     }
 
     if (type === 'game') {
