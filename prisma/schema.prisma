@@ -47,8 +47,18 @@ model User {
   email        String   @unique
   username     String   @unique
   passwordHash String
+  displayName  String?
+  discordId    String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
+  
+  billingName       String?
+  billingAddress    String?
+  billingCity       String?
+  billingCountry    String?
+  billingPhone      String?
+  billingPostalCode String?
+  
   orders       Order[]
   booster      Booster?
 }

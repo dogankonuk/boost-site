@@ -39,7 +39,7 @@ export default async function OrderPage({ params }) {
         }}>
           <Container style={{ paddingBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Ana Sayfa</a>
+              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
               <span style={{ color: 'var(--text-dim)' }}>/</span>
               <a href={`/games/${service.game.slug}`} style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>
                 {service.game.name}
@@ -80,7 +80,7 @@ export default async function OrderPage({ params }) {
                 borderRadius: '16px', padding: '28px',
               }}>
                 <h2 className="h3" style={{ color: '#fff', marginBottom: '16px' }}>
-                  Ne kazanacaksınız?
+                  What will you get?
                 </h2>
                 <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {service.features.map((f, i) => (
@@ -100,12 +100,12 @@ export default async function OrderPage({ params }) {
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '16px', padding: '28px',
             }}>
-              <h2 className="h3" style={{ color: '#fff', marginBottom: '16px' }}>Teslimat yöntemi</h2>
+              <h2 className="h3" style={{ color: '#fff', marginBottom: '16px' }}>Delivery Method</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
-                  { icon: '🎮', title: 'Piloted', desc: 'Bir booster hesabınıza giriş yaparak hizmeti tamamlar.' },
-                  { icon: '🤝', title: 'Self-play (Carry)', desc: 'Booster ile birlikte oynarsınız, hesabınızı paylaşmanıza gerek yoktur.' },
-                  { icon: '🛡', title: 'VPN koruması', desc: 'Her işlem bölgeye özel VPN ile gerçekleştirilir.' },
+                  { icon: '🎮', title: 'Piloted', desc: 'A booster will log into your account to complete the service.' },
+                  { icon: '🤝', title: 'Self-play (Carry)', desc: 'You play alongside our booster team. No account sharing required.' },
+                  { icon: '🛡', title: 'VPN Protection', desc: 'Every operation is performed with region-specific VPN protection.' },
                 ].map(item => (
                   <div key={item.title} style={{
                     display: 'flex', gap: '14px', alignItems: 'flex-start',

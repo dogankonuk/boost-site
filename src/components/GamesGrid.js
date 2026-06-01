@@ -61,7 +61,7 @@ export default function GamesGrid({ games }) {
                 <span style={{
                   fontSize: '11px', color: 'var(--text-dim)',
                   fontFamily: 'var(--font-inter)',
-                }}>{game.services.length} hizmet</span>
+                }}>{game.services.length} services</span>
               </div>
             </div>
           </div>

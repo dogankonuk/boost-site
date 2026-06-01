@@ -26,9 +26,9 @@ export default async function GamesPage() {
         padding: '40px 0 32px',
       }}>
         <Container>
-          <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>Tüm Oyunlar</h1>
+          <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>All Games</h1>
           <p className="body-default" style={{ color: 'var(--text-muted)' }}>
-            {games.length} oyun için profesyonel boost hizmetleri
+            {games.length} games available for boosting services. Choose your game and boost with confidence!
           </p>
         </Container>
       </div>

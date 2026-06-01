@@ -20,7 +20,7 @@ export default async function GamePage({ params }) {
 
   if (!game) return notFound()
 
-  const categories = ['Tümü', ...new Set(game.services.map(s => s.options?.category || 'Genel'))]
+  const categories = ['All', ...new Set(game.services.map(s => s.options?.category || 'General'))]
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -52,7 +52,7 @@ export default async function GamePage({ params }) {
         }}>
           <Container style={{ paddingBottom: '32px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Ana Sayfa</a>
+              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
               <span style={{ color: 'var(--text-dim)' }}>/</span>
               <span style={{ color: 'var(--gold)', fontSize: '13px' }}>{game.name}</span>
             </div>

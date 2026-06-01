@@ -83,3 +83,73 @@ export async function POST(request) {
     )
   }
 }
+export async function PUT(request) {
+  try {
+      const auth = request.headers.get('authorization')
+      
+      if (!auth || !auth.startsWith('Bearer ')) {
+        return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+      }
+      
+      const token = auth.split(' ')[1]
+      
+      let decoded
+      try {
+        decoded = jwt.verify(token, JWT_SECRET)
+      } catch (e) {
+        return NextResponse.json({ success: false, error: 'Geçersiz token' }, { status: 401 })
+      }
+
+    const body = await request.json()
+    const { action } = body
+
+    if (action === 'updateProfile') {
+      const { displayName, discordId, billingName, billingAddress, billingCity, billingCountry, billingPhone, billingPostalCode } = body
+      
+      const user = await prisma.user.update({
+        where: { id: decoded.userId },
+        data: {
+          displayName: displayName || null,
+          discordId: discordId || null,
+          billingName: billingName || null,
+          billingAddress: billingAddress || null,
+          billingCity: billingCity || null,
+          billingCountry: billingCountry || null,
+          billingPhone: billingPhone || null,
+          billingPostalCode: billingPostalCode || null,
+        }
+      })
+      return NextResponse.json({ success: true, data: { displayName: user.displayName, discordId: user.discordId } })
+    }
+
+    if (action === 'getProfile') {
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: {
+          username: true, email: true, displayName: true, discordId: true,
+          billingName: true, billingAddress: true, billingCity: true,
+          billingCountry: true, billingPhone: true, billingPostalCode: true,
+          createdAt: true,
+        }
+      })
+      return NextResponse.json({ success: true, data: user })
+    }
+
+    if (action === 'changePassword') {
+      const { currentPassword, newPassword } = body
+      const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+      const valid = await bcrypt.compare(currentPassword, user.passwordHash)
+      if (!valid) {
+        return NextResponse.json({ success: false, error: 'Mevcut şifre hatalı' }, { status: 400 })
+      }
+      const passwordHash = await bcrypt.hash(newPassword, 10)
+      await prisma.user.update({ where: { id: decoded.userId }, data: { passwordHash } })
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ success: false, error: 'Geçersiz action' }, { status: 400 })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+}

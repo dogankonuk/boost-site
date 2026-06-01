@@ -35,7 +35,7 @@ export default function ServiceCard({ service }) {
           fontWeight: '600',
           whiteSpace: 'nowrap',
           marginLeft: '12px',
-        }}>{service.priceType === 'fixed' ? 'Sabit Fiyat' : 'Değişken'}</span>
+        }}>{service.priceType === 'fixed' ? 'Fixed Price' : 'Variable Price'}</span>
       </div>
 
       <div style={{
@@ -49,7 +49,7 @@ export default function ServiceCard({ service }) {
 
       <Link href={`/order/${service.id}`} style={{ textDecoration: 'none' }}>
         <button className="btn-primary" style={{ width: '100%' }}>
-          Satın Al
+          Buy Now
         </button>
       </Link>
     </div>

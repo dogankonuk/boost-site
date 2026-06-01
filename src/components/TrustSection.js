@@ -1,10 +1,6 @@
 export default function TrustSection() {
   return (
-    <section style={{ padding: '0 32px 48px' ,
-        maxWidth: '1100px',
-        margin: '0 auto',
-        width: '100%',
-     }}>
+    <section style={{ padding: '0 48px 48px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
       <div style={{
         background: 'var(--bg-card)',
         border: '1px solid var(--border)',
@@ -16,10 +12,10 @@ export default function TrustSection() {
           ★★★★★
         </div>
         <div className="h3" style={{ color: 'var(--gold)', marginBottom: '6px' }}>
-          4.9 / 5 Thrust Score
+          4.9 / 5 Trust Score
         </div>
         <div className="body-default" style={{ color: 'var(--text-muted)' }}>
-          12.000+ oyuncu tarafından güveniliyor
+          Trusted by 12,000+ players worldwide
         </div>
       </div>
     </section>

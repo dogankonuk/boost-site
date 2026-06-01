@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { sendOrderConfirmation } from '@/lib/email'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -34,6 +35,7 @@ async function sendDiscordNotification(order) {
   } else if (options?.type === 'options') {
     detailText = `Seçenek: ${selection.choice}`
   }
+
 
   const embed = {
     title: '🎮 Yeni Sipariş!',
@@ -135,6 +137,24 @@ export async function POST(request) {
     })
 
     await sendDiscordNotification(order)
+
+    await sendOrderConfirmation({
+      to: order.user?.email,
+      username: order.user?.username,
+      orderNumber: order.orderNumber,
+      gameName: order.service?.game?.name,
+      serviceName: order.service?.name,
+      price: order.price?.toLocaleString('tr-TR'),
+      details: (() => {
+        const sel = details?.selection
+        const opts = order.service?.options
+        if (!sel || !opts) return null
+        if (opts.type === 'range') return `${sel.from} → ${sel.to} ${opts.unitName}`
+        if (opts.type === 'quantity') return `${sel.quantity} × ${opts.unitName}`
+        if (opts.type === 'options') return sel.choice
+        return null
+      })(),
+    })
 
     return NextResponse.json({ success: true, data: order }, { status: 201 })
   } catch (error) {

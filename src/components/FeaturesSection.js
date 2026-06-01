@@ -1,37 +1,38 @@
 'use client'
+
 const features = [
   {
     icon: '⚡',
-    title: 'Hız',
-    desc: 'İşlemleriniz ortalama 1–3 dakika içinde tamamlanır. Yoğun saatlerde bile siparişler otomatik ve kesintisiz işlenir.',
+    title: 'Speed',
+    desc: 'Orders are completed within 1–3 hours on average. Even during peak hours, orders are processed automatically and seamlessly.',
   },
   {
     icon: '🛡',
-    title: 'Güvenlik',
-    desc: 'Tüm işlemlerimiz gelişmiş koruma sistemleriyle izlenir. Verileriniz şifrelenir ve üçüncü taraflarla asla paylaşılmaz.',
+    title: 'Security',
+    desc: 'All operations are monitored with advanced protection systems. Your data is encrypted and never shared with third parties.',
   },
   {
     icon: '🌐',
     title: 'VPN',
-    desc: 'Her oyun için bölgeye özel en uygun bağlantı çözümlerini sunuyoruz. İhtiyaç duyduğunuzda özel VPN yönlendirmesi yapılır.',
+    desc: 'We provide the most suitable region-specific connection for every game. Custom VPN routing available upon request.',
   },
   {
     icon: '💰',
-    title: 'İade Garantisi',
-    desc: 'Siparişinizde bir sorun olursa koşulsuz destek sağlanır. Yanlış veya eksik teslimlerde tam para iadesi yapılır.',
+    title: 'Money-Back Guarantee',
+    desc: 'If there is an issue with your order, unconditional support is provided. Full refund for incorrect or incomplete deliveries.',
   },
 ]
 
 export default function FeaturesSection() {
   return (
     <section style={{
-        padding: '0 0 48px' ,
-        maxWidth: '1100px',
-        margin: '0 auto',
-        width: '100%',
-        paddingLeft: '48px',
-        paddingRight: '48px',
-     }}>
+      padding: '0 0 48px',
+      maxWidth: '1100px',
+      margin: '0 auto',
+      width: '100%',
+      paddingLeft: '48px',
+      paddingRight: '48px',
+    }}>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',

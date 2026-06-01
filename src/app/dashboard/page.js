@@ -6,11 +6,11 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 
 const STATUS_LABELS = {
-  pending: 'Bekliyor',
-  assigned: 'Atandı',
-  in_progress: 'Devam Ediyor',
-  completed: 'Tamamlandı',
-  cancelled: 'İptal',
+  pending: 'Pending',
+  assigned: 'Assigned',
+  in_progress: 'In Progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
 }
 
 const STATUS_COLORS = {
@@ -25,7 +25,9 @@ export default function DashboardPage() {
   const router = useRouter()
   const [orders, setOrders] = useState([])
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
+  const [tab, setTab] = useState('orders')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -52,107 +54,415 @@ export default function DashboardPage() {
     router.push('/')
   }
 
+  const activeOrders = orders.filter(o => o.status === 'in_progress' || o.status === 'assigned')
+  const completedOrders = orders.filter(o => o.status === 'completed')
+  const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
+
   return (
-    <main>
+    <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
-      <div style={{ padding: '40px 32px', maxWidth: '900px', margin: '0 auto' }}>
 
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          justifyContent: 'space-between', marginBottom: '32px',
-        }}>
-          <div>
-            <h1 className="h2" style={{ color: '#fff', marginBottom: '4px' }}>
-              Hoş geldin, <span style={{ color: 'var(--gold)' }}>{username}</span>
-            </h1>
-            <p className="body-small" style={{ color: 'var(--text-muted)' }}>
-              Siparişlerini buradan takip edebilirsin.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <Link href="/games" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary">+ Yeni Sipariş</button>
-            </Link>
-            <button className="btn-secondary" onClick={logout}>Çıkış</button>
-          </div>
-        </div>
+      <div style={{ flex: 1, maxWidth: '1100px', margin: '0 auto', width: '100%', padding: '32px 48px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px', alignItems: 'flex-start' }}>
 
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-          gap: '12px', marginBottom: '32px',
-        }}>
-          {[
-            { label: 'Toplam Sipariş', value: orders.length },
-            { label: 'Aktif', value: orders.filter(o => o.status === 'in_progress').length },
-            { label: 'Tamamlanan', value: orders.filter(o => o.status === 'completed').length },
-            { label: 'Bekleyen', value: orders.filter(o => o.status === 'pending').length },
-          ].map(stat => (
-            <div key={stat.label} style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '12px', padding: '20px',
-            }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
-                {stat.label}
-              </div>
-              <div style={{ fontSize: '28px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Sol sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: '80px' }}>
 
-        <h2 className="h3" style={{ color: '#fff', marginBottom: '16px' }}>Siparişlerim</h2>
-
-        {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
-        ) : orders.length === 0 ? (
+          {/* Profil kartı */}
           <div style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
-            borderRadius: '16px', padding: '60px', textAlign: 'center',
+            borderRadius: '16px', overflow: 'hidden',
           }}>
-            <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
-              Henüz sipariş vermediniz.
-            </p>
-            <Link href="/games" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary">Hizmetlere Göz At</button>
-            </Link>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {orders.map(order => {
-              const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending
-              return (
-                <div key={order.id} style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border)',
-                  borderRadius: '12px', padding: '20px',
-                  display: 'flex', alignItems: 'center', gap: '16px',
+            <div style={{
+              background: 'var(--gold)', padding: '20px',
+              display: 'flex', alignItems: 'center', gap: '12px',
+            }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '50%',
+                background: '#0a0a0a', border: '2px solid rgba(0,0,0,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '20px', fontWeight: '800', color: 'var(--gold)',
+                fontFamily: 'var(--font-montserrat)', flexShrink: 0,
+              }}>
+                {username[0]?.toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: '#0a0a0a' }}>
+                  {username}
+                </div>
+                <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.6)', marginTop: '2px' }}>
+                  Üye
+                </div>
+              </div>
+            </div>
+
+            {/* İstatistikler */}
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+              {[
+                { label: 'Total', value: orders.length },
+                { label: 'Active', value: activeOrders.length },
+                { label: 'Completed', value: completedOrders.length },
+              ].map(stat => (
+                <div key={stat.label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>{stat.value}</div>
+                  <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '1px' }}>{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Harcama */}
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Spent</span>
+                <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                  {totalSpent.toLocaleString('tr-TR')} ₺
+                </span>
+              </div>
+            </div>
+
+            {/* Menü */}
+            <div style={{ padding: '8px' }}>
+              {[
+                { key: 'orders', icon: '📦', label: 'My Orders' },
+                { key: 'active', icon: '⚡', label: 'Active Orders' },
+                { key: 'account', icon: '⚙️', label: 'Account Settings' },
+              ].map(item => (
+                <button key={item.key} onClick={() => setTab(item.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: '10px',
+                  width: '100%', padding: '9px 12px', borderRadius: '8px',
+                  background: tab === item.key ? 'rgba(245,197,24,0.1)' : 'transparent',
+                  border: tab === item.key ? '1px solid rgba(245,197,24,0.3)' : '1px solid transparent',
+                  color: tab === item.key ? 'var(--gold)' : 'var(--text-muted)',
+                  fontSize: '13px', fontFamily: 'var(--font-inter)',
+                  cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+                  marginBottom: '2px',
                 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                      <span style={{
-                        fontFamily: 'var(--font-montserrat)', fontWeight: '700',
-                        fontSize: '13px', color: 'var(--gold)',
-                      }}>{order.orderNumber}</span>
-                      <span style={{
-                        fontSize: '11px', padding: '2px 8px', borderRadius: '20px',
-                        background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
-                      }}>{STATUS_LABELS[order.status]}</span>
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#fff', marginBottom: '4px' }}>
-                      {order.service?.game?.name} — {order.service?.name}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {order.price?.toLocaleString('tr-TR')} ₺ · {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                    </div>
+                  <span>{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+              <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
+              <button onClick={logout} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                width: '100%', padding: '9px 12px', borderRadius: '8px',
+                background: 'transparent', border: '1px solid transparent',
+                color: '#ff6666', fontSize: '13px', fontFamily: 'var(--font-inter)',
+                cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s',
+              }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,100,100,0.1)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                <span>🚪</span> Logout
+              </button>
+            </div>
+          </div>
+
+          <Link href="/games" style={{ textDecoration: 'none' }}>
+            <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>
+              + New Order
+            </button>
+          </Link>
+        </div>
+
+        {/* Sağ içerik */}
+        <div>
+          {tab === 'orders' && (
+            <OrdersTab orders={orders} loading={loading} title="All Orders" />
+          )}
+          {tab === 'active' && (
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." />
+          )}
+          {tab === 'account' && (
+            <AccountTab username={username} />
+          )}
+        </div>
+      </div>
+
+      <Footer />
+    </main>
+  )
+}
+
+function OrdersTab({ orders, loading, title, emptyText }) {
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+
+  return (
+    <div>
+      <h2 className="h3" style={{ color: '#fff', marginBottom: '20px' }}>{title}</h2>
+
+      {orders.length === 0 ? (
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '16px', padding: '60px', textAlign: 'center',
+        }}>
+          <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
+            {emptyText || 'You have not placed any orders yet.'}
+          </p>
+          <Link href="/games" style={{ textDecoration: 'none' }}>
+            <button className="btn-primary">Browse Services</button>
+          </Link>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {orders.map(order => {
+            const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending
+            const details = order.details || {}
+            const selection = details.selection || {}
+            const options = order.service?.options
+
+            return (
+              <div key={order.id} style={{
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: '12px', padding: '16px 20px',
+                display: 'flex', alignItems: 'center', gap: '16px',
+              }}>
+                {order.service?.game?.coverImage ? (
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
+                    backgroundImage: `url(${order.service.game.coverImage})`,
+                    backgroundSize: 'cover', backgroundPosition: 'center',
+                    border: '1px solid var(--border)',
+                  }} />
+                ) : (
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '10px',
+                    background: 'var(--bg-elevated)', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '20px', border: '1px solid var(--border)',
+                  }}>🎮</div>
+                )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
+                      {order.service?.name}
+                    </span>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
+                      background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
+                    }}>{STATUS_LABELS[order.status]}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {order.service?.game?.name}
+                    {options?.type === 'range' && ` · ${selection.from} → ${selection.to} ${options.unitName}`}
+                    {options?.type === 'quantity' && ` · ${selection.quantity} ${options.unitName}`}
+                    {options?.type === 'options' && ` · ${selection.choice}`}
                   </div>
                 </div>
-              )
-            })}
+
+                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                    {order.price?.toLocaleString('tr-TR')} ₺
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                    {new Date(order.createdAt).toLocaleDateString('tr-TR')}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AccountTab({ username }) {
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [msg, setMsg] = useState({ text: '', type: '' })
+  const [activeSection, setActiveSection] = useState('profile')
+
+  const [form, setForm] = useState({
+    displayName: '', discordId: '',
+    billingName: '', billingAddress: '', billingCity: '',
+    billingCountry: '', billingPhone: '', billingPostalCode: '',
+  })
+
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const token = localStorage.getItem('token')
+      if (!token) { setLoading(false); return }
+      const res = await fetch('/api/auth', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'getProfile' }),
+      })
+      const d = await res.json()
+      if (d.success) {
+        setProfile(d.data)
+        setForm({
+          displayName: d.data.displayName || '',
+          discordId: d.data.discordId || '',
+          billingName: d.data.billingName || '',
+          billingAddress: d.data.billingAddress || '',
+          billingCity: d.data.billingCity || '',
+          billingCountry: d.data.billingCountry || '',
+          billingPhone: d.data.billingPhone || '',
+          billingPostalCode: d.data.billingPostalCode || '',
+        })
+      }
+      setLoading(false)
+    }
+    fetchProfile()
+  }, [])
+
+  async function saveProfile() {
+    setSaving(true)
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/auth', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'updateProfile', ...form }),
+    })
+    const d = await res.json()
+    if (d.success) setMsg({ text: 'Profil güncellendi!', type: 'success' })
+    else setMsg({ text: d.error || 'Hata oluştu', type: 'error' })
+    setSaving(false)
+    setTimeout(() => setMsg({ text: '', type: '' }), 3000)
+  }
+
+  async function changePassword() {
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setMsg({ text: 'New passwords do not match', type: 'error' }); return
+    }
+    if (pwForm.newPassword.length < 6) {
+      setMsg({ text: 'Password must be at least 6 characters long', type: 'error' }); return
+    }
+    setSaving(true)
+    const token = localStorage.getItem('token')
+    const res = await fetch('/api/auth', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action: 'changePassword', currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
+    })
+    const d = await res.json()
+    if (d.success) { setMsg({ text: 'Password updated!', type: 'success' }); setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' }) }
+    else setMsg({ text: d.error || 'An error occurred', type: 'error' })
+    setSaving(false)
+    setTimeout(() => setMsg({ text: '', type: '' }), 3000)
+  }
+
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+
+  return (
+    <div>
+      <h2 className="h3" style={{ color: '#fff', marginBottom: '20px' }}>Account Settings</h2>
+
+      {msg.text && (
+        <div style={{
+          padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px',
+          background: msg.type === 'success' ? '#1a2a1a' : '#2a1a1a',
+          border: `1px solid ${msg.type === 'success' ? '#2a4a2a' : '#4a2a2a'}`,
+          color: msg.type === 'success' ? '#4caf50' : '#ff6666',
+        }}>{msg.text}</div>
+      )}
+
+      {/* Sekme butonları */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        {[{ key: 'profile', label: 'Profile' }, { key: 'billing', label: 'Billing' }, { key: 'password', label: 'Password' }].map(s => (
+          <button key={s.key} onClick={() => setActiveSection(s.key)} style={{
+            padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
+            fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer',
+            border: '1px solid',
+            background: activeSection === s.key ? 'var(--gold)' : 'transparent',
+            color: activeSection === s.key ? '#0a0a0a' : 'var(--text-muted)',
+            borderColor: activeSection === s.key ? 'var(--gold)' : 'var(--border)',
+          }}>{s.label}</button>
+        ))}
+      </div>
+
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px' }}>
+
+        {activeSection === 'profile' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <ProfileField label="Kullanıcı Adı" value={username} disabled />
+              <ProfileField label="E-posta" value={profile?.email || ''} disabled />
+            </div>
+            <ProfileField label="Display Name" value={form.displayName}
+              onChange={v => setForm(f => ({ ...f, displayName: v }))}
+              placeholder="Give a nickname" />
+            <ProfileField label="Discord ID" value={form.discordId}
+              onChange={v => setForm(f => ({ ...f, discordId: v }))}
+              placeholder="e.g., username#1234" />
+            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+              Contact support to change your email address.
+            </div>
+            <button className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
+              onClick={saveProfile} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
+
+        {activeSection === 'billing' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <ProfileField label="Name & Surname" value={form.billingName}
+              onChange={v => setForm(f => ({ ...f, billingName: v }))}
+              placeholder="Name and surname to appear on the invoice" />
+            <ProfileField label="Address" value={form.billingAddress}
+              onChange={v => setForm(f => ({ ...f, billingAddress: v }))}
+              placeholder="Street, building number..." />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <ProfileField label="City" value={form.billingCity}
+                onChange={v => setForm(f => ({ ...f, billingCity: v }))}
+                placeholder="London" />
+              <ProfileField label="Postal Code" value={form.billingPostalCode}
+                onChange={v => setForm(f => ({ ...f, billingPostalCode: v }))}
+                placeholder="SW1A 1AA" />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <ProfileField label="Country" value={form.billingCountry}
+                onChange={v => setForm(f => ({ ...f, billingCountry: v }))}
+                placeholder="Turkey" />
+              <ProfileField label="Phone" value={form.billingPhone}
+                onChange={v => setForm(f => ({ ...f, billingPhone: v }))}
+                placeholder="+90 555 000 00 00" />
+            </div>
+            <button className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
+              onClick={saveProfile} disabled={saving}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        )}
+
+        {activeSection === 'password' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
+            <ProfileField label="Current Password" value={pwForm.currentPassword} type="password"
+              onChange={v => setPwForm(f => ({ ...f, currentPassword: v }))} />
+            <ProfileField label="New Password" value={pwForm.newPassword} type="password"
+              onChange={v => setPwForm(f => ({ ...f, newPassword: v }))} />
+            <ProfileField label="Confirm New Password" value={pwForm.confirmPassword} type="password"
+              onChange={v => setPwForm(f => ({ ...f, confirmPassword: v }))} />
+            <button className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
+              onClick={changePassword} disabled={saving}>
+              {saving ? 'Updating...' : 'Update Password'}
+            </button>
           </div>
         )}
       </div>
-      <Footer />
-    </main>
+    </div>
+  )
+}
+
+function ProfileField({ label, value, onChange, type = 'text', placeholder, disabled }) {
+  return (
+    <div>
+      <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
+        {label}
+      </label>
+      <input type={type} value={value} onChange={e => onChange?.(e.target.value)}
+        placeholder={placeholder} disabled={disabled}
+        style={{
+          width: '100%', background: disabled ? 'var(--bg)' : 'var(--bg-elevated)',
+          border: '1px solid var(--border)', borderRadius: '8px',
+          padding: '10px 14px', color: disabled ? 'var(--text-muted)' : '#fff',
+          fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none',
+          cursor: disabled ? 'not-allowed' : 'text',
+        }} />
+    </div>
   )
 }

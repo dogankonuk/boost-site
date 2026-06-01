@@ -95,7 +95,7 @@ export default function Navbar() {
           onMouseEnter={e => e.target.style.color = 'var(--gold)'}
           onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
         >
-          Oyunlar
+          Games
         </Link>
 
         <div ref={searchRef} style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
@@ -103,7 +103,7 @@ export default function Navbar() {
         value={search}
         onChange={e => handleSearch(e.target.value)}
         onFocus={() => search && setSearchOpen(true)}
-        placeholder="Oyun/servis ara..."
+        placeholder="Search games & services..."
         style={{
           width: '100%',
           background: 'var(--bg-elevated)',
@@ -127,11 +127,11 @@ export default function Navbar() {
         }}>
           {searchLoading ? (
             <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
-              Aranıyor...
+              Searching...
             </div>
           ) : searchResults.length === 0 ? (
             <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
-              Sonuç bulunamadı
+              No results found
             </div>
           ) : (
             <div>
@@ -177,7 +177,7 @@ export default function Navbar() {
                       border: `1px solid ${result.type === 'game' ? 'var(--gold)' : 'var(--border)'}`,
                       fontFamily: 'var(--font-montserrat)', fontWeight: '600', flexShrink: 0,
                     }}>
-                      {result.type === 'game' ? 'Oyun' : 'Hizmet'}
+                      {result.type === 'game' ? 'Game' : 'Service'}
                     </span>
                   </div>
                 </a>
@@ -189,8 +189,8 @@ export default function Navbar() {
     </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <NavIcon href="/notifications" label="Bildirimler"><BellIcon /></NavIcon>
-          <NavIcon href="/cart" label="Sepet"><CartIcon /></NavIcon>
+          <NavIcon href="/notifications" label="Notifications"><BellIcon /></NavIcon>
+          <NavIcon href="/cart" label="Cart"><CartIcon /></NavIcon>
 
           {user ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>
@@ -228,8 +228,8 @@ export default function Navbar() {
                   minWidth: '180px', zIndex: 200,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 }}>
-                  <DropdownItem href="/dashboard" icon="📦" label="Siparişlerim" onClick={() => setDropdownOpen(false)} />
-                  <DropdownItem href="/dashboard" icon="⚙️" label="Hesabım" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard" icon="📦" label="My Orders" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard" icon="⚙️" label="My Account" onClick={() => setDropdownOpen(false)} />
                   <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
                   <button onClick={logout} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
@@ -242,7 +242,7 @@ export default function Navbar() {
                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,100,100,0.1)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <span>🚪</span> Çıkış Yap
+                    <span>🚪</span> Sign Out
                   </button>
                 </div>
               )}
@@ -256,7 +256,7 @@ export default function Navbar() {
                 cursor: 'pointer', fontFamily: 'var(--font-montserrat)',
                 fontWeight: '600', fontSize: '13px', color: '#0a0a0a',
               }}>
-                Giriş Yap
+                Sign In
               </button>
             </Link>
           )}

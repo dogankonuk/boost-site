@@ -3,10 +3,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function GameServices({ services, game }) {
-  const categories = ['Tümü', ...new Set(services.map(s => s.serviceCategory || 'Genel'))]
-  const [active, setActive] = useState('Tümü')
+  const categories = ['All', ...new Set(services.map(s => s.serviceCategory || 'General'))]
+  const [active, setActive] = useState('All')
 
-  const filtered = active === 'Tümü'
+  const filtered = active === 'All'
     ? services
     : services.filter(s => (s.serviceCategory || 'Genel') === active)
 
@@ -28,7 +28,7 @@ export default function GameServices({ services, game }) {
 
       {filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-          <p className="body-large">Bu kategoride hizmet bulunamadı.</p>
+          <p className="body-large">No services available for this game yet.</p>
         </div>
       ) : (
         <div style={{
@@ -55,17 +55,17 @@ function ServiceCard({ service }) {
     if (options.type === 'range') return `${options.pricePerUnit?.toLocaleString('tr-TR')} ₺ / ${options.unitName}`
     if (options.type === 'options') {
       const min = Math.min(...(options.choices?.map(c => c.price) || [service.basePrice]))
-      return `${min.toLocaleString('tr-TR')} ₺'den başlayan`
+      return `${min.toLocaleString('tr-TR')} from ₺`
     }
     return `${service.basePrice.toLocaleString('tr-TR')} ₺`
   }
 
   function getPriceSubLabel() {
-    if (!options || options.type === 'fixed') return 'sabit fiyat'
+    if (!options || options.type === 'fixed') return 'fixed price'
     if (options.type === 'quantity') return `min ${options.minQty} — max ${options.maxQty}`
     if (options.type === 'range') return `${options.min} → ${options.max} ${options.unitName}`
-    if (options.type === 'options') return `${options.choices?.length} seçenek`
-    return 'başlangıç fiyatı'
+    if (options.type === 'options') return `${options.choices?.length} options`
+    return 'starting price'
   }
 
   return (

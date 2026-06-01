@@ -15,7 +15,7 @@ export default function LoginPage() {
     setError('')
 
     if (tab === 'register' && !form.username) {
-      setError('Kullanıcı adı gerekli')
+      setError('Username is required')
       setLoading(false)
       return
     }
@@ -37,10 +37,10 @@ export default function LoginPage() {
         localStorage.setItem('username', d.data.username)
         router.push('/dashboard')
       } else {
-        setError(d.error || 'Bir hata oluştu')
+        setError(d.error || 'An error occurred')
       }
     } catch {
-      setError('Sunucuya bağlanılamadı')
+      setError('Failed to connect to the server')
     }
 
     setLoading(false)
@@ -74,8 +74,8 @@ export default function LoginPage() {
       }}>
         <div style={{ display: 'flex', marginBottom: '28px', borderBottom: '1px solid var(--border)' }}>
           {[
-            { key: 'login', label: 'Giriş Yap' },
-            { key: 'register', label: 'Kayıt Ol' },
+            { key: 'login', label: 'Login' },
+            { key: 'register', label: 'Register' },
           ].map(t => (
             <button key={t.key} onClick={() => { setTab(t.key); setError('') }} style={{
               flex: 1, padding: '12px',
@@ -95,11 +95,11 @@ export default function LoginPage() {
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
               display: 'block', marginBottom: '6px',
             }}>
-              {tab === 'login' ? 'Email veya kullanıcı adı' : 'Email'}
+              {tab === 'login' ? 'Email or Username' : 'Email'}
             </label>
             <input
               type="email"
-              placeholder="ornek@mail.com"
+              placeholder="example@mail.com"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               style={inputStyle}
@@ -108,7 +108,7 @@ export default function LoginPage() {
 
           {tab === 'register' && (
             <div>
-              <label style={labelStyle}>Kullanıcı adı</label>
+              <label style={labelStyle}>Username</label>
               <input
                 type="text"
                 placeholder="shadowplayer"
@@ -120,7 +120,7 @@ export default function LoginPage() {
           )}
 
           <div>
-            <label style={labelStyle}>Şifre</label>
+            <label style={labelStyle}>Password</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -145,13 +145,13 @@ export default function LoginPage() {
             disabled={loading}
             style={{ width: '100%', marginTop: '4px', opacity: loading ? 0.7 : 1 }}
           >
-            {loading ? 'Lütfen bekleyin...' : tab === 'login' ? 'Giriş Yap' : 'Hesap Oluştur'}
+            {loading ? 'Please wait...' : tab === 'login' ? 'Login' : 'Create Account'}
           </button>
         </div>
       </div>
 
       <p style={{ color: 'var(--text-dim)', fontSize: '12px', marginTop: '24px' }}>
-        © 2024 ShadowBoosting.co — Tüm hakları saklıdır.
+        © 2024 ShadowBoosting.co — All rights reserved.
       </p>
     </div>
   )

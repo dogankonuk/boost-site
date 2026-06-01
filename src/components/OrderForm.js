@@ -57,8 +57,8 @@ export default function OrderForm({ service }) {
       })
       const d = await res.json()
       if (d.success) router.push('/dashboard')
-      else setError(d.error || 'Bir hata oluştu')
-    } catch { setError('Sunucuya bağlanılamadı') }
+      else setError(d.error || 'An error occurred')
+    } catch { setError('Failed to connect to the server') }
     setLoading(false)
   }
 
@@ -72,19 +72,19 @@ export default function OrderForm({ service }) {
         borderBottom: '1px solid var(--border)',
       }}>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
-          {options?.type === 'fixed' || !options ? 'fiyat' : 'toplam fiyat'}
+          {options?.type === 'fixed' || !options ? 'price' : 'total price'}
         </div>
         <div style={{ fontSize: '36px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
-          {price.toLocaleString('tr-TR')} ₺
+          {price.toLocaleString('en-US')} ₺
         </div>
         {options?.type === 'range' && (
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            {selection.from}. seviyeden {selection.to}. seviyeye — {Math.max(0, selection.to - selection.from)} {options.unitName}
+            From level {selection.from} to level {selection.to} — {Math.max(0, selection.to - selection.from)} {options.unitName}
           </div>
         )}
         {options?.type === 'quantity' && (
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            {selection.quantity} × {options.unitPrice?.toLocaleString('tr-TR')} ₺
+            {selection.quantity} × {options.unitPrice?.toLocaleString('en-US')} ₺
           </div>
         )}
       </div>
@@ -94,7 +94,7 @@ export default function OrderForm({ service }) {
         {options?.type === 'quantity' && (
           <div>
             <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600', display: 'block', marginBottom: '8px' }}>
-              {options.unitName} Miktarı
+              {options.unitName} Amount
             </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <button onClick={() => setSelection(s => ({ ...s, quantity: Math.max(options.minQty, s.quantity - 1) }))}
@@ -116,11 +116,11 @@ export default function OrderForm({ service }) {
         {options?.type === 'range' && (
           <div>
             <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600', display: 'block', marginBottom: '12px' }}>
-              {options.unitName} Aralığı Seç
+              Select {options.unitName} Range
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>Başlangıç</label>
+                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>From</label>
                 <select value={selection.from}
                   onChange={e => {
                     const from = parseInt(e.target.value)
@@ -133,7 +133,7 @@ export default function OrderForm({ service }) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>Hedef</label>
+                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>To</label>
                 <select value={selection.to}
                   onChange={e => setSelection(s => ({ ...s, to: parseInt(e.target.value) }))}
                   style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', color: '#fff', fontSize: '14px', outline: 'none' }}>
@@ -149,7 +149,7 @@ export default function OrderForm({ service }) {
               fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center',
             }}>
               <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{Math.max(0, selection.to - selection.from)}</span> {options.unitName} boost
-              &nbsp;·&nbsp; birim başına <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{options.pricePerUnit?.toLocaleString('tr-TR')} ₺</span>
+              &nbsp;·&nbsp; <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{options.pricePerUnit?.toLocaleString('en-US')} ₺</span> per unit
             </div>
           </div>
         )}
@@ -157,7 +157,7 @@ export default function OrderForm({ service }) {
         {options?.type === 'options' && (
           <div>
             <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600', display: 'block', marginBottom: '8px' }}>
-              Seçenek
+              Select Option
             </label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {options.choices?.map((c, i) => (
@@ -170,7 +170,7 @@ export default function OrderForm({ service }) {
                     background: selection.choice === c.label ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
                   }}>
                   <span style={{ fontSize: '14px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>{c.label}</span>
-                  <span style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>{c.price?.toLocaleString('tr-TR')} ₺</span>
+                  <span style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>{c.price?.toLocaleString('en-US')} ₺</span>
                 </button>
               ))}
             </div>
@@ -183,10 +183,10 @@ export default function OrderForm({ service }) {
           borderRadius: '10px', border: '1px solid var(--border)',
         }}>
           {[
-            { icon: '⚡', text: '1–3 gün içinde teslim' },
-            { icon: '🛡', text: 'Hesap güvenliği garantili' },
-            { icon: '💰', text: 'Para iade garantisi' },
-            { icon: '🌐', text: 'VPN koruması' },
+            { icon: '⚡', text: 'Delivered within 1–3 days' },
+            { icon: '🛡', text: 'Account safety guaranteed' },
+            { icon: '💰', text: 'Money-back guarantee' },
+            { icon: '🌐', text: 'VPN protection' },
           ].map(item => (
             <div key={item.text} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-muted)' }}>
               <span>{item.icon}</span>{item.text}
@@ -196,10 +196,10 @@ export default function OrderForm({ service }) {
 
         <div>
           <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
-            Not (opsiyonel)
+            Note (optional)
           </label>
           <textarea value={note} onChange={e => setNote(e.target.value)}
-            placeholder="Booster'a iletmek istediğiniz özel notlar..."
+            placeholder="Any special instructions for your booster..."
             rows={3} style={{
               width: '100%', background: 'var(--bg-elevated)',
               border: '1px solid var(--border)', borderRadius: '8px',
@@ -216,11 +216,11 @@ export default function OrderForm({ service }) {
 
         <button className="btn-primary" onClick={handleOrder} disabled={loading}
           style={{ width: '100%', padding: '14px', fontSize: '15px', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'İşleniyor...' : loggedIn ? `${price.toLocaleString('tr-TR')} ₺ — Hemen Satın Al` : 'Giriş Yap ve Satın Al'}
+          {loading ? 'Processing...' : loggedIn ? `${price.toLocaleString('en-US')} ₺ — Buy Now` : 'Sign In to Purchase'}
         </button>
 
         <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
-          Sipariş vererek hizmet şartlarımızı kabul etmiş olursunuz.
+          By placing an order you agree to our terms of service.
         </p>
       </div>
     </div>

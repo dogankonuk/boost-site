@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import { sendOrderStatusUpdate } from '@/lib/email'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'boost-admin-2024'
 
@@ -72,8 +73,24 @@ export async function PATCH(request) {
     if (type === 'order') {
       const order = await prisma.order.update({
         where: { id: parseInt(id) },
-        data
+        data,
+        include: {
+          user: { select: { email: true, username: true } },
+          service: { include: { game: true } }
+        }
       })
+
+      if (data.status && ['assigned', 'in_progress', 'completed', 'cancelled'].includes(data.status)) {
+        await sendOrderStatusUpdate({
+          to: order.user?.email,
+          username: order.user?.username,
+          orderNumber: order.orderNumber,
+          gameName: order.service?.game?.name,
+          serviceName: order.service?.name,
+          status: data.status,
+        })
+      }
+
       return NextResponse.json({ success: true, data: order })
     }
     if (type === 'gameCategories') {
