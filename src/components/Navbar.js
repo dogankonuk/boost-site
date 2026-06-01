@@ -9,6 +9,10 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const router = useRouter()
+  const [searchResults, setSearchResults] = useState([])
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchLoading, setSearchLoading] = useState(false)
+  const searchRef = useRef(null)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -18,6 +22,9 @@ export default function Navbar() {
     function handleClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false)
+      }
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -30,6 +37,19 @@ export default function Navbar() {
     setUser(null)
     setDropdownOpen(false)
     router.push('/')
+  }
+
+  async function handleSearch(val) {
+    setSearch(val)
+    if (!val.trim()) { setSearchResults([]); setSearchOpen(false); return }
+    setSearchLoading(true)
+    setSearchOpen(true)
+    try {
+      const res = await fetch(`/api/search?q=${encodeURIComponent(val)}`)
+      const d = await res.json()
+      if (d.success) setSearchResults(d.data)
+    } catch {}
+    setSearchLoading(false)
   }
 
   return (
@@ -78,21 +98,95 @@ export default function Navbar() {
           Oyunlar
         </Link>
 
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Oyun/servis ara..."
-          style={{
-            flex: 1, maxWidth: '320px',
-            background: 'var(--bg-elevated)',
-            border: '1px solid var(--border)',
-            borderRadius: '8px',
-            padding: '8px 16px',
-            color: '#fff', fontSize: '13px',
-            fontFamily: 'var(--font-inter)',
-            outline: 'none',
-          }}
-        />
+        <div ref={searchRef} style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
+  <input
+        value={search}
+        onChange={e => handleSearch(e.target.value)}
+        onFocus={() => search && setSearchOpen(true)}
+        placeholder="Oyun/servis ara..."
+        style={{
+          width: '100%',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border)',
+          borderRadius: '8px',
+          padding: '8px 16px',
+          color: '#fff', fontSize: '13px',
+          fontFamily: 'var(--font-inter)',
+          outline: 'none',
+        }}
+      />
+
+      {searchOpen && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 6px)', left: 0,
+          width: '100%', minWidth: '320px',
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '12px', zIndex: 200,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          overflow: 'hidden',
+        }}>
+          {searchLoading ? (
+            <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
+              Aranıyor...
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center' }}>
+              Sonuç bulunamadı
+            </div>
+          ) : (
+            <div>
+              {searchResults.map((result, i) => (
+                <a key={i} href={result.url} onClick={() => { setSearchOpen(false); setSearch('') }}
+                  style={{ textDecoration: 'none', display: 'block' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '10px 16px', cursor: 'pointer',
+                    borderBottom: i < searchResults.length - 1 ? '1px solid var(--border)' : 'none',
+                    transition: 'background 0.15s',
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {result.image ? (
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '8px',
+                        backgroundImage: `url(${result.image})`,
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                        flexShrink: 0, border: '1px solid var(--border)',
+                      }} />
+                    ) : (
+                      <div style={{
+                        width: '36px', height: '36px', borderRadius: '8px',
+                        background: 'var(--bg-elevated)', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '16px', border: '1px solid var(--border)',
+                      }}>🎮</div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {result.name}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        {result.type === 'game' ? result.category : `${result.gameName} · ${result.price}`}
+                      </div>
+                    </div>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
+                      background: result.type === 'game' ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
+                      color: result.type === 'game' ? 'var(--gold)' : 'var(--text-muted)',
+                      border: `1px solid ${result.type === 'game' ? 'var(--gold)' : 'var(--border)'}`,
+                      fontFamily: 'var(--font-montserrat)', fontWeight: '600', flexShrink: 0,
+                    }}>
+                      {result.type === 'game' ? 'Oyun' : 'Hizmet'}
+                    </span>
+                  </div>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
           <NavIcon href="/notifications" label="Bildirimler"><BellIcon /></NavIcon>
