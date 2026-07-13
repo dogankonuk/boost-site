@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import AdminGames from '@/components/admin/AdminGames'
 import AdminOrders from '@/components/admin/AdminOrders'
+import AdminBoosters from '@/components/admin/AdminBoosters'
 
 const ADMIN_SECRET = 'boost-admin-2024'
 
@@ -74,7 +75,7 @@ export default function AdminPage() {
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', display: 'flex' }}>
-          {[{ key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }].map(t => (
+          {[{ key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
               padding: '14px 20px', background: 'transparent', border: 'none',
               borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
@@ -90,6 +91,7 @@ export default function AdminPage() {
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 48px' }}>
         {tab === 'games' && <AdminGames secret={ADMIN_SECRET} />}
         {tab === 'orders' && <AdminOrders secret={ADMIN_SECRET} />}
+        {tab === 'boosters' && <AdminBoosters secret={ADMIN_SECRET} />}
       </div>
     </div>
   )

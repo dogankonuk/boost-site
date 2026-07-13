@@ -1,6 +1,7 @@
 import './globals.css'
 import { Montserrat, Inter } from 'next/font/google'
 import { CurrencyProvider } from '@/context/CurrencyContext'
+import { CartProvider } from '@/context/CartContext'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -24,9 +25,11 @@ export default function RootLayout({ children }) {
     <html lang="tr" className={`${montserrat.variable} ${inter.variable}`}>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <CurrencyProvider>
-          <div style={{ flex: 1 }}>
-            {children}
-          </div>
+          <CartProvider>
+            <div style={{ flex: 1 }}>
+              {children}
+            </div>
+          </CartProvider>
         </CurrencyProvider>
       </body>
     </html>

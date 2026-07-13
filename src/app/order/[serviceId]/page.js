@@ -16,7 +16,7 @@ export default async function OrderPage({ params }) {
   if (!service) return notFound()
 
   return (
-    <main>
+    <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
       <div style={{

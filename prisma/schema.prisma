@@ -59,8 +59,9 @@ model User {
   billingPhone      String?
   billingPostalCode String?
   
-  orders       Order[]
-  booster      Booster?
+  orders        Order[]
+  booster       Booster?
+  notifications Notification[]
 }
 
 model Booster {
@@ -97,4 +98,18 @@ model Setting {
   id    Int    @id @default(autoincrement())
   key   String @unique
   value Json
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  body      String?
+  link      String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
 }

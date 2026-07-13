@@ -1,12 +1,40 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import { sendOrderStatusUpdate } from '@/lib/email'
+import { notifyOrderStatus } from '@/lib/notify'
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET || 'boost-admin-2024'
 
 function isAdmin(request) {
   const auth = request.headers.get('authorization')
   return auth === `Bearer ${ADMIN_SECRET}`
+}
+
+async function pingBoosterOnDiscord(order, booster) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL
+  if (!webhookUrl || !booster?.discordId) return
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: `<@${booster.discordId}> yeni bir sipariş sana atandı!`,
+        embeds: [{
+          title: '🛠️ Sipariş Atandı',
+          color: 0xF5C518,
+          fields: [
+            { name: '📋 Sipariş No', value: order.orderNumber, inline: true },
+            { name: '🎯 Oyun', value: order.service?.game?.name || '-', inline: true },
+            { name: '⚡ Hizmet', value: order.service?.name || '-', inline: true },
+          ],
+          footer: { text: 'ShadowBoosting.co' },
+          timestamp: new Date().toISOString(),
+        }],
+      }),
+    })
+  } catch (err) {
+    console.error('Discord booster ping error:', err)
+  }
 }
 
 export async function GET(request) {
@@ -54,9 +82,69 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: all, manual: manualCategories })
     }
 
+    if (type === 'boosters') {
+      const boosters = await prisma.booster.findMany({
+        include: {
+          user: { select: { username: true, email: true, isActive: true } },
+          orders: { select: { id: true, status: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      return NextResponse.json({ success: true, data: boosters })
+    }
+
+    if (type === 'userSearch') {
+      const q = searchParams.get('q')?.trim()
+      if (!q || q.length < 2) return NextResponse.json({ success: true, data: [] })
+      const users = await prisma.user.findMany({
+        where: {
+          OR: [
+            { username: { contains: q, mode: 'insensitive' } },
+            { email: { contains: q, mode: 'insensitive' } },
+          ],
+          booster: null,
+        },
+        select: { id: true, username: true, email: true },
+        take: 6,
+      })
+      return NextResponse.json({ success: true, data: users })
+    }
+
     return NextResponse.json({ success: false, error: 'type parametresi gerekli' }, { status: 400 })
   } catch (error) {
     console.error('Admin GET error:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+}
+
+export async function POST(request) {
+  if (!isAdmin(request)) {
+    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const { type, data } = body
+
+    if (type === 'booster') {
+      const targetUser = await prisma.user.findUnique({ where: { id: parseInt(data.userId) } })
+      if (!targetUser) {
+        return NextResponse.json({ success: false, error: 'Kullanıcı bulunamadı' }, { status: 404 })
+      }
+      const booster = await prisma.booster.create({
+        data: {
+          userId: targetUser.id,
+          discordId: data.discordId || null,
+          games: data.games && data.games.length > 0 ? data.games : null,
+        },
+        include: { user: { select: { username: true, email: true } } },
+      })
+      return NextResponse.json({ success: true, data: booster }, { status: 201 })
+    }
+
+    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+  } catch (error) {
+    console.error('Admin POST error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
@@ -76,7 +164,8 @@ export async function PATCH(request) {
         data,
         include: {
           user: { select: { email: true, username: true } },
-          service: { include: { game: true } }
+          service: { include: { game: true } },
+          booster: { include: { user: true } },
         }
       })
 
@@ -89,6 +178,21 @@ export async function PATCH(request) {
           serviceName: order.service?.name,
           status: data.status,
         })
+        await notifyOrderStatus(prisma, order, data.status)
+      }
+
+      // 'boosterId' being present in the payload means this PATCH is (also) an assignment action
+      if ('boosterId' in data && data.boosterId && order.booster) {
+        await prisma.notification.create({
+          data: {
+            userId: order.booster.user.id,
+            type: 'order_assigned',
+            title: 'Yeni sipariş atandı',
+            body: `${order.service?.game?.name} — ${order.service?.name}`,
+            link: '/booster',
+          },
+        })
+        await pingBoosterOnDiscord(order, order.booster)
       }
 
       return NextResponse.json({ success: true, data: order })
@@ -141,6 +245,15 @@ export async function PATCH(request) {
     })
     return NextResponse.json({ success: true, data: service })
   }
+
+    if (type === 'booster') {
+      const booster = await prisma.booster.update({
+        where: { id: parseInt(id) },
+        data,
+        include: { user: { select: { username: true, email: true } } },
+      })
+      return NextResponse.json({ success: true, data: booster })
+    }
 
     return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
   } catch (error) {

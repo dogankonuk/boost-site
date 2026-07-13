@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useCart } from '@/context/CartContext'
 
 function calculatePrice(options, basePrice, selection) {
   if (!options || options.type === 'fixed') return basePrice
@@ -30,11 +31,13 @@ const TRUST_ITEMS = [
 export default function OrderForm({ service }) {
   const router = useRouter()
   const { format } = useCurrency()
+  const { addItem } = useCart()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [note, setNote] = useState('')
   const [loggedIn, setLoggedIn] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [addedToCart, setAddedToCart] = useState(false)
   const [selection, setSelection] = useState({
     quantity: service.options?.minQty || 1,
     from: service.options?.min || 1,
@@ -72,6 +75,30 @@ export default function OrderForm({ service }) {
       else setError(d.error || 'An error occurred')
     } catch { setError('Failed to connect to the server') }
     setLoading(false)
+  }
+
+  function getSelectionSummary() {
+    if (!options || options.type === 'fixed') return null
+    if (options.type === 'range') return `${selection.from} → ${selection.to} ${options.unitName}`
+    if (options.type === 'quantity') return `${selection.quantity} × ${options.unitName}`
+    if (options.type === 'options') return selection.choice
+    return null
+  }
+
+  function handleAddToCart() {
+    addItem({
+      serviceId: service.id,
+      serviceName: service.name,
+      gameName: service.game?.name,
+      gameSlug: service.game?.slug,
+      imageUrl: service.imageUrl || service.game?.coverImage || null,
+      selectionSummary: getSelectionSummary(),
+      selection,
+      note,
+      price,
+    })
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 2000)
   }
 
   const rangeMin = options?.min ?? 0
@@ -276,21 +303,35 @@ export default function OrderForm({ service }) {
           </div>
         )}
 
-        <button className="btn-primary" onClick={handleOrder} disabled={loading}
-          style={{
-            width: '100%', padding: '14px', fontSize: '15px', opacity: loading ? 0.7 : 1,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          }}>
-          {loading ? (
-            <>
-              <Spinner /> Processing...
-            </>
-          ) : loggedIn ? (
-            `${format(price)} — Buy Now`
-          ) : (
-            'Sign In to Purchase'
-          )}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button type="button" onClick={handleAddToCart} disabled={addedToCart}
+            className="btn-secondary"
+            style={{
+              flex: 1, padding: '14px', fontSize: '14px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}>
+            {addedToCart ? (
+              <><CheckIcon /> Added</>
+            ) : (
+              <><CartAddIcon /> Add to Cart</>
+            )}
+          </button>
+          <button className="btn-primary" onClick={handleOrder} disabled={loading}
+            style={{
+              flex: 1.4, padding: '14px', fontSize: '15px', opacity: loading ? 0.7 : 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            }}>
+            {loading ? (
+              <>
+                <Spinner /> Processing...
+              </>
+            ) : loggedIn ? (
+              `${format(price)} — Buy Now`
+            ) : (
+              'Sign In to Purchase'
+            )}
+          </button>
+        </div>
 
         <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
           By placing an order you agree to our terms of service.
@@ -354,6 +395,12 @@ function CoinIcon() {
 }
 function GlobeIcon() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.5 2.5 4 6 4 9s-1.5 6.5-4 9c-2.5-2.5-4-6-4-9s1.5-6.5 4-9z" /></svg>
+}
+function CartAddIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" /><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" /><path d="M12 8v4m-2-2h4" /></svg>
+}
+function CheckIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
 function WarningIcon() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path d="M12 9v4m0 4h.01M10.3 3.9 2.5 17a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" strokeLinejoin="round" /></svg>

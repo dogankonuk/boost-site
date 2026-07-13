@@ -19,13 +19,30 @@ const STATUS_LABELS = {
 
 export default function AdminOrders({ secret }) {
   const [orders, setOrders] = useState([])
+  const [boosters, setBoosters] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
-  useEffect(() => { fetchOrders() }, [])
+  useEffect(() => { fetchOrders(); fetchBoosters() }, [])
+
+  async function fetchBoosters() {
+    try {
+      const res = await fetch('/api/admin?type=boosters', { headers })
+      const d = await res.json()
+      if (d.success) setBoosters(d.data.filter(b => b.status === 'active'))
+    } catch {}
+  }
+
+  async function assignBooster(orderId, boosterId) {
+    await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'order', id: orderId, data: { boosterId: boosterId ? parseInt(boosterId) : null } }),
+    })
+    fetchOrders()
+  }
 
   async function fetchOrders() {
     setLoading(true)
@@ -53,7 +70,7 @@ export default function AdminOrders({ secret }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Siparişler ({filtered.length})</h2>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          {['all', 'pending', 'in_progress', 'completed', 'cancelled'].map(s => (
+          {['all', 'pending', 'assigned', 'in_progress', 'completed', 'cancelled'].map(s => (
             <button key={s} onClick={() => setFilter(s)} style={{
               padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
@@ -105,7 +122,7 @@ export default function AdminOrders({ secret }) {
                       {order.service?.game?.name} — {order.service?.name}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      👤 {order.user?.username} · 💰 ${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · 🕐 {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      👤 {order.user?.username} · 💰 ${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · 🛠️ {order.booster?.user?.username || 'Atanmadı'} · 🕐 {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
 
@@ -180,6 +197,23 @@ export default function AdminOrders({ secret }) {
                         <DetailRow label="Sipariş Tarihi" value={new Date(order.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} />
                         <DetailRow label="Sipariş No" value={order.orderNumber} />
                       </div>
+
+                      <h4 style={{ color: 'var(--gold)', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: '16px 0 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        Booster Ata
+                      </h4>
+                      <select
+                        value={order.boosterId || ''}
+                        onChange={e => assignBooster(order.id, e.target.value)}
+                        style={{
+                          width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                          borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px',
+                          fontFamily: 'var(--font-inter)', outline: 'none', cursor: 'pointer', marginBottom: '16px',
+                        }}>
+                        <option value="">Atanmadı</option>
+                        {boosters.map(b => (
+                          <option key={b.id} value={b.id}>{b.user?.username}</option>
+                        ))}
+                      </select>
 
                       <h4 style={{ color: 'var(--gold)', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: '16px 0 12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Durum Güncelle

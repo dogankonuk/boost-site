@@ -4,7 +4,12 @@ import Link from 'next/link'
 import { useCurrency } from '@/context/CurrencyContext'
 
 export default function GameServices({ services, game }) {
-  const categories = ['All', ...new Set(services.map(s => s.serviceCategory || 'General'))]
+  const manualCategories = Array.isArray(game?.serviceCategories) ? game.serviceCategories : []
+  const derivedCategories = [...new Set(services.map(s => s.serviceCategory || 'Genel'))]
+  const categories = manualCategories.length > 0
+    ? [...manualCategories.filter(c => derivedCategories.includes(c)), ...derivedCategories.filter(c => !manualCategories.includes(c))]
+    : derivedCategories
+
   const [active, setActive] = useState('All')
 
   const filtered = active === 'All'
@@ -12,37 +17,74 @@ export default function GameServices({ services, game }) {
     : services.filter(s => (s.serviceCategory || 'Genel') === active)
 
   return (
-    <div>
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
-        {categories.map(cat => (
-          <button key={cat} onClick={() => setActive(cat)} style={{
-            padding: '8px 18px', borderRadius: '24px',
-            fontFamily: 'var(--font-montserrat)', fontWeight: '600', fontSize: '13px',
-            cursor: 'pointer', border: '1px solid',
-            background: active === cat ? 'var(--gold)' : 'transparent',
-            color: active === cat ? '#0a0a0a' : 'var(--text-muted)',
-            borderColor: active === cat ? 'var(--gold)' : 'var(--border)',
-            transition: 'all 0.2s',
-          }}>{cat}</button>
-        ))}
-      </div>
-
-      {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-          <p className="body-large">No services available for this game yet.</p>
-        </div>
-      ) : (
+    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '28px', alignItems: 'flex-start' }}>
+      <aside style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: '14px', padding: '18px', position: 'sticky', top: '80px',
+      }}>
         <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-          gap: '16px',
+          display: 'flex', alignItems: 'center', gap: '10px',
+          marginBottom: '14px', paddingBottom: '14px', borderBottom: '1px solid var(--border)',
         }}>
-          {filtered.map(service => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
+          {game?.coverImage ? (
+            <div style={{
+              width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
+              backgroundImage: `url(${game.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center',
+              border: '1px solid var(--border)',
+            }} />
+          ) : (
+            <span style={{ fontSize: '18px' }}>🎮</span>
+          )}
+          <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
+            {game?.name}
+          </span>
         </div>
-      )}
+
+        <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <CategoryItem label="All Services" active={active === 'All'} onClick={() => setActive('All')} />
+          {categories.map(cat => (
+            <CategoryItem key={cat} label={cat} active={active === cat} onClick={() => setActive(cat)} />
+          ))}
+        </nav>
+      </aside>
+
+      <div>
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+            <p className="body-large">No services available for this category yet.</p>
+          </div>
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 270px))',
+            gap: '16px',
+          }}>
+            {filtered.map(service => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  )
+}
+
+function CategoryItem({ label, active, onClick }) {
+  return (
+    <button onClick={onClick} type="button" style={{
+      display: 'flex', alignItems: 'center', gap: '9px',
+      padding: '9px 10px', borderRadius: '8px', border: 'none', textAlign: 'left', width: '100%',
+      background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
+      color: active ? 'var(--gold)' : 'var(--text-muted)',
+      fontSize: '13px', fontFamily: 'var(--font-inter)', fontWeight: active ? '600' : '400',
+      cursor: 'pointer', transition: 'background 0.15s, color 0.15s',
+    }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#fff' }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-muted)' }}
+    >
+      <span style={{ fontSize: '7px', color: active ? 'var(--gold)' : 'var(--text-dim)', flexShrink: 0 }}>●</span>
+      {label}
+    </button>
   )
 }
 
@@ -51,24 +93,24 @@ function ServiceCard({ service }) {
   const features = service.features || []
   const options = service.options
 
-  function getPriceLabel() {
-    if (!options || options.type === 'fixed') return format(service.basePrice)
-    if (options.type === 'quantity') return `${format(options.unitPrice)} / ${options.unitName}`
-    if (options.type === 'range') return `${format(options.pricePerUnit)} / ${options.unitName}`
+  function getPriceInfo() {
+    if (!options || options.type === 'fixed') {
+      return { showFrom: false, amount: service.basePrice, suffix: null }
+    }
+    if (options.type === 'quantity') {
+      return { showFrom: true, amount: options.unitPrice, suffix: `/ ${options.unitName}` }
+    }
+    if (options.type === 'range') {
+      return { showFrom: true, amount: options.pricePerUnit, suffix: `/ ${options.unitName}` }
+    }
     if (options.type === 'options') {
       const min = Math.min(...(options.choices?.map(c => c.price) || [service.basePrice]))
-      return `from ${format(min)}`
+      return { showFrom: true, amount: min, suffix: null }
     }
-    return format(service.basePrice)
+    return { showFrom: false, amount: service.basePrice, suffix: null }
   }
 
-  function getPriceSubLabel() {
-    if (!options || options.type === 'fixed') return 'fixed price'
-    if (options.type === 'quantity') return `min ${options.minQty} — max ${options.maxQty}`
-    if (options.type === 'range') return `${options.min} → ${options.max} ${options.unitName}`
-    if (options.type === 'options') return `${options.choices?.length} options`
-    return 'starting price'
-  }
+  const price = getPriceInfo()
 
   return (
     <Link href={`/order/${service.id}`} style={{ textDecoration: 'none' }}>
@@ -130,7 +172,7 @@ function ServiceCard({ service }) {
 
           {features.length > 0 && (
             <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {features.slice(0, 3).map((f, i) => (
+              {features.slice(0, 2).map((f, i) => (
                 <li key={i} style={{
                   fontSize: '12px', color: 'var(--text-muted)',
                   display: 'flex', alignItems: 'center', gap: '6px',
@@ -143,14 +185,23 @@ function ServiceCard({ service }) {
           )}
 
           <div style={{ marginTop: 'auto' }}>
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '2px' }}>
-              {getPriceSubLabel()}
-            </div>
+            {price.showFrom && (
+              <div style={{
+                fontSize: '10px', color: 'var(--text-dim)',
+                textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '2px',
+                fontFamily: 'var(--font-montserrat)', fontWeight: '700',
+              }}>From</div>
+            )}
             <div style={{
               fontSize: '20px', fontWeight: '800',
               fontFamily: 'var(--font-montserrat)', color: 'var(--gold)',
             }}>
-              {getPriceLabel()}
+              {format(price.amount)}
+              {price.suffix && (
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'var(--font-inter)' }}>
+                  {' '}{price.suffix}
+                </span>
+              )}
             </div>
           </div>
         </div>

@@ -20,65 +20,52 @@ export default async function GamePage({ params }) {
 
   if (!game) return notFound()
 
-  const categories = ['All', ...new Set(game.services.map(s => s.options?.category || 'General'))]
-
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
+      {game.bannerImage && (
+        <div style={{
+          position: 'fixed', inset: 0,
+          backgroundImage: `url(${game.bannerImage})`,
+          backgroundSize: 'cover', backgroundPosition: 'center',
+          backgroundAttachment: 'fixed',
+          opacity: 0.14,
+          pointerEvents: 'none',
+        }} />
+      )}
+
       <div style={{
         position: 'relative',
-        height: '550px',
         overflow: 'hidden',
-        background: '#0a0a0a',
+        background: 'linear-gradient(to bottom, rgba(10,10,10,0.2) 0%, var(--bg) 100%)',
       }}>
-        {game.bannerImage && (
-          <img
-            src={game.bannerImage}
-            alt={game.name}
-            style={{
-              width: '100%', height: '100%',
-              objectFit: 'cover', opacity: 0.4,
-            }}
-          />
-        )}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(to bottom, transparent 30%, #0a0a0a 100%)',
-        }} />
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'flex-end',
-        }}>
-          <Container style={{ paddingBottom: '32px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
-              <span style={{ color: 'var(--text-dim)' }}>/</span>
-              <span style={{ color: 'var(--gold)', fontSize: '13px' }}>{game.name}</span>
-            </div>
-            <h1 className="h1" style={{ color: '#fff', marginBottom: '10px' }}>{game.name}</h1>
-            <span style={{
-              background: 'var(--gold)', color: '#0a0a0a',
-              borderRadius: '20px', padding: '4px 14px',
-              fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '700',
-            }}>{game.category}</span>
-          </Container>
-        </div>
-      </div>
+        <Container style={{ position: 'relative', paddingTop: '36px', paddingBottom: '28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+            <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
+            <span style={{ color: 'var(--text-dim)' }}>/</span>
+            <span style={{ color: 'var(--gold)', fontSize: '13px' }}>{game.name}</span>
+          </div>
+          <h1 className="h1" style={{ color: '#fff', marginBottom: '10px' }}>{game.name}</h1>
+          <span style={{
+            background: 'var(--gold)', color: '#0a0a0a',
+            borderRadius: '20px', padding: '4px 14px',
+            fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '700',
+          }}>{game.category}</span>
 
-      <Container style={{ paddingTop: '32px', paddingBottom: '48px', flex: 1 }}>
-        {game.description && (
-          <div style={{
-            background: 'var(--bg-card)', border: '1px solid var(--border)',
-            borderRadius: '12px', padding: '24px', marginBottom: '32px',
-          }}>
-            <p className="body-default" style={{ color: 'var(--text-muted)', lineHeight: '1.8' }}>
+          {game.description && (
+            <p className="body-default" style={{
+              color: 'var(--text-muted)', lineHeight: '1.8',
+              marginTop: '16px', maxWidth: '760px',
+            }}>
               {game.description}
             </p>
-          </div>
-        )}
+          )}
+        </Container>
+      </div>
 
-        <GameServices services={game.services} gameName={game.name} game={game} />
+      <Container style={{ paddingTop: '24px', paddingBottom: '48px', flex: 1 }}>
+        <GameServices services={game.services} game={game} />
       </Container>
 
       <Footer />
