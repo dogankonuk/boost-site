@@ -39,7 +39,7 @@ export async function GET(request) {
         type: 'service',
         name: s.name,
         gameName: s.game?.name,
-        price: `${s.basePrice.toLocaleString('tr-TR')} ₺`,
+        basePriceUSD: s.basePrice,
         image: s.imageUrl || s.game?.coverImage,
         url: `/order/${s.id}`,
       })),

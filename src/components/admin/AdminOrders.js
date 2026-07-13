@@ -105,7 +105,7 @@ export default function AdminOrders({ secret }) {
                       {order.service?.game?.name} — {order.service?.name}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      👤 {order.user?.username} · 💰 {order.price?.toLocaleString('tr-TR')} ₺ · 🕐 {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      👤 {order.user?.username} · 💰 ${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · 🕐 {new Date(order.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>
 
@@ -149,7 +149,7 @@ export default function AdminOrders({ secret }) {
                         <DetailRow label="Oyun" value={order.service?.game?.name} />
                         <DetailRow label="Hizmet" value={order.service?.name} />
                         <DetailRow label="Kategori" value={order.service?.serviceCategory || 'Genel'} />
-                        <DetailRow label="Fiyat" value={`${order.price?.toLocaleString('tr-TR')} ₺`} highlight />
+                        <DetailRow label="Fiyat" value={`$${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} highlight />
 
                         {options?.type === 'range' && (
                           <>

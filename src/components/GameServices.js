@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import { useCurrency } from '@/context/CurrencyContext'
 
 export default function GameServices({ services, game }) {
   const categories = ['All', ...new Set(services.map(s => s.serviceCategory || 'General'))]
@@ -46,18 +47,19 @@ export default function GameServices({ services, game }) {
 }
 
 function ServiceCard({ service }) {
+  const { format } = useCurrency()
   const features = service.features || []
   const options = service.options
 
   function getPriceLabel() {
-    if (!options || options.type === 'fixed') return `${service.basePrice.toLocaleString('tr-TR')} ₺`
-    if (options.type === 'quantity') return `${options.unitPrice?.toLocaleString('tr-TR')} ₺ / ${options.unitName}`
-    if (options.type === 'range') return `${options.pricePerUnit?.toLocaleString('tr-TR')} ₺ / ${options.unitName}`
+    if (!options || options.type === 'fixed') return format(service.basePrice)
+    if (options.type === 'quantity') return `${format(options.unitPrice)} / ${options.unitName}`
+    if (options.type === 'range') return `${format(options.pricePerUnit)} / ${options.unitName}`
     if (options.type === 'options') {
       const min = Math.min(...(options.choices?.map(c => c.price) || [service.basePrice]))
-      return `${min.toLocaleString('tr-TR')} from ₺`
+      return `from ${format(min)}`
     }
-    return `${service.basePrice.toLocaleString('tr-TR')} ₺`
+    return format(service.basePrice)
   }
 
   function getPriceSubLabel() {

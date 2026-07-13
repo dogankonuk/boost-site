@@ -1,7 +1,9 @@
 'use client'
 import Link from 'next/link'
+import { useCurrency } from '@/context/CurrencyContext'
 
 export default function ServiceCard({ service }) {
+  const { format } = useCurrency()
   return (
     <div style={{
       background: 'var(--bg-card)',
@@ -44,7 +46,7 @@ export default function ServiceCard({ service }) {
         fontFamily: 'var(--font-montserrat)',
         color: 'var(--gold)',
       }}>
-        {service.basePrice.toLocaleString('tr-TR')} ₺
+        {format(service.basePrice)}
       </div>
 
       <Link href={`/order/${service.id}`} style={{ textDecoration: 'none' }}>

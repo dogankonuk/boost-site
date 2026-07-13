@@ -45,7 +45,7 @@ async function sendDiscordNotification(order) {
       { name: '👤 Kullanıcı', value: order.user?.username || 'Bilinmiyor', inline: true },
       { name: '🎯 Oyun', value: order.service?.game?.name || '-', inline: true },
       { name: '⚡ Hizmet', value: order.service?.name || '-', inline: true },
-      { name: '💰 Fiyat', value: `${order.price?.toLocaleString('tr-TR')} ₺`, inline: true },
+      { name: '💰 Fiyat', value: `$${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, inline: true },
       { name: '📊 Detay', value: detailText || 'Sabit hizmet', inline: true },
       ...(details.note ? [{ name: '📝 Not', value: details.note, inline: false }] : []),
     ],
@@ -144,7 +144,7 @@ export async function POST(request) {
       orderNumber: order.orderNumber,
       gameName: order.service?.game?.name,
       serviceName: order.service?.name,
-      price: order.price?.toLocaleString('tr-TR'),
+      price: order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       details: (() => {
         const sel = details?.selection
         const opts = order.service?.options

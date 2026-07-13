@@ -383,7 +383,7 @@ function SortableGameRow({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <Field label="Hizmet Adı *" value={serviceForm.name} onChange={v => setServiceForm(f => ({ ...f, name: v }))} />
               <Field label="Slug *" value={serviceForm.slug} onChange={v => setServiceForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s/g, '-') }))} />
-              <Field label="Fiyat (₺) *" type="number" value={serviceForm.basePrice} onChange={v => setServiceForm(f => ({ ...f, basePrice: v }))} />
+              <Field label="Fiyat ($) *" type="number" value={serviceForm.basePrice} onChange={v => setServiceForm(f => ({ ...f, basePrice: v }))} />
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat Tipi</label>
                 <select value={serviceForm.priceType} onChange={e => setServiceForm(f => ({ ...f, priceType: e.target.value }))}
@@ -421,7 +421,7 @@ function SortableGameRow({
               {serviceForm.pricingType === 'quantity' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <Field label="Birim Adı" placeholder="Divine Orb" value={serviceForm.pricingOptions.unitName} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitName: v } }))} />
-                  <Field label="Birim Fiyatı (₺)" type="number" value={serviceForm.pricingOptions.unitPrice} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
+                  <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.unitPrice} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.minQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, minQty: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.maxQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, maxQty: v } }))} />
                 </div>
@@ -429,7 +429,7 @@ function SortableGameRow({
               {serviceForm.pricingType === 'range' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                   <Field label="Birim Adı" placeholder="Level" value={serviceForm.pricingOptions.unitName} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitName: v } }))} />
-                  <Field label="Birim Fiyatı (₺)" type="number" value={serviceForm.pricingOptions.pricePerUnit} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
+                  <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.pricePerUnit} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.min} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.max} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
                 </div>
@@ -439,7 +439,7 @@ function SortableGameRow({
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                     {(serviceForm.pricingOptions.choices || []).map((c, i) => (
                       <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '3px 8px', fontSize: '12px', color: '#fff' }}>
-                        {c.label} — {c.price}₺
+                        {c.label} — ${c.price}
                         <button type="button" onClick={() => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, choices: f.pricingOptions.choices.filter((_, j) => j !== i) } }))} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: 0 }}>×</button>
                       </span>
                     ))}
@@ -487,7 +487,7 @@ function SortableGameRow({
                         {s.isHot && <span style={{ marginLeft: '6px', background: '#ff4444', color: '#fff', fontSize: '9px', fontWeight: '700', padding: '1px 5px', borderRadius: '3px' }}>HOT</span>}
                       </td>
                       <td style={{ padding: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>{s.serviceCategory || 'Genel'}</td>
-                      <td style={{ padding: '8px', fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>{(s.basePrice || 0).toLocaleString('tr-TR')} ₺</td>
+                      <td style={{ padding: '8px', fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>${(s.basePrice || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td style={{ padding: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>{s.priceType === 'fixed' ? 'Sabit' : 'Değişken'}</td>
                       <td style={{ padding: '8px' }}>
                         <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: s.isActive ? '#1a2a1a' : '#2a1a1a', color: s.isActive ? '#4caf50' : '#ff6666', border: `1px solid ${s.isActive ? '#2a4a2a' : '#4a2a2a'}` }}>{s.isActive ? 'Aktif' : 'Pasif'}</span>
@@ -516,7 +516,7 @@ function SortableGameRow({
                             <h4 style={{ color: 'var(--gold)', fontSize: '12px', marginBottom: '10px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>Düzenle — {s.name}</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                               <Field label="Hizmet Adı" value={editForm.name} onChange={v => setEditForm(f => ({ ...f, name: v }))} />
-                              <Field label="Fiyat (₺)" type="number" value={editForm.basePrice} onChange={v => setEditForm(f => ({ ...f, basePrice: v }))} />
+                              <Field label="Fiyat ($)" type="number" value={editForm.basePrice} onChange={v => setEditForm(f => ({ ...f, basePrice: v }))} />
                               <Field label="Görsel URL" value={editForm.imageUrl} onChange={v => setEditForm(f => ({ ...f, imageUrl: v }))} />
                               <div>
                                 <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori</label>
@@ -562,7 +562,7 @@ function SortableGameRow({
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
                                     {(editForm.pricingOptions?.choices || []).map((c, i) => (
                                       <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '3px 8px', fontSize: '12px', color: '#fff' }}>
-                                        {c.label} — {c.price}₺
+                                        {c.label} — ${c.price}
                                         <button type="button" onClick={() => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, choices: f.pricingOptions.choices.filter((_, j) => j !== i) } }))} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: 0 }}>×</button>
                                       </span>
                                     ))}
@@ -721,7 +721,7 @@ function ChoiceAdder({ onAdd }) {
           style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
       </div>
       <div style={{ flex: 1 }}>
-        <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat (₺)</label>
+        <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat ($)</label>
         <input value={price} onChange={e => setPrice(e.target.value)} type="number" placeholder="299"
           style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
       </div>

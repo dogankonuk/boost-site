@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import { useCurrency } from '@/context/CurrencyContext'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -23,6 +24,7 @@ const STATUS_COLORS = {
 
 export default function DashboardPage() {
   const router = useRouter()
+  const { format } = useCurrency()
   const [orders, setOrders] = useState([])
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -114,7 +116,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Spent</span>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                  {totalSpent.toLocaleString('tr-TR')} ₺
+                  {format(totalSpent)}
                 </span>
               </div>
             </div>
@@ -183,6 +185,7 @@ export default function DashboardPage() {
 }
 
 function OrdersTab({ orders, loading, title, emptyText }) {
+  const { format } = useCurrency()
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
   return (
@@ -251,7 +254,7 @@ function OrdersTab({ orders, loading, title, emptyText }) {
 
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
                   <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                    {order.price?.toLocaleString('tr-TR')} ₺
+                    {order.price !== undefined && order.price !== null ? format(order.price) : ''}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
                     {new Date(order.createdAt).toLocaleDateString('tr-TR')}

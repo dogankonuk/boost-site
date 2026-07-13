@@ -47,7 +47,7 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
                   </tr>` : ''}
                   <tr style="border-top:1px solid #222;">
                     <td style="padding:10px 0 0;color:#fff;font-size:15px;font-weight:700;">Toplam</td>
-                    <td style="padding:10px 0 0;color:#f5c518;font-size:18px;font-weight:800;text-align:right;">${price} ₺</td>
+                    <td style="padding:10px 0 0;color:#f5c518;font-size:18px;font-weight:800;text-align:right;">$${price}</td>
                   </tr>
                 </table>
               </div>

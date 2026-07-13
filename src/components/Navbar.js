@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useCurrency, CURRENCY_SYMBOLS } from '@/context/CurrencyContext'
 
 export default function Navbar() {
   const [search, setSearch] = useState('')
@@ -13,6 +14,9 @@ export default function Navbar() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const searchRef = useRef(null)
+  const [currencyOpen, setCurrencyOpen] = useState(false)
+  const currencyRef = useRef(null)
+  const { currency, setCurrency, format } = useCurrency()
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -25,6 +29,9 @@ export default function Navbar() {
       }
       if (searchRef.current && !searchRef.current.contains(e.target)) {
         setSearchOpen(false)
+      }
+      if (currencyRef.current && !currencyRef.current.contains(e.target)) {
+        setCurrencyOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -167,7 +174,7 @@ export default function Navbar() {
                         {result.name}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {result.type === 'game' ? result.category : `${result.gameName} · ${result.price}`}
+                        {result.type === 'game' ? result.category : `${result.gameName} · ${format(result.basePriceUSD)}`}
                       </div>
                     </div>
                     <span style={{
@@ -189,6 +196,51 @@ export default function Navbar() {
     </div>
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div ref={currencyRef} style={{ position: 'relative' }}>
+            <button onClick={() => setCurrencyOpen(v => !v)} style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '8px', padding: '6px 10px',
+              cursor: 'pointer', transition: 'border-color 0.2s',
+              color: '#fff', fontSize: '13px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              {CURRENCY_SYMBOLS[currency]} {currency}
+              <svg width="10" height="10" fill="none" stroke="var(--text-muted)" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            </button>
+
+            {currencyOpen && (
+              <div style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                borderRadius: '12px', padding: '6px',
+                minWidth: '120px', zIndex: 200,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              }}>
+                {Object.keys(CURRENCY_SYMBOLS).map(code => (
+                  <button key={code} onClick={() => { setCurrency(code); setCurrencyOpen(false) }} style={{
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    width: '100%', padding: '8px 10px', borderRadius: '8px',
+                    background: currency === code ? 'rgba(245,197,24,0.1)' : 'transparent',
+                    border: 'none', cursor: 'pointer', textAlign: 'left',
+                    color: currency === code ? 'var(--gold)' : 'var(--text-muted)',
+                    fontSize: '13px', fontFamily: 'var(--font-inter)', fontWeight: '500',
+                    transition: 'background 0.15s',
+                  }}
+                    onMouseEnter={e => { if (currency !== code) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                    onMouseLeave={e => { if (currency !== code) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <span style={{ width: '16px' }}>{CURRENCY_SYMBOLS[code]}</span> {code}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <NavIcon href="/notifications" label="Notifications"><BellIcon /></NavIcon>
           <NavIcon href="/cart" label="Cart"><CartIcon /></NavIcon>
 
