@@ -1,10 +1,11 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { useCurrency } from '@/context/CurrencyContext'
+import { authFetch } from '@/lib/authFetch'
 
 const STATUS_LABELS = {
   pending: 'Bekliyor',
@@ -36,11 +37,6 @@ export default function BoosterPage() {
   const [discordId, setDiscordId] = useState('')
   const [savingDiscord, setSavingDiscord] = useState(false)
 
-  const authHeaders = useCallback(() => ({
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${localStorage.getItem('token')}`,
-  }), [])
-
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
@@ -51,7 +47,8 @@ export default function BoosterPage() {
   async function fetchMe() {
     setFetchError(null)
     try {
-      const res = await fetch('/api/booster?type=me', { headers: authHeaders() })
+      const res = await authFetch('/api/booster?type=me')
+      if (!res) return
       const d = await res.json()
       if (d.success) {
         setBooster(d.data) // data is null here only when the account genuinely has no booster row
@@ -69,10 +66,11 @@ export default function BoosterPage() {
   async function saveDiscordId() {
     setSavingDiscord(true)
     try {
-      const res = await fetch('/api/booster', {
-        method: 'PATCH', headers: authHeaders(),
+      const res = await authFetch('/api/booster', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ discordId: discordId.trim() }),
       })
+      if (!res) return
       const d = await res.json()
       if (d.success) {
         setMsg('Discord ID kaydedildi')
@@ -92,7 +90,8 @@ export default function BoosterPage() {
   async function fetchPool() {
     setLoadingOrders(true)
     try {
-      const res = await fetch('/api/booster?type=pool', { headers: authHeaders() })
+      const res = await authFetch('/api/booster?type=pool')
+      if (!res) return
       const d = await res.json()
       if (d.success) setPool(d.data)
     } catch {}
@@ -101,7 +100,8 @@ export default function BoosterPage() {
 
   async function fetchMine() {
     try {
-      const res = await fetch('/api/booster?type=mine', { headers: authHeaders() })
+      const res = await authFetch('/api/booster?type=mine')
+      if (!res) return
       const d = await res.json()
       if (d.success) setMine(d.data)
     } catch {}
@@ -110,10 +110,11 @@ export default function BoosterPage() {
   async function claimOrder(orderId) {
     setClaimingId(orderId)
     try {
-      const res = await fetch('/api/booster', {
-        method: 'POST', headers: authHeaders(),
+      const res = await authFetch('/api/booster', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId }),
       })
+      if (!res) return
       const d = await res.json()
       if (d.success) {
         setMsg('Sipariş sana atandı')
@@ -130,10 +131,11 @@ export default function BoosterPage() {
 
   async function updateStatus(orderId, status) {
     try {
-      const res = await fetch('/api/booster', {
-        method: 'PATCH', headers: authHeaders(),
+      const res = await authFetch('/api/booster', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId, status }),
       })
+      if (!res) return
       const d = await res.json()
       if (d.success) fetchMine()
     } catch {}

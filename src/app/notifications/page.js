@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
+import { authFetch } from '@/lib/authFetch'
 
 const TYPE_ICONS = {
   order_assigned: '🛠️',
@@ -18,15 +19,14 @@ export default function NotificationsPage() {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
-    fetchNotifications(token)
+    fetchNotifications()
   }, [])
 
-  async function fetchNotifications(token) {
+  async function fetchNotifications() {
     setLoading(true)
     try {
-      const res = await fetch('/api/notifications', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await authFetch('/api/notifications')
+      if (!res) return
       const d = await res.json()
       if (d.success) setNotifications(d.data)
     } catch {}
@@ -34,23 +34,23 @@ export default function NotificationsPage() {
   }
 
   async function markAllRead() {
-    const token = localStorage.getItem('token')
-    await fetch('/api/notifications', {
+    const res = await authFetch('/api/notifications', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'markAllRead' }),
     })
+    if (!res) return
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
   }
 
   async function handleClick(n) {
     if (!n.isRead) {
-      const token = localStorage.getItem('token')
-      await fetch('/api/notifications', {
+      const res = await authFetch('/api/notifications', {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'markRead', id: n.id }),
       })
+      if (!res) return
       setNotifications(prev => prev.map(x => x.id === n.id ? { ...x, isRead: true } : x))
     }
     if (n.link) router.push(n.link)

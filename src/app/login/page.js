@@ -1,14 +1,29 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [tab, setTab] = useState('login')
   const [form, setForm] = useState({ email: '', username: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (searchParams.get('expired') === '1') {
+      setError('Your session has expired. Please sign in again.')
+    }
+  }, [])
 
   async function submit() {
     setLoading(true)

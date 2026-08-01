@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { authFetch } from '@/lib/authFetch'
 
 function calculatePrice(options, basePrice, selection) {
   if (!options || options.type === 'fixed') return basePrice
@@ -59,17 +60,15 @@ export default function OrderForm({ service }) {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('/api/orders', {
+      const res = await authFetch('/api/orders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: service.id,
           details: { note, selection, calculatedPrice: price },
         }),
       })
+      if (!res) return
       const d = await res.json()
       if (d.success) router.push('/dashboard')
       else setError(d.error || 'An error occurred')

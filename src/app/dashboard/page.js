@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
+import { authFetch } from '@/lib/authFetch'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -36,14 +37,13 @@ export default function DashboardPage() {
     const uname = localStorage.getItem('username')
     if (!token) { router.push('/login'); return }
     setUsername(uname || '')
-    fetchOrders(token)
+    fetchOrders()
   }, [])
 
-  async function fetchOrders(token) {
+  async function fetchOrders() {
     try {
-      const res = await fetch('/api/orders', {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const res = await authFetch('/api/orders')
+      if (!res) return
       const d = await res.json()
       if (d.success) setOrders(d.data)
     } catch {}
@@ -288,11 +288,12 @@ function AccountTab({ username }) {
     async function fetchProfile() {
       const token = localStorage.getItem('token')
       if (!token) { setLoading(false); return }
-      const res = await fetch('/api/auth', {
+      const res = await authFetch('/api/auth', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getProfile' }),
       })
+      if (!res) return
       const d = await res.json()
       if (d.success) {
         setProfile(d.data)
@@ -314,12 +315,12 @@ function AccountTab({ username }) {
 
   async function saveProfile() {
     setSaving(true)
-    const token = localStorage.getItem('token')
-    const res = await fetch('/api/auth', {
+    const res = await authFetch('/api/auth', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'updateProfile', ...form }),
     })
+    if (!res) return
     const d = await res.json()
     if (d.success) setMsg({ text: 'Profil güncellendi!', type: 'success' })
     else setMsg({ text: d.error || 'Hata oluştu', type: 'error' })
@@ -335,12 +336,12 @@ function AccountTab({ username }) {
       setMsg({ text: 'Password must be at least 6 characters long', type: 'error' }); return
     }
     setSaving(true)
-    const token = localStorage.getItem('token')
-    const res = await fetch('/api/auth', {
+    const res = await authFetch('/api/auth', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'changePassword', currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword }),
     })
+    if (!res) return
     const d = await res.json()
     if (d.success) { setMsg({ text: 'Password updated!', type: 'success' }); setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' }) }
     else setMsg({ text: d.error || 'An error occurred', type: 'error' })

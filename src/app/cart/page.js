@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
+import { authFetch } from '@/lib/authFetch'
 
 export default function CartPage() {
   const router = useRouter()
@@ -25,22 +26,19 @@ export default function CartPage() {
     setCheckingOut(true)
     setError('')
 
-    const token = localStorage.getItem('token')
     const failed = []
 
     for (const item of items) {
       try {
-        const res = await fetch('/api/orders', {
+        const res = await authFetch('/api/orders', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             serviceId: item.serviceId,
             details: { note: item.note, selection: item.selection, calculatedPrice: item.price },
           }),
         })
+        if (!res) return
         const d = await res.json()
         if (d.success) {
           removeItem(item.cartId)
