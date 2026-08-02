@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderConfirmation } from '@/lib/email'
 
+const CANCELLABLE_STATUSES = ['pending', 'assigned']
+
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
 function getUserFromToken(request) {
@@ -164,7 +166,7 @@ export async function POST(request) {
   }
 }
 
-// Customer rates a completed order of theirs
+// Customer rates a completed order, or cancels a pending/assigned one, of theirs
 export async function PATCH(request) {
   try {
     const user = getUserFromToken(request)
@@ -173,6 +175,44 @@ export async function PATCH(request) {
     }
 
     const body = await request.json()
+
+    if (body.action === 'cancel') {
+      const orderId = parseInt(body.orderId)
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { service: { include: { game: true } }, booster: { include: { user: true } } },
+      })
+      if (!order || order.userId !== user.userId) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
+      }
+      if (!CANCELLABLE_STATUSES.includes(order.status)) {
+        return NextResponse.json({ success: false, error: 'This order can no longer be cancelled' }, { status: 400 })
+      }
+
+      const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: { status: 'cancelled' },
+      })
+
+      if (order.booster?.user) {
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: order.booster.user.id,
+              type: 'order_status',
+              title: 'An order was cancelled by the customer',
+              body: `${order.service?.game?.name || ''} — ${order.service?.name || ''}`.trim(),
+              link: '/booster',
+            },
+          })
+        } catch (err) {
+          console.error('cancel notification error:', err)
+        }
+      }
+
+      return NextResponse.json({ success: true, data: updated })
+    }
+
     const orderId = parseInt(body.orderId)
     const rating = parseInt(body.rating)
     const review = typeof body.review === 'string' ? body.review.slice(0, 1000) : null

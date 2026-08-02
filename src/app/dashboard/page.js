@@ -70,6 +70,10 @@ function DashboardContent() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, rating, review } : o))
   }
 
+  function handleOrderCancelled(orderId) {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
+  }
+
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress' || o.status === 'assigned')
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
@@ -182,10 +186,10 @@ function DashboardContent() {
         {/* Sağ içerik */}
         <div>
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} username={username} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} username={username} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} username={username} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} username={username} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
@@ -198,7 +202,7 @@ function DashboardContent() {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated, username }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, username }) {
   const { format } = useCurrency()
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -283,6 +287,10 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, username }) {
 
                 {order.status === 'completed' && (
                   <RatingWidget order={order} onRated={onRated} />
+                )}
+
+                {['pending', 'assigned'].includes(order.status) && (
+                  <CancelOrderButton order={order} onCancelled={onCancelled} />
                 )}
               </div>
             )
@@ -569,6 +577,49 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, disa
           fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none',
           cursor: disabled ? 'not-allowed' : 'text',
         }} />
+    </div>
+  )
+}
+
+function CancelOrderButton({ order, onCancelled }) {
+  const [confirming, setConfirming] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  async function cancel() {
+    setLoading(true)
+    try {
+      const res = await authFetch('/api/orders', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, action: 'cancel' }),
+      })
+      if (res) {
+        const d = await res.json()
+        if (d.success) onCancelled(order.id)
+      }
+    } catch {}
+    setLoading(false)
+    setConfirming(false)
+  }
+
+  if (confirming) {
+    return (
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cancel this order?</span>
+        <button onClick={cancel} disabled={loading} style={{ fontSize: '12px', color: '#ff6666', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>
+          {loading ? '...' : 'Yes, cancel it'}
+        </button>
+        <button onClick={() => setConfirming(false)} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
+          Never mind
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+      <button onClick={() => setConfirming(true)} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+        Cancel order
+      </button>
     </div>
   )
 }
