@@ -15,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ success: true, data: games })
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Sunucu hatası' },
+      { success: false, error: 'Server error' },
       { status: 500 }
     )
   }
@@ -40,7 +40,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true, data: game }, { status: 201 })
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Sunucu hatası' },
+      { success: false, error: 'Server error' },
       { status: 500 }
     )
   }

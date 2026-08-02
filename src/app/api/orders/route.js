@@ -68,7 +68,7 @@ export async function GET(request) {
   try {
     const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     const orders = await prisma.order.findMany({
@@ -83,7 +83,7 @@ export async function GET(request) {
 
     return NextResponse.json({ success: true, data: orders })
   } catch (error) {
-    return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
   }
 }
 
@@ -91,7 +91,7 @@ export async function POST(request) {
   try {
     const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -99,7 +99,7 @@ export async function POST(request) {
 
     if (!serviceId) {
       return NextResponse.json(
-        { success: false, error: 'serviceId zorunlu' },
+        { success: false, error: 'serviceId is required' },
         { status: 400 }
       )
     }
@@ -111,7 +111,7 @@ export async function POST(request) {
 
     if (!service) {
       return NextResponse.json(
-        { success: false, error: 'Hizmet bulunamadı' },
+        { success: false, error: 'Service not found' },
         { status: 404 }
       )
     }
@@ -160,7 +160,7 @@ export async function POST(request) {
     return NextResponse.json({ success: true, data: order }, { status: 201 })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
   }
 }
 
@@ -169,7 +169,7 @@ export async function PATCH(request) {
   try {
     const user = getUserFromToken(request)
     if (!user) {
-      return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
@@ -178,15 +178,15 @@ export async function PATCH(request) {
     const review = typeof body.review === 'string' ? body.review.slice(0, 1000) : null
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      return NextResponse.json({ success: false, error: 'Puan 1 ile 5 arasında olmalı' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Rating must be between 1 and 5' }, { status: 400 })
     }
 
     const order = await prisma.order.findUnique({ where: { id: orderId } })
     if (!order || order.userId !== user.userId) {
-      return NextResponse.json({ success: false, error: 'Sipariş bulunamadı' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
     }
     if (order.status !== 'completed') {
-      return NextResponse.json({ success: false, error: 'Sadece tamamlanan siparişler değerlendirilebilir' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Only completed orders can be rated' }, { status: 400 })
     }
 
     const updated = await prisma.order.update({
@@ -208,6 +208,6 @@ export async function PATCH(request) {
     return NextResponse.json({ success: true, data: updated })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
   }
 }

@@ -27,7 +27,7 @@ export async function POST(request) {
     if (action === 'register') {
       if (!password || password.length < 6) {
         return NextResponse.json(
-          { success: false, error: 'Şifre en az 6 karakter olmalı' },
+          { success: false, error: 'Password must be at least 6 characters long' },
           { status: 400 }
         )
       }
@@ -38,7 +38,7 @@ export async function POST(request) {
 
       if (existing) {
         return NextResponse.json(
-          { success: false, error: 'Bu email veya kullanıcı adı zaten kullanılıyor' },
+          { success: false, error: 'This email or username is already in use' },
           { status: 400 }
         )
       }
@@ -79,7 +79,7 @@ export async function POST(request) {
 
       if (!user) {
         return NextResponse.json(
-          { success: false, error: 'Kullanıcı bulunamadı' },
+          { success: false, error: 'User not found' },
           { status: 404 }
         )
       }
@@ -87,7 +87,7 @@ export async function POST(request) {
       const valid = await bcrypt.compare(password, user.passwordHash)
       if (!valid) {
         return NextResponse.json(
-          { success: false, error: 'Şifre hatalı' },
+          { success: false, error: 'Incorrect password' },
           { status: 401 }
         )
       }
@@ -122,21 +122,21 @@ export async function POST(request) {
         })
       }
 
-      // Kullanıcı var mı yok mu belli etmemek için her durumda ayni cevabi don
+      // Always return the same response so we don't leak whether the email exists
       return NextResponse.json({ success: true })
     }
 
     if (action === 'resetPassword') {
       const { token: resetToken, newPassword } = body
       if (!resetToken || !newPassword) {
-        return NextResponse.json({ success: false, error: 'Geçersiz istek' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 })
       }
 
       const resetTokenHash = hashToken(resetToken)
       const user = await prisma.user.findFirst({ where: { resetTokenHash } })
 
       if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
-        return NextResponse.json({ success: false, error: 'Bağlantının süresi dolmuş veya geçersiz' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'This link has expired or is invalid' }, { status: 400 })
       }
 
       const passwordHash = await bcrypt.hash(newPassword, 10)
@@ -151,14 +151,14 @@ export async function POST(request) {
     if (action === 'verifyEmail') {
       const { token: verificationToken } = body
       if (!verificationToken) {
-        return NextResponse.json({ success: false, error: 'Geçersiz istek' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Invalid request' }, { status: 400 })
       }
 
       const verificationTokenHash = hashToken(verificationToken)
       const user = await prisma.user.findFirst({ where: { verificationTokenHash } })
 
       if (!user || !user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) {
-        return NextResponse.json({ success: false, error: 'Bağlantının süresi dolmuş veya geçersiz' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'This link has expired or is invalid' }, { status: 400 })
       }
 
       await prisma.user.update({
@@ -170,13 +170,13 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Geçersiz action' },
+      { success: false, error: 'Invalid action' },
       { status: 400 }
     )
 
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Sunucu hatası' },
+      { success: false, error: 'Server error' },
       { status: 500 }
     )
   }
@@ -184,18 +184,18 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
       const auth = request.headers.get('authorization')
-      
+
       if (!auth || !auth.startsWith('Bearer ')) {
-        return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+        return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
-      
+
       const token = auth.split(' ')[1]
-      
+
       let decoded
       try {
         decoded = jwt.verify(token, JWT_SECRET)
       } catch (e) {
-        return NextResponse.json({ success: false, error: 'Geçersiz token' }, { status: 401 })
+        return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 })
       }
 
     const body = await request.json()
@@ -203,7 +203,7 @@ export async function PUT(request) {
 
     if (action === 'updateProfile') {
       const { displayName, discordId, billingName, billingAddress, billingCity, billingCountry, billingPhone, billingPostalCode } = body
-      
+
       const user = await prisma.user.update({
         where: { id: decoded.userId },
         data: {
@@ -236,10 +236,10 @@ export async function PUT(request) {
     if (action === 'resendVerification') {
       const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
       if (!user) {
-        return NextResponse.json({ success: false, error: 'Kullanıcı bulunamadı' }, { status: 404 })
+        return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
       }
       if (user.emailVerified) {
-        return NextResponse.json({ success: false, error: 'E-posta zaten doğrulanmış' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Email is already verified' }, { status: 400 })
       }
 
       const { raw: verificationToken, hash: verificationTokenHash } = createToken()
@@ -266,14 +266,14 @@ export async function PUT(request) {
       const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
       const valid = await bcrypt.compare(currentPassword, user.passwordHash)
       if (!valid) {
-        return NextResponse.json({ success: false, error: 'Mevcut şifre hatalı' }, { status: 400 })
+        return NextResponse.json({ success: false, error: 'Current password is incorrect' }, { status: 400 })
       }
       const passwordHash = await bcrypt.hash(newPassword, 10)
       await prisma.user.update({ where: { id: decoded.userId }, data: { passwordHash } })
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error(error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

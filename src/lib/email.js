@@ -8,7 +8,7 @@ export async function sendVerificationEmail({ to, username, link }) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: 'E-posta adresini doğrula — ShadowBoosting',
+      subject: 'Verify your email — ShadowBoosting',
       html: `
         <!DOCTYPE html>
         <html>
@@ -22,10 +22,10 @@ export async function sendVerificationEmail({ to, username, link }) {
             </div>
 
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
-              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">E-postanı doğrula</h1>
-              <p style="color:#777;margin:0 0 24px;font-size:14px;">Merhaba ${username}, hesabını aktif etmek için e-posta adresini doğrulaman gerekiyor.</p>
-              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">E-postamı Doğrula →</a>
-              <p style="color:#555;font-size:12px;margin:20px 0 0;">Bu bağlantı 24 saat geçerlidir. Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.</p>
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Verify your email</h1>
+              <p style="color:#777;margin:0 0 24px;font-size:14px;">Hi ${username}, please verify your email address to activate your account.</p>
+              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Verify My Email →</a>
+              <p style="color:#555;font-size:12px;margin:20px 0 0;">This link is valid for 24 hours. If you didn't request this, you can safely ignore this email.</p>
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
@@ -37,7 +37,7 @@ export async function sendVerificationEmail({ to, username, link }) {
       `,
     })
   } catch (err) {
-    console.error('Email gönderilemedi:', err)
+    console.error('Failed to send email:', err)
   }
 }
 
@@ -46,7 +46,7 @@ export async function sendPasswordResetEmail({ to, username, link }) {
     await resend.emails.send({
       from: FROM,
       to,
-      subject: 'Şifre sıfırlama isteği — ShadowBoosting',
+      subject: 'Password reset request — ShadowBoosting',
       html: `
         <!DOCTYPE html>
         <html>
@@ -60,10 +60,10 @@ export async function sendPasswordResetEmail({ to, username, link }) {
             </div>
 
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
-              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Şifreni sıfırla</h1>
-              <p style="color:#777;margin:0 0 24px;font-size:14px;">Merhaba ${username}, hesabın için bir şifre sıfırlama isteği aldık.</p>
-              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Şifremi Sıfırla →</a>
-              <p style="color:#555;font-size:12px;margin:20px 0 0;">Bu bağlantı 1 saat geçerlidir. Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin, şifren değişmeyecektir.</p>
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Reset your password</h1>
+              <p style="color:#777;margin:0 0 24px;font-size:14px;">Hi ${username}, we received a request to reset your password.</p>
+              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Reset My Password →</a>
+              <p style="color:#555;font-size:12px;margin:20px 0 0;">This link is valid for 1 hour. If you didn't request this, you can safely ignore this email — your password won't change.</p>
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
@@ -75,7 +75,7 @@ export async function sendPasswordResetEmail({ to, username, link }) {
       `,
     })
   } catch (err) {
-    console.error('Email gönderilemedi:', err)
+    console.error('Failed to send email:', err)
   }
 }
 
@@ -84,14 +84,14 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `Siparişiniz Alındı — ${orderNumber}`,
+      subject: `Order Received — ${orderNumber}`,
       html: `
         <!DOCTYPE html>
         <html>
         <head><meta charset="utf-8"></head>
         <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
           <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
-            
+
             <div style="text-align:center;margin-bottom:32px;">
               <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
                 <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
@@ -99,41 +99,41 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
             </div>
 
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;">
-              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Siparişiniz Alındı! 🎮</h1>
-              <p style="color:#777;margin:0 0 24px;font-size:14px;">Merhaba ${username}, siparişiniz başarıyla oluşturuldu.</p>
-              
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Order Received! 🎮</h1>
+              <p style="color:#777;margin:0 0 24px;font-size:14px;">Hi ${username}, your order was placed successfully.</p>
+
               <div style="background:#0a0a0a;border-radius:10px;padding:16px;margin-bottom:16px;">
                 <table style="width:100%;border-collapse:collapse;">
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Sipariş No</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Order #</td>
                     <td style="padding:6px 0;color:#f5c518;font-size:13px;font-weight:700;text-align:right;">${orderNumber}</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Oyun</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Game</td>
                     <td style="padding:6px 0;color:#fff;font-size:13px;text-align:right;">${gameName}</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Hizmet</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Service</td>
                     <td style="padding:6px 0;color:#fff;font-size:13px;text-align:right;">${serviceName}</td>
                   </tr>
                   ${details ? `
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Detay</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Details</td>
                     <td style="padding:6px 0;color:#fff;font-size:13px;text-align:right;">${details}</td>
                   </tr>` : ''}
                   <tr style="border-top:1px solid #222;">
-                    <td style="padding:10px 0 0;color:#fff;font-size:15px;font-weight:700;">Toplam</td>
+                    <td style="padding:10px 0 0;color:#fff;font-size:15px;font-weight:700;">Total</td>
                     <td style="padding:10px 0 0;color:#f5c518;font-size:18px;font-weight:800;text-align:right;">$${price}</td>
                   </tr>
                 </table>
               </div>
 
-              <p style="color:#555;font-size:13px;margin:0;">Siparişiniz en kısa sürede booster ekibimize atanacak ve işleme alınacaktır.</p>
+              <p style="color:#555;font-size:13px;margin:0;">Your order will be assigned to one of our boosters and picked up shortly.</p>
             </div>
 
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
-              <p style="margin:0;color:#777;font-size:13px;">Siparişinizi takip etmek için:</p>
-              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;margin-top:12px;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Dashboard'a Git →</a>
+              <p style="margin:0;color:#777;font-size:13px;">To track your order:</p>
+              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;margin-top:12px;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Go to Dashboard →</a>
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
@@ -145,16 +145,16 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
       `,
     })
   } catch (err) {
-    console.error('Email gönderilemedi:', err)
+    console.error('Failed to send email:', err)
   }
 }
 
 export async function sendOrderStatusUpdate({ to, username, orderNumber, gameName, serviceName, status }) {
   const STATUS_LABELS = {
-    assigned: 'Booster Atandı',
-    in_progress: 'İşleme Alındı',
-    completed: 'Tamamlandı',
-    cancelled: 'İptal Edildi',
+    assigned: 'Booster Assigned',
+    in_progress: 'In Progress',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
   }
 
   const STATUS_COLORS = {
@@ -165,10 +165,10 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
   }
 
   const STATUS_MESSAGES = {
-    assigned: 'Siparişiniz bir booster\'a atandı. Kısa süre içinde işleme alınacak.',
-    in_progress: 'Siparişiniz şu an aktif olarak işleniyor. Tamamlanınca bildirim alacaksınız.',
-    completed: 'Siparişiniz başarıyla tamamlandı! Deneyiminizi değerlendirmeyi unutmayın.',
-    cancelled: 'Siparişiniz iptal edildi. Sorularınız için destek ekibimize ulaşabilirsiniz.',
+    assigned: 'Your order has been assigned to a booster. It will be picked up shortly.',
+    in_progress: "Your order is now actively being worked on. You'll be notified once it's complete.",
+    completed: "Your order was completed successfully! Don't forget to rate your experience.",
+    cancelled: 'Your order was cancelled. Reach out to our support team if you have any questions.',
   }
 
   const label = STATUS_LABELS[status] || status
@@ -179,14 +179,14 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
     await resend.emails.send({
       from: FROM,
       to,
-      subject: `Sipariş Güncellendi — ${label} | ${orderNumber}`,
+      subject: `Order Updated — ${label} | ${orderNumber}`,
       html: `
         <!DOCTYPE html>
         <html>
         <head><meta charset="utf-8"></head>
         <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
           <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
-            
+
             <div style="text-align:center;margin-bottom:32px;">
               <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
                 <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
@@ -197,26 +197,26 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
               <div style="display:inline-block;background:${color}22;border:1px solid ${color}44;border-radius:8px;padding:6px 14px;margin-bottom:16px;">
                 <span style="color:${color};font-size:13px;font-weight:700;">${label}</span>
               </div>
-              
-              <h1 style="font-size:20px;font-weight:700;margin:0 0 8px;color:#fff;">Sipariş Durumu Güncellendi</h1>
-              <p style="color:#777;margin:0 0 20px;font-size:14px;">Merhaba ${username}, ${orderNumber} numaralı siparişinizde güncelleme var.</p>
+
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 8px;color:#fff;">Order Status Updated</h1>
+              <p style="color:#777;margin:0 0 20px;font-size:14px;">Hi ${username}, there's an update on order ${orderNumber}.</p>
 
               <div style="background:#0a0a0a;border-radius:10px;padding:16px;margin-bottom:16px;">
                 <table style="width:100%;border-collapse:collapse;">
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Sipariş No</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Order #</td>
                     <td style="padding:6px 0;color:#f5c518;font-size:13px;font-weight:700;text-align:right;">${orderNumber}</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Oyun</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Game</td>
                     <td style="padding:6px 0;color:#fff;font-size:13px;text-align:right;">${gameName}</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Hizmet</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">Service</td>
                     <td style="padding:6px 0;color:#fff;font-size:13px;text-align:right;">${serviceName}</td>
                   </tr>
                   <tr>
-                    <td style="padding:6px 0;color:#555;font-size:13px;">Yeni Durum</td>
+                    <td style="padding:6px 0;color:#555;font-size:13px;">New Status</td>
                     <td style="padding:6px 0;font-size:13px;font-weight:700;text-align:right;color:${color};">${label}</td>
                   </tr>
                 </table>
@@ -227,12 +227,12 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
 
             ${status === 'completed' ? `
             <div style="background:#111;border:1px solid #f5c51844;border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
-              <p style="margin:0 0 12px;color:#fff;font-size:14px;font-weight:600;">Deneyiminizi değerlendirin! ⭐</p>
-              <p style="margin:0 0 16px;color:#777;font-size:13px;">Geri bildiriminiz ekibimiz için çok değerli.</p>
-              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Değerlendirme Yap →</a>
+              <p style="margin:0 0 12px;color:#fff;font-size:14px;font-weight:600;">Rate your experience! ⭐</p>
+              <p style="margin:0 0 16px;color:#777;font-size:13px;">Your feedback means a lot to our team.</p>
+              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Leave a Review →</a>
             </div>` : `
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
-              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Siparişi Takip Et →</a>
+              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Track Your Order →</a>
             </div>`}
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
@@ -244,6 +244,6 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
       `,
     })
   } catch (err) {
-    console.error('Email gönderilemedi:', err)
+    console.error('Failed to send email:', err)
   }
 }

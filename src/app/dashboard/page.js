@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
+import MessageThread from '@/components/MessageThread'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -24,13 +25,22 @@ const STATUS_COLORS = {
 }
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
+  )
+}
+
+function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { format } = useCurrency()
   const [orders, setOrders] = useState([])
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('orders')
+  const [tab, setTab] = useState(searchParams.get('tab') === 'account' ? 'account' : 'orders')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -96,7 +106,7 @@ export default function DashboardPage() {
                   {username}
                 </div>
                 <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.6)', marginTop: '2px' }}>
-                  Üye
+                  Member
                 </div>
               </div>
             </div>
@@ -172,13 +182,13 @@ export default function DashboardPage() {
         {/* Sağ içerik */}
         <div>
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} username={username} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} username={username} />
           )}
           {tab === 'account' && (
-            <AccountTab username={username} />
+            <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
           )}
         </div>
       </div>
@@ -188,7 +198,7 @@ export default function DashboardPage() {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, username }) {
   const { format } = useCurrency()
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -262,10 +272,14 @@ function OrdersTab({ orders, loading, title, emptyText, onRated }) {
                       {order.price !== undefined && order.price !== null ? format(order.price) : ''}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                      {new Date(order.createdAt).toLocaleDateString('tr-TR')}
+                      {new Date(order.createdAt).toLocaleDateString('en-US')}
                     </div>
                   </div>
                 </div>
+
+                {order.boosterId && (
+                  <MessageThread orderId={order.id} currentUsername={username} />
+                )}
 
                 {order.status === 'completed' && (
                   <RatingWidget order={order} onRated={onRated} />
@@ -279,7 +293,8 @@ function OrdersTab({ orders, loading, title, emptyText, onRated }) {
   )
 }
 
-function AccountTab({ username }) {
+function AccountTab({ username, orders, onRated }) {
+  const { format } = useCurrency()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -334,8 +349,8 @@ function AccountTab({ username }) {
     })
     if (!res) return
     const d = await res.json()
-    if (d.success) setMsg({ text: 'Profil güncellendi!', type: 'success' })
-    else setMsg({ text: d.error || 'Hata oluştu', type: 'error' })
+    if (d.success) setMsg({ text: 'Profile updated!', type: 'success' })
+    else setMsg({ text: d.error || 'An error occurred', type: 'error' })
     setSaving(false)
     setTimeout(() => setMsg({ text: '', type: '' }), 3000)
   }
@@ -377,9 +392,57 @@ function AccountTab({ username }) {
 
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
+  const completedOrders = (orders || []).filter(o => o.status === 'completed')
+  const unratedCount = completedOrders.filter(o => !o.rating).length
+  const sortedCompleted = [...completedOrders].sort((a, b) => {
+    if (!a.rating && b.rating) return -1
+    if (a.rating && !b.rating) return 1
+    return new Date(b.createdAt) - new Date(a.createdAt)
+  })
+
   return (
     <div>
       <h2 className="h3" style={{ color: '#fff', marginBottom: '20px' }}>Account Settings</h2>
+
+      {completedOrders.length > 0 && (
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
+            <h3 className="h4" style={{ color: '#fff' }}>Your Completed Orders</h3>
+            {unratedCount > 0 && (
+              <span style={{
+                fontSize: '11px', padding: '3px 10px', borderRadius: '20px', fontWeight: '700',
+                background: 'rgba(245,197,24,0.1)', border: '1px solid rgba(245,197,24,0.3)', color: 'var(--gold)',
+              }}>{unratedCount} awaiting review</span>
+            )}
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+            Rate your experience to help other customers and our boosters.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {sortedCompleted.map(order => (
+              <div key={order.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
+                      {order.service?.game?.name} — {order.service?.name}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                      {new Date(order.createdAt).toLocaleDateString('en-US')}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                    {format(order.price)}
+                  </div>
+                </div>
+                <RatingWidget order={order} onRated={onRated} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {profile && !profile.emailVerified && (
         <div style={{
@@ -422,8 +485,8 @@ function AccountTab({ username }) {
         {activeSection === 'profile' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <ProfileField label="Kullanıcı Adı" value={username} disabled />
-              <ProfileField label="E-posta" value={profile?.email || ''} disabled />
+              <ProfileField label="Username" value={username} disabled />
+              <ProfileField label="Email" value={profile?.email || ''} disabled />
             </div>
             <ProfileField label="Display Name" value={form.displayName}
               onChange={v => setForm(f => ({ ...f, displayName: v }))}
@@ -520,7 +583,7 @@ function RatingWidget({ order, onRated }) {
   if (order.rating) {
     return (
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Değerlendirmeniz:</span>
+        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Your rating:</span>
         <span style={{ color: 'var(--gold)', fontSize: '14px', letterSpacing: '1px' }}>
           {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
         </span>
@@ -552,7 +615,7 @@ function RatingWidget({ order, onRated }) {
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Bu siparişi değerlendir:</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Rate this order:</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{ display: 'flex', gap: '2px' }}>
             {[1, 2, 3, 4, 5].map(n => (
@@ -570,7 +633,7 @@ function RatingWidget({ order, onRated }) {
             ))}
           </div>
           <button onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '11px', cursor: 'pointer' }}>
-            Şimdi değil
+            Not now
           </button>
         </div>
       </div>
@@ -578,13 +641,13 @@ function RatingWidget({ order, onRated }) {
       {selected > 0 && (
         <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
           <input value={review} onChange={e => setReview(e.target.value)}
-            placeholder="İsteğe bağlı yorum..."
+            placeholder="Optional feedback..."
             style={{
               flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
               borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px', outline: 'none',
             }} />
           <button className="btn-primary" onClick={submit} disabled={submitting} style={{ fontSize: '12px', padding: '8px 16px', flexShrink: 0 }}>
-            {submitting ? '...' : 'Gönder'}
+            {submitting ? '...' : 'Submit'}
           </button>
         </div>
       )}

@@ -23,7 +23,7 @@ async function getBoosterForUser(userId) {
 export async function GET(request) {
   const user = getUserFromToken(request)
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -42,7 +42,7 @@ export async function GET(request) {
     }
 
     if (!booster || booster.status !== 'active') {
-      return NextResponse.json({ success: false, error: 'Booster erişiminiz yok' }, { status: 403 })
+      return NextResponse.json({ success: false, error: 'You do not have booster access' }, { status: 403 })
     }
 
     if (type === 'pool') {
@@ -74,7 +74,7 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: orders })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid type' }, { status: 400 })
   } catch (error) {
     console.error('Booster GET error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -85,13 +85,13 @@ export async function GET(request) {
 export async function POST(request) {
   const user = getUserFromToken(request)
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const booster = await getBoosterForUser(user.userId)
     if (!booster || booster.status !== 'active') {
-      return NextResponse.json({ success: false, error: 'Booster erişiminiz yok' }, { status: 403 })
+      return NextResponse.json({ success: false, error: 'You do not have booster access' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -105,7 +105,7 @@ export async function POST(request) {
     })
 
     if (result.count === 0) {
-      return NextResponse.json({ success: false, error: 'Bu sipariş artık müsait değil' }, { status: 409 })
+      return NextResponse.json({ success: false, error: 'This order is no longer available' }, { status: 409 })
     }
 
     const order = await prisma.order.findUnique({
@@ -139,13 +139,13 @@ export async function POST(request) {
 export async function PATCH(request) {
   const user = getUserFromToken(request)
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
     const booster = await getBoosterForUser(user.userId)
     if (!booster || booster.status !== 'active') {
-      return NextResponse.json({ success: false, error: 'Booster erişiminiz yok' }, { status: 403 })
+      return NextResponse.json({ success: false, error: 'You do not have booster access' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -164,12 +164,12 @@ export async function PATCH(request) {
 
     const allowedStatuses = ['in_progress', 'completed']
     if (!allowedStatuses.includes(status)) {
-      return NextResponse.json({ success: false, error: 'Geçersiz durum' }, { status: 400 })
+      return NextResponse.json({ success: false, error: 'Invalid status' }, { status: 400 })
     }
 
     const existing = await prisma.order.findUnique({ where: { id: orderId } })
     if (!existing || existing.boosterId !== booster.id) {
-      return NextResponse.json({ success: false, error: 'Bu sipariş size atanmamış' }, { status: 403 })
+      return NextResponse.json({ success: false, error: 'This order is not assigned to you' }, { status: 403 })
     }
 
     const order = await prisma.order.update({

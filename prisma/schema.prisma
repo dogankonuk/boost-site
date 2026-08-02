@@ -68,6 +68,7 @@ model User {
   orders        Order[]
   booster       Booster?
   notifications Notification[]
+  messages      Message[]
 }
 
 model Booster {
@@ -101,6 +102,7 @@ model Order {
   ratedAt     DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  messages    Message[]
 }
 
 model Setting {
@@ -121,4 +123,16 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, isRead])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  senderId  Int
+  sender    User     @relation(fields: [senderId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
 }

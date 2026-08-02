@@ -17,7 +17,7 @@ function getUserFromToken(request) {
 export async function GET(request) {
   const user = getUserFromToken(request)
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -46,7 +46,7 @@ export async function GET(request) {
 export async function PATCH(request) {
   const user = getUserFromToken(request)
   if (!user) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -69,7 +69,7 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz action' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error('Notifications PATCH error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

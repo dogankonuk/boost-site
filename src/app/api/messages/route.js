@@ -1,0 +1,107 @@
+import { prisma } from '@/lib/prisma'
+import { NextResponse } from 'next/server'
+import jwt from 'jsonwebtoken'
+import { notifyNewMessage } from '@/lib/notify'
+
+const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
+
+function getUserFromToken(request) {
+  const auth = request.headers.get('authorization')
+  if (!auth || !auth.startsWith('Bearer ')) return null
+  try {
+    return jwt.verify(auth.split(' ')[1], JWT_SECRET)
+  } catch {
+    return null
+  }
+}
+
+// Returns the order (with booster->user) if the given user is allowed to
+// message on it (they're the customer, or the assigned booster), else null.
+async function getAuthorizedOrder(orderId, userId) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { booster: { include: { user: true } } },
+  })
+  if (!order) return null
+  const isCustomer = order.userId === userId
+  const isAssignedBooster = order.booster?.user?.id === userId
+  if (!isCustomer && !isAssignedBooster) return null
+  return order
+}
+
+export async function GET(request) {
+  const user = getUserFromToken(request)
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const orderId = parseInt(searchParams.get('orderId'))
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: 'orderId is required' }, { status: 400 })
+    }
+
+    const order = await getAuthorizedOrder(orderId, user.userId)
+    if (!order) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
+    }
+
+    const messages = await prisma.message.findMany({
+      where: { orderId },
+      include: { sender: { select: { username: true } } },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    return NextResponse.json({ success: true, data: messages })
+  } catch (error) {
+    console.error('Messages GET error:', error)
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
+  }
+}
+
+export async function POST(request) {
+  const user = getUserFromToken(request)
+  if (!user) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const orderId = parseInt(body.orderId)
+    const text = typeof body.body === 'string' ? body.body.trim().slice(0, 2000) : ''
+
+    if (!orderId || !text) {
+      return NextResponse.json({ success: false, error: 'orderId and body are required' }, { status: 400 })
+    }
+
+    const order = await getAuthorizedOrder(orderId, user.userId)
+    if (!order) {
+      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
+    }
+    if (!order.boosterId) {
+      return NextResponse.json({ success: false, error: "This order doesn't have a booster assigned yet" }, { status: 400 })
+    }
+
+    const message = await prisma.message.create({
+      data: { orderId, senderId: user.userId, body: text },
+      include: { sender: { select: { username: true } } },
+    })
+
+    const isCustomer = order.userId === user.userId
+    const recipientUserId = isCustomer ? order.booster.user.id : order.userId
+    const link = isCustomer ? '/booster' : '/dashboard'
+
+    await notifyNewMessage(prisma, {
+      recipientUserId,
+      senderUsername: message.sender.username,
+      orderNumber: order.orderNumber,
+      link,
+    })
+
+    return NextResponse.json({ success: true, data: message }, { status: 201 })
+  } catch (error) {
+    console.error('Messages POST error:', error)
+    return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
+  }
+}

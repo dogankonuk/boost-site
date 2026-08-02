@@ -9,6 +9,7 @@ import { authFetch } from '@/lib/authFetch'
 const TYPE_ICONS = {
   order_assigned: '🛠️',
   order_status: '📦',
+  message: '💬',
 }
 
 export default function NotificationsPage() {
@@ -63,23 +64,23 @@ export default function NotificationsPage() {
       <Navbar />
       <Container style={{ paddingTop: '40px', paddingBottom: '60px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
-          <h1 className="h2" style={{ color: '#fff' }}>Bildirimler</h1>
+          <h1 className="h2" style={{ color: '#fff' }}>Notifications</h1>
           {unreadCount > 0 && (
             <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 14px' }} onClick={markAllRead}>
-              Tümünü Okundu İşaretle
+              Mark All as Read
             </button>
           )}
         </div>
 
         {loading ? (
-          <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+          <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
         ) : notifications.length === 0 ? (
           <div style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: '16px', padding: '60px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}>🔔</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Henüz bir bildirimin yok.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>You don't have any notifications yet.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -104,7 +105,7 @@ export default function NotificationsPage() {
                   </div>
                   {n.body && <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{n.body}</div>}
                   <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px' }}>
-                    {new Date(n.createdAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(n.createdAt).toLocaleDateString('en-US', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>

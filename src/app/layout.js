@@ -17,12 +17,12 @@ const inter = Inter({
 
 export const metadata = {
   title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
-  description: 'Profesyonel oyun boost hizmetleri. Güvenli, hızlı, garantili.',
+  description: 'Professional game boosting services. Safe, fast, guaranteed.',
 }
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="tr" className={`${montserrat.variable} ${inter.variable}`}>
+    <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <CurrencyProvider>
           <CartProvider>
