@@ -25,6 +25,13 @@ export async function POST(request) {
     const { action, email, username, password } = body
 
     if (action === 'register') {
+      if (!password || password.length < 6) {
+        return NextResponse.json(
+          { success: false, error: 'Şifre en az 6 karakter olmalı' },
+          { status: 400 }
+        )
+      }
+
       const existing = await prisma.user.findFirst({
         where: { OR: [{ email }, { username }] }
       })

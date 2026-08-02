@@ -124,6 +124,7 @@ export async function POST(request) {
         userId: user.userId,
         serviceId,
         price: finalPrice,
+        currency: 'USD',
         details: details || {},
       },
       include: {

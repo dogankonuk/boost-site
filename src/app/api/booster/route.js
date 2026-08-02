@@ -126,6 +126,7 @@ export async function POST(request) {
         status: 'assigned',
       })
     } catch {}
+    await notifyOrderStatus(prisma, order, 'assigned')
 
     return NextResponse.json({ success: true, data: order })
   } catch (error) {

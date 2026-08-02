@@ -35,6 +35,12 @@ function LoginForm() {
       return
     }
 
+    if (tab === 'register' && form.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      setLoading(false)
+      return
+    }
+
     const body = tab === 'login'
       ? { action: 'login', email: form.email, password: form.password }
       : { action: 'register', email: form.email, username: form.username, password: form.password }

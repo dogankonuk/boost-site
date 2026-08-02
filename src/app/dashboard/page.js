@@ -56,7 +56,7 @@ export default function DashboardPage() {
     router.push('/')
   }
 
-  const activeOrders = orders.filter(o => o.status === 'in_progress' || o.status === 'assigned')
+  const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress' || o.status === 'assigned')
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
 
