@@ -3,6 +3,82 @@ import { Resend } from 'resend'
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
 
+export async function sendVerificationEmail({ to, username, link }) {
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: 'E-posta adresini doğrula — ShadowBoosting',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">E-postanı doğrula</h1>
+              <p style="color:#777;margin:0 0 24px;font-size:14px;">Merhaba ${username}, hesabını aktif etmek için e-posta adresini doğrulaman gerekiyor.</p>
+              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">E-postamı Doğrula →</a>
+              <p style="color:#555;font-size:12px;margin:20px 0 0;">Bu bağlantı 24 saat geçerlidir. Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.</p>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © 2024 ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Email gönderilemedi:', err)
+  }
+}
+
+export async function sendPasswordResetEmail({ to, username, link }) {
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: 'Şifre sıfırlama isteği — ShadowBoosting',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Şifreni sıfırla</h1>
+              <p style="color:#777;margin:0 0 24px;font-size:14px;">Merhaba ${username}, hesabın için bir şifre sıfırlama isteği aldık.</p>
+              <a href="${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Şifremi Sıfırla →</a>
+              <p style="color:#555;font-size:12px;margin:20px 0 0;">Bu bağlantı 1 saat geçerlidir. Bu isteği sen yapmadıysan bu e-postayı yok sayabilirsin, şifren değişmeyecektir.</p>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © 2024 ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Email gönderilemedi:', err)
+  }
+}
+
 export async function sendOrderConfirmation({ to, username, orderNumber, gameName, serviceName, price, details }) {
   try {
     await resend.emails.send({

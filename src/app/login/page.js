@@ -135,7 +135,14 @@ function LoginForm() {
           )}
 
           <div>
-            <label style={labelStyle}>Password</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+              {tab === 'login' && (
+                <Link href="/forgot-password" style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}>
+                  Forgot password?
+                </Link>
+              )}
+            </div>
             <input
               type="password"
               placeholder="••••••••"

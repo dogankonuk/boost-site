@@ -51,14 +51,20 @@ model User {
   discordId    String?
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
-  
+
+  emailVerified               Boolean   @default(false)
+  verificationTokenHash       String?
+  verificationTokenExpiry     DateTime?
+  resetTokenHash              String?
+  resetTokenExpiry            DateTime?
+
   billingName       String?
   billingAddress    String?
   billingCity       String?
   billingCountry    String?
   billingPhone      String?
   billingPostalCode String?
-  
+
   orders        Order[]
   booster       Booster?
   notifications Notification[]

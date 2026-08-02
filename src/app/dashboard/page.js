@@ -283,6 +283,8 @@ function AccountTab({ username }) {
   })
 
   const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [resending, setResending] = useState(false)
+  const [resendMsg, setResendMsg] = useState('')
 
   useEffect(() => {
     async function fetchProfile() {
@@ -349,11 +351,38 @@ function AccountTab({ username }) {
     setTimeout(() => setMsg({ text: '', type: '' }), 3000)
   }
 
+  async function resendVerification() {
+    setResending(true)
+    setResendMsg('')
+    const res = await authFetch('/api/auth', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resendVerification' }),
+    })
+    if (!res) return
+    const d = await res.json()
+    setResendMsg(d.success ? 'Verification email sent!' : (d.error || 'An error occurred'))
+    setResending(false)
+  }
+
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
   return (
     <div>
       <h2 className="h3" style={{ color: '#fff', marginBottom: '20px' }}>Account Settings</h2>
+
+      {profile && !profile.emailVerified && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px',
+          padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px',
+          background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44',
+        }}>
+          <span>Please verify your email address to secure your account.{resendMsg && ` ${resendMsg}`}</span>
+          <button onClick={resendVerification} disabled={resending} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}>
+            {resending ? 'Sending...' : 'Resend Email'}
+          </button>
+        </div>
+      )}
 
       {msg.text && (
         <div style={{
