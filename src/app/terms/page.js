@@ -1,5 +1,10 @@
 import StaticPage, { Section } from '@/components/StaticPage'
 
+export const metadata = {
+  title: 'Terms of Service',
+  description: 'The terms and conditions governing your use of ShadowBoosting.',
+}
+
 export default function TermsPage() {
   return (
     <StaticPage title="Terms of Service" subtitle="Last updated: 2026">

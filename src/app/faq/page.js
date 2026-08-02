@@ -1,5 +1,10 @@
 import StaticPage, { Section } from '@/components/StaticPage'
 
+export const metadata = {
+  title: 'Frequently Asked Questions',
+  description: 'Answers to common questions about delivery times, refunds, account safety, and becoming a booster.',
+}
+
 const FAQS = [
   {
     q: 'How does the boosting process work?',

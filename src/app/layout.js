@@ -16,7 +16,10 @@ const inter = Inter({
 })
 
 export const metadata = {
-  title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
+  title: {
+    default: 'ShadowBoosting.co — Forge Your Power in the Shadows',
+    template: '%s | ShadowBoosting.co',
+  },
   description: 'Professional game boosting services. Safe, fast, guaranteed.',
 }
 

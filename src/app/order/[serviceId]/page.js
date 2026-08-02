@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -5,13 +6,35 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import OrderForm from '@/components/OrderForm'
 
-export default async function OrderPage({ params }) {
-  const { serviceId } = await params
-
-  const service = await prisma.service.findUnique({
+const getService = cache(async (serviceId) => {
+  return prisma.service.findUnique({
     where: { id: parseInt(serviceId) },
     include: { game: true },
   })
+})
+
+export async function generateMetadata({ params }) {
+  const { serviceId } = await params
+  const service = await getService(serviceId)
+  if (!service) return { title: 'Service Not Found' }
+
+  const description = service.description
+    || `${service.name} for ${service.game?.name}. Starting at $${service.basePrice}. Safe, fast, and guaranteed delivery.`
+
+  return {
+    title: `${service.name} — ${service.game?.name}`,
+    description,
+    openGraph: {
+      title: `${service.name} — ${service.game?.name} | ShadowBoosting.co`,
+      description,
+      images: service.imageUrl || service.game?.bannerImage ? [service.imageUrl || service.game.bannerImage] : undefined,
+    },
+  }
+}
+
+export default async function OrderPage({ params }) {
+  const { serviceId } = await params
+  const service = await getService(serviceId)
 
   if (!service) return notFound()
 

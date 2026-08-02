@@ -1,5 +1,10 @@
 import StaticPage, { Section } from '@/components/StaticPage'
 
+export const metadata = {
+  title: 'Contact Us',
+  description: 'Have a question about an order or your account? Get in touch with our support team.',
+}
+
 export default function ContactPage() {
   return (
     <StaticPage title="Contact Us" subtitle="Have a question about an order or your account? Reach out below.">

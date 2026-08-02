@@ -1,6 +1,11 @@
 import Link from 'next/link'
 import StaticPage, { Section } from '@/components/StaticPage'
 
+export const metadata = {
+  title: 'Help Center',
+  description: "Find answers about orders, delivery, account safety, and more — or get in touch with our support team.",
+}
+
 export default function HelpPage() {
   return (
     <StaticPage title="Help Center" subtitle="Find answers or reach out — we're here to help.">

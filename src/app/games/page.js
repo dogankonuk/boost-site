@@ -4,6 +4,11 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import GamesGrid from '@/components/GamesGrid'
 
+export const metadata = {
+  title: 'All Games',
+  description: 'Browse all supported games and find professional boosting services. Safe, fast, and guaranteed delivery.',
+}
+
 export default async function GamesPage() {
   const games = await prisma.game.findMany({
     where: { isActive: true },

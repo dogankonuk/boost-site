@@ -1,5 +1,10 @@
 import StaticPage, { Section } from '@/components/StaticPage'
 
+export const metadata = {
+  title: 'Refund Policy',
+  description: 'Learn when and how you can request a refund for an order on ShadowBoosting.',
+}
+
 export default function RefundPolicyPage() {
   return (
     <StaticPage title="Refund Policy" subtitle="Last updated: 2026">

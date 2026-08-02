@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -5,10 +6,8 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import GameServices from '@/components/GameServices'
 
-export default async function GamePage({ params }) {
-  const { slug } = await params
-
-  const game = await prisma.game.findUnique({
+const getGame = cache(async (slug) => {
+  return prisma.game.findUnique({
     where: { slug },
     include: {
       services: {
@@ -17,6 +16,30 @@ export default async function GamePage({ params }) {
       },
     },
   })
+})
+
+export async function generateMetadata({ params }) {
+  const { slug } = await params
+  const game = await getGame(slug)
+  if (!game) return { title: 'Game Not Found' }
+
+  const description = game.description
+    || `Professional ${game.name} boosting services — ${game.category}. Safe, fast, and guaranteed delivery.`
+
+  return {
+    title: `${game.name} Boosting Services`,
+    description,
+    openGraph: {
+      title: `${game.name} Boosting Services — ShadowBoosting.co`,
+      description,
+      images: game.bannerImage || game.coverImage ? [game.bannerImage || game.coverImage] : undefined,
+    },
+  }
+}
+
+export default async function GamePage({ params }) {
+  const { slug } = await params
+  const game = await getGame(slug)
 
   if (!game) return notFound()
 
