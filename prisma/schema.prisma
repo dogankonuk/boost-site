@@ -46,7 +46,8 @@ model User {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   username     String   @unique
-  passwordHash String
+  passwordHash String?
+  oauthProvider String?
   displayName  String?
   discordId    String?
   isActive     Boolean  @default(true)

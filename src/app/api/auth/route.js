@@ -122,6 +122,13 @@ export async function POST(request) {
         )
       }
 
+      if (!user.passwordHash) {
+        return NextResponse.json(
+          { success: false, error: `This account signs in with ${user.oauthProvider || 'a social account'}. Please use that option instead.` },
+          { status: 400 }
+        )
+      }
+
       const valid = await bcrypt.compare(password, user.passwordHash)
       if (!valid) {
         return NextResponse.json(
@@ -302,9 +309,11 @@ export async function PUT(request) {
     if (action === 'changePassword') {
       const { currentPassword, newPassword } = body
       const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
-      const valid = await bcrypt.compare(currentPassword, user.passwordHash)
-      if (!valid) {
-        return NextResponse.json({ success: false, error: 'Current password is incorrect' }, { status: 400 })
+      if (user.passwordHash) {
+        const valid = await bcrypt.compare(currentPassword, user.passwordHash)
+        if (!valid) {
+          return NextResponse.json({ success: false, error: 'Current password is incorrect' }, { status: 400 })
+        }
       }
       const passwordHash = await bcrypt.hash(newPassword, 10)
       await prisma.user.update({ where: { id: decoded.userId }, data: { passwordHash } })
