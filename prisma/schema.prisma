@@ -96,6 +96,9 @@ model Order {
   price       Float
   currency    String   @default("USD")
   details     Json?
+  rating      Int?
+  review      String?
+  ratedAt     DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

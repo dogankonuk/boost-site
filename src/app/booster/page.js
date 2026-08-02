@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -22,6 +22,17 @@ const STATUS_COLORS = {
   cancelled:   { bg: '#2a1a1a', border: '#4a2a2a', color: '#ff6666' },
 }
 
+function timeAgo(dateStr) {
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'şimdi'
+  if (mins < 60) return `${mins}dk önce`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}sa önce`
+  const days = Math.floor(hours / 24)
+  return `${days}g önce`
+}
+
 export default function BoosterPage() {
   const router = useRouter()
   const { format } = useCurrency()
@@ -33,7 +44,10 @@ export default function BoosterPage() {
   const [mine, setMine] = useState([])
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [claimingId, setClaimingId] = useState(null)
+  const [confirmingId, setConfirmingId] = useState(null)
+  const [updatingId, setUpdatingId] = useState(null)
   const [msg, setMsg] = useState('')
+  const [poolSearch, setPoolSearch] = useState('')
   const [discordId, setDiscordId] = useState('')
   const [savingDiscord, setSavingDiscord] = useState(false)
 
@@ -73,6 +87,7 @@ export default function BoosterPage() {
       if (!res) return
       const d = await res.json()
       if (d.success) {
+        setBooster(b => ({ ...b, discordId: discordId.trim() }))
         setMsg('Discord ID kaydedildi')
         setTimeout(() => setMsg(''), 3000)
       }
@@ -126,10 +141,12 @@ export default function BoosterPage() {
       }
     } catch { setMsg('Bağlantı hatası') }
     setClaimingId(null)
+    setConfirmingId(null)
     setTimeout(() => setMsg(''), 3000)
   }
 
   async function updateStatus(orderId, status) {
+    setUpdatingId(orderId)
     try {
       const res = await authFetch('/api/booster', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -139,7 +156,19 @@ export default function BoosterPage() {
       const d = await res.json()
       if (d.success) fetchMine()
     } catch {}
+    setUpdatingId(null)
   }
+
+  const filteredPool = useMemo(() => {
+    const q = poolSearch.trim().toLowerCase()
+    if (!q) return pool
+    return pool.filter(o =>
+      o.orderNumber.toLowerCase().includes(q) ||
+      o.user?.username?.toLowerCase().includes(q) ||
+      o.service?.name?.toLowerCase().includes(q) ||
+      o.service?.game?.name?.toLowerCase().includes(q)
+    )
+  }, [pool, poolSearch])
 
   if (!checkedAuth || booster === undefined) {
     return (
@@ -202,23 +231,45 @@ export default function BoosterPage() {
     )
   }
 
-  const activeMineCount = mine.filter(o => ['assigned', 'in_progress'].includes(o.status)).length
+  const activeMine = mine.filter(o => ['assigned', 'in_progress'].includes(o.status))
+  const completedMine = mine.filter(o => o.status === 'completed')
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <Container style={{ paddingTop: '32px', paddingBottom: '60px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '24px' }}>
+
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
+          flexWrap: 'wrap', gap: '20px', marginBottom: '24px',
+        }}>
           <div>
             <h1 className="h2" style={{ color: '#fff' }}>Booster Paneli</h1>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>Sana atanan ve müsait siparişleri buradan yönet.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
+              Sana atanan ve müsait siparişleri buradan yönet.
+            </p>
           </div>
-          <div style={{ display: 'flex', gap: '20px' }}>
-            <MiniStat label="Aktif" value={activeMineCount} />
-            <MiniStat label="Tamamlanan" value={booster.completedCount || 0} />
-            <MiniStat label="Puan" value={booster.rating > 0 ? booster.rating.toFixed(1) : '—'} />
+
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <StatCard icon="⚡" label="Aktif Sipariş" value={activeMine.length} />
+            <StatCard icon="✅" label="Tamamlanan" value={booster.completedCount || 0} />
+            <StatCard icon="⭐" label="Puan" value={booster.rating > 0 ? booster.rating.toFixed(1) : '—'} accent />
           </div>
         </div>
+
+        {!discordId && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px',
+            padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '13px',
+            background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44',
+          }}>
+            <span>💬 Discord ID'ni ekle, sana bir sipariş atandığında anında mention al.</span>
+            <button onClick={() => setTab('profile')} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}>
+              Şimdi Ekle
+            </button>
+          </div>
+        )}
 
         {msg && (
           <div style={{
@@ -227,71 +278,109 @@ export default function BoosterPage() {
           }}>{msg}</div>
         )}
 
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
           {[
-            { key: 'pool', label: `Müsait Siparişler (${pool.length})` },
-            { key: 'mine', label: `Benim Siparişlerim (${mine.length})` },
-            { key: 'profile', label: 'Profil' },
+            { key: 'pool', icon: '📥', label: `Müsait Siparişler (${pool.length})` },
+            { key: 'mine', icon: '📦', label: `Benim Siparişlerim (${mine.length})` },
+            { key: 'profile', icon: '⚙️', label: 'Profil' },
           ].map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '8px 16px', borderRadius: '20px', fontSize: '13px',
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '9px 16px', borderRadius: '20px', fontSize: '13px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
-              cursor: 'pointer', border: '1px solid',
+              cursor: 'pointer', border: '1px solid', transition: 'all 0.15s',
               background: tab === t.key ? 'var(--gold)' : 'transparent',
               color: tab === t.key ? '#0a0a0a' : 'var(--text-muted)',
               borderColor: tab === t.key ? 'var(--gold)' : 'var(--border)',
-            }}>{t.label}</button>
+            }}>
+              <span>{t.icon}</span>{t.label}
+            </button>
           ))}
         </div>
 
         {tab === 'pool' && (
-          loadingOrders ? (
-            <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
-          ) : pool.length === 0 ? (
-            <EmptyState text="Şu an müsait sipariş yok. Yeni siparişler geldiğinde burada görünecek." />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {pool.map(order => (
-                <OrderCard key={order.id} order={order} format={format}>
-                  <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                    disabled={claimingId === order.id}
-                    onClick={() => claimOrder(order.id)}>
-                    {claimingId === order.id ? 'Alınıyor...' : 'Üstlen'}
-                  </button>
-                </OrderCard>
-              ))}
-            </div>
-          )
+          <div>
+            {pool.length > 0 && (
+              <div style={{ position: 'relative', marginBottom: '16px', maxWidth: '360px' }}>
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '13px', opacity: 0.5 }}>🔍</span>
+                <input
+                  value={poolSearch}
+                  onChange={e => setPoolSearch(e.target.value)}
+                  placeholder="Oyun, hizmet, sipariş no veya müşteri ara..."
+                  style={{
+                    width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                    borderRadius: '8px', padding: '10px 14px 10px 36px', color: '#fff',
+                    fontSize: '13px', outline: 'none',
+                  }}
+                />
+              </div>
+            )}
+
+            {loadingOrders ? (
+              <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+            ) : pool.length === 0 ? (
+              <EmptyState icon="📭" text="Şu an müsait sipariş yok. Yeni siparişler geldiğinde burada görünecek." />
+            ) : filteredPool.length === 0 ? (
+              <EmptyState icon="🔍" text="Aramanla eşleşen bir sipariş bulunamadı." />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {filteredPool.map(order => (
+                  <OrderCard key={order.id} order={order} format={format}>
+                    {confirmingId === order.id ? (
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px' }}
+                          disabled={claimingId === order.id}
+                          onClick={() => claimOrder(order.id)}>
+                          {claimingId === order.id ? 'Alınıyor...' : 'Evet, Üstlen'}
+                        </button>
+                        <button className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}
+                          onClick={() => setConfirmingId(null)}>
+                          Vazgeç
+                        </button>
+                      </div>
+                    ) : (
+                      <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                        onClick={() => setConfirmingId(order.id)}>
+                        Üstlen
+                      </button>
+                    )}
+                  </OrderCard>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {tab === 'mine' && (
           mine.length === 0 ? (
-            <EmptyState text="Henüz üstlendiğin bir sipariş yok. Müsait Siparişler sekmesinden bir tane al." />
+            <EmptyState icon="📦" text="Henüz üstlendiğin bir sipariş yok.">
+              <button className="btn-primary" style={{ marginTop: '16px', fontSize: '13px', padding: '9px 18px' }} onClick={() => setTab('pool')}>
+                Müsait Siparişlere Bak
+              </button>
+            </EmptyState>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
               <div>
-                <h3 style={{
-                  fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)',
-                  fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px',
-                }}>
-                  Devam Eden ({mine.filter(o => ['assigned', 'in_progress'].includes(o.status)).length})
-                </h3>
-                {mine.filter(o => ['assigned', 'in_progress'].includes(o.status)).length === 0 ? (
-                  <EmptyState text="Devam eden bir siparişin yok." />
+                <SectionLabel>Devam Eden ({activeMine.length})</SectionLabel>
+                {activeMine.length === 0 ? (
+                  <EmptyState icon="⚡" text="Devam eden bir siparişin yok." compact />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {mine.filter(o => ['assigned', 'in_progress'].includes(o.status)).map(order => (
+                    {activeMine.map(order => (
                       <OrderCard key={order.id} order={order} format={format} showStatus>
                         {order.status === 'assigned' && (
                           <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                            disabled={updatingId === order.id}
                             onClick={() => updateStatus(order.id, 'in_progress')}>
-                            Başla
+                            {updatingId === order.id ? '...' : 'Başla'}
                           </button>
                         )}
                         {order.status === 'in_progress' && (
                           <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                            disabled={updatingId === order.id}
                             onClick={() => updateStatus(order.id, 'completed')}>
-                            Tamamlandı Olarak İşaretle
+                            {updatingId === order.id ? '...' : 'Tamamlandı Olarak İşaretle'}
                           </button>
                         )}
                       </OrderCard>
@@ -301,18 +390,13 @@ export default function BoosterPage() {
               </div>
 
               <div>
-                <h3 style={{
-                  fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)',
-                  fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px',
-                }}>
-                  Tamamlanan ({mine.filter(o => o.status === 'completed').length})
-                </h3>
-                {mine.filter(o => o.status === 'completed').length === 0 ? (
-                  <EmptyState text="Henüz tamamlanan bir siparişin yok." />
+                <SectionLabel>Tamamlanan ({completedMine.length})</SectionLabel>
+                {completedMine.length === 0 ? (
+                  <EmptyState icon="✅" text="Henüz tamamlanan bir siparişin yok." compact />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {mine.filter(o => o.status === 'completed').map(order => (
-                      <OrderCard key={order.id} order={order} format={format} showStatus />
+                    {completedMine.map(order => (
+                      <OrderCard key={order.id} order={order} format={format} showStatus muted />
                     ))}
                   </div>
                 )}
@@ -320,13 +404,14 @@ export default function BoosterPage() {
             </div>
           )
         )}
+
         {tab === 'profile' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '480px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '520px' }}>
             <div style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '16px', padding: '24px',
             }}>
-              <h3 className="h4" style={{ color: '#fff', marginBottom: '4px' }}>Discord Bildirimleri</h3>
+              <h3 className="h4" style={{ color: '#fff', marginBottom: '4px' }}>💬 Discord Bildirimleri</h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.6' }}>
                 Discord User ID'ni girersen, sana bir sipariş atandığında Discord'dan mention alırsın.
                 ID'ni almak için Discord'da Ayarlar → Gelişmiş → Geliştirici Modu'nu aç, sonra profiline sağ tıklayıp "ID'yi Kopyala"yı seç.
@@ -337,7 +422,7 @@ export default function BoosterPage() {
                     flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                     borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '13px', outline: 'none',
                   }} />
-                <button className="btn-primary" onClick={saveDiscordId} disabled={savingDiscord} style={{ padding: '10px 18px', fontSize: '13px' }}>
+                <button className="btn-primary" onClick={saveDiscordId} disabled={savingDiscord} style={{ padding: '10px 18px', fontSize: '13px', flexShrink: 0 }}>
                   {savingDiscord ? 'Kaydediliyor...' : 'Kaydet'}
                 </button>
               </div>
@@ -349,13 +434,30 @@ export default function BoosterPage() {
             }}>
               <h3 className="h4" style={{ color: '#fff', marginBottom: '14px' }}>Booster Bilgilerin</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13px' }}>
-                <ProfileRow label="Durum" value={booster.status === 'active' ? 'Aktif' : 'Pasif'} />
-                <ProfileRow label="Tamamlanan Sipariş" value={booster.completedCount || 0} />
-                <ProfileRow label="Puan" value={booster.rating > 0 ? booster.rating.toFixed(1) : 'Henüz puan yok'} />
-                <ProfileRow
-                  label="Yetkili Olduğun Oyunlar"
-                  value={Array.isArray(booster.games) && booster.games.length > 0 ? `${booster.games.length} oyun (yönetici belirler)` : 'Tüm oyunlar'}
-                />
+                <ProfileRow label="Durum">
+                  <span style={{
+                    fontSize: '11px', padding: '2px 10px', borderRadius: '20px', fontWeight: '700',
+                    background: booster.status === 'active' ? '#1a2a1a' : '#2a1a1a',
+                    border: `1px solid ${booster.status === 'active' ? '#2a4a2a' : '#4a2a2a'}`,
+                    color: booster.status === 'active' ? '#4caf50' : '#ff6666',
+                  }}>{booster.status === 'active' ? 'Aktif' : 'Pasif'}</span>
+                </ProfileRow>
+                <ProfileRow label="Tamamlanan Sipariş"><span style={{ color: '#fff', fontWeight: '600' }}>{booster.completedCount || 0}</span></ProfileRow>
+                <ProfileRow label="Puan">
+                  {booster.rating > 0 ? (
+                    <span style={{ color: 'var(--gold)', fontWeight: '600' }}>
+                      {'★'.repeat(Math.round(booster.rating))}{'☆'.repeat(5 - Math.round(booster.rating))}
+                      <span style={{ color: 'var(--text-muted)', marginLeft: '6px', fontWeight: '400' }}>{booster.rating.toFixed(1)}</span>
+                    </span>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>Henüz puan yok</span>
+                  )}
+                </ProfileRow>
+                <ProfileRow label="Yetkili Olduğun Oyunlar">
+                  <span style={{ color: '#fff', fontWeight: '600' }}>
+                    {Array.isArray(booster.games) && booster.games.length > 0 ? `${booster.games.length} oyun (yönetici belirler)` : 'Tüm oyunlar'}
+                  </span>
+                </ProfileRow>
               </div>
             </div>
           </div>
@@ -366,36 +468,58 @@ export default function BoosterPage() {
   )
 }
 
-function ProfileRow({ label, value }) {
+function SectionLabel({ children }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+    <h3 style={{
+      fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)',
+      fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '10px',
+    }}>{children}</h3>
+  )
+}
+
+function ProfileRow({ label, children }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
       <span style={{ color: 'var(--text-dim)' }}>{label}</span>
-      <span style={{ color: '#fff', fontWeight: '600' }}>{value}</span>
+      {children}
     </div>
   )
 }
 
-function MiniStat({ label, value }) {
+function StatCard({ icon, label, value, accent }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>{value}</div>
-      <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{label}</div>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '10px',
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderRadius: '12px', padding: '10px 16px', minWidth: '120px',
+    }}>
+      <div style={{
+        width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+        background: accent ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px',
+      }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: '17px', fontWeight: '800', color: accent ? 'var(--gold)' : '#fff', fontFamily: 'var(--font-montserrat)', lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
+      </div>
     </div>
   )
 }
 
-function EmptyState({ text }) {
+function EmptyState({ icon, text, compact, children }) {
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
-      borderRadius: '16px', padding: '50px', textAlign: 'center',
+      borderRadius: '16px', padding: compact ? '28px 24px' : '50px', textAlign: 'center',
     }}>
+      {icon && <div style={{ fontSize: compact ? '22px' : '30px', marginBottom: '10px', opacity: 0.5 }}>{icon}</div>}
       <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{text}</p>
+      {children}
     </div>
   )
 }
 
-function OrderCard({ order, format, showStatus, children }) {
+function OrderCard({ order, format, showStatus, muted, children }) {
   const details = order.details || {}
   const selection = details.selection || {}
   const options = order.service?.options
@@ -411,7 +535,11 @@ function OrderCard({ order, format, showStatus, children }) {
       background: 'var(--bg-card)', border: '1px solid var(--border)',
       borderRadius: '12px', padding: '16px 20px',
       display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',
-    }}>
+      opacity: muted ? 0.65 : 1, transition: 'border-color 0.15s, opacity 0.15s',
+    }}
+      onMouseEnter={e => { if (!muted) e.currentTarget.style.borderColor = 'var(--border-hover)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+    >
       {order.service?.game?.coverImage ? (
         <div style={{
           width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
@@ -443,10 +571,11 @@ function OrderCard({ order, format, showStatus, children }) {
           {order.orderNumber}
           {selectionText && ` · ${selectionText}`}
           {' · '}müşteri: {order.user?.username}
+          {order.createdAt && ` · ${timeAgo(order.createdAt)}`}
         </div>
         {details.note && (
           <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', fontStyle: 'italic' }}>
-            “{details.note}”
+            "{details.note}"
           </div>
         )}
       </div>

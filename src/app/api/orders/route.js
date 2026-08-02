@@ -163,3 +163,51 @@ export async function POST(request) {
     return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
   }
 }
+
+// Customer rates a completed order of theirs
+export async function PATCH(request) {
+  try {
+    const user = getUserFromToken(request)
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const orderId = parseInt(body.orderId)
+    const rating = parseInt(body.rating)
+    const review = typeof body.review === 'string' ? body.review.slice(0, 1000) : null
+
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      return NextResponse.json({ success: false, error: 'Puan 1 ile 5 arasında olmalı' }, { status: 400 })
+    }
+
+    const order = await prisma.order.findUnique({ where: { id: orderId } })
+    if (!order || order.userId !== user.userId) {
+      return NextResponse.json({ success: false, error: 'Sipariş bulunamadı' }, { status: 404 })
+    }
+    if (order.status !== 'completed') {
+      return NextResponse.json({ success: false, error: 'Sadece tamamlanan siparişler değerlendirilebilir' }, { status: 400 })
+    }
+
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: { rating, review, ratedAt: new Date() },
+    })
+
+    if (order.boosterId) {
+      const agg = await prisma.order.aggregate({
+        where: { boosterId: order.boosterId, rating: { not: null } },
+        _avg: { rating: true },
+      })
+      await prisma.booster.update({
+        where: { id: order.boosterId },
+        data: { rating: agg._avg.rating || 0 },
+      })
+    }
+
+    return NextResponse.json({ success: true, data: updated })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ success: false, error: 'Sunucu hatası' }, { status: 500 })
+  }
+}

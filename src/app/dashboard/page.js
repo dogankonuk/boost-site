@@ -56,6 +56,10 @@ export default function DashboardPage() {
     router.push('/')
   }
 
+  function handleOrderRated(orderId, rating, review) {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, rating, review } : o))
+  }
+
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress' || o.status === 'assigned')
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
@@ -168,10 +172,10 @@ export default function DashboardPage() {
         {/* Sağ içerik */}
         <div>
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} />
@@ -184,7 +188,7 @@ export default function DashboardPage() {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated }) {
   const { format } = useCurrency()
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -216,50 +220,56 @@ function OrdersTab({ orders, loading, title, emptyText }) {
               <div key={order.id} style={{
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: '12px', padding: '16px 20px',
-                display: 'flex', alignItems: 'center', gap: '16px',
+                display: 'flex', flexDirection: 'column', gap: '12px',
               }}>
-                {order.service?.game?.coverImage ? (
-                  <div style={{
-                    width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
-                    backgroundImage: `url(${order.service.game.coverImage})`,
-                    backgroundSize: 'cover', backgroundPosition: 'center',
-                    border: '1px solid var(--border)',
-                  }} />
-                ) : (
-                  <div style={{
-                    width: '48px', height: '48px', borderRadius: '10px',
-                    background: 'var(--bg-elevated)', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '20px', border: '1px solid var(--border)',
-                  }}>🎮</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  {order.service?.game?.coverImage ? (
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
+                      backgroundImage: `url(${order.service.game.coverImage})`,
+                      backgroundSize: 'cover', backgroundPosition: 'center',
+                      border: '1px solid var(--border)',
+                    }} />
+                  ) : (
+                    <div style={{
+                      width: '48px', height: '48px', borderRadius: '10px',
+                      background: 'var(--bg-elevated)', flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '20px', border: '1px solid var(--border)',
+                    }}>🎮</div>
+                  )}
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
+                        {order.service?.name}
+                      </span>
+                      <span style={{
+                        fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
+                        background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
+                      }}>{STATUS_LABELS[order.status]}</span>
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                      {order.service?.game?.name}
+                      {options?.type === 'range' && ` · ${selection.from} → ${selection.to} ${options.unitName}`}
+                      {options?.type === 'quantity' && ` · ${selection.quantity} ${options.unitName}`}
+                      {options?.type === 'options' && ` · ${selection.choice}`}
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                      {order.price !== undefined && order.price !== null ? format(order.price) : ''}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                      {new Date(order.createdAt).toLocaleDateString('tr-TR')}
+                    </div>
+                  </div>
+                </div>
+
+                {order.status === 'completed' && (
+                  <RatingWidget order={order} onRated={onRated} />
                 )}
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
-                      {order.service?.name}
-                    </span>
-                    <span style={{
-                      fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
-                      background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
-                    }}>{STATUS_LABELS[order.status]}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {order.service?.game?.name}
-                    {options?.type === 'range' && ` · ${selection.from} → ${selection.to} ${options.unitName}`}
-                    {options?.type === 'quantity' && ` · ${selection.quantity} ${options.unitName}`}
-                    {options?.type === 'options' && ` · ${selection.choice}`}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                    {order.price !== undefined && order.price !== null ? format(order.price) : ''}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                    {new Date(order.createdAt).toLocaleDateString('tr-TR')}
-                  </div>
-                </div>
               </div>
             )
           })}
@@ -496,6 +506,88 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, disa
           fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none',
           cursor: disabled ? 'not-allowed' : 'text',
         }} />
+    </div>
+  )
+}
+
+function RatingWidget({ order, onRated }) {
+  const [hovered, setHovered] = useState(0)
+  const [selected, setSelected] = useState(0)
+  const [review, setReview] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+
+  if (order.rating) {
+    return (
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Değerlendirmeniz:</span>
+        <span style={{ color: 'var(--gold)', fontSize: '14px', letterSpacing: '1px' }}>
+          {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
+        </span>
+        {order.review && (
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>"{order.review}"</span>
+        )}
+      </div>
+    )
+  }
+
+  if (dismissed) return null
+
+  async function submit() {
+    if (!selected) return
+    setSubmitting(true)
+    try {
+      const res = await authFetch('/api/orders', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, rating: selected, review: review.trim() }),
+      })
+      if (res) {
+        const d = await res.json()
+        if (d.success) onRated(order.id, selected, review.trim())
+      }
+    } catch {}
+    setSubmitting(false)
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Bu siparişi değerlendir:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '2px' }}>
+            {[1, 2, 3, 4, 5].map(n => (
+              <button key={n} type="button"
+                onClick={() => setSelected(n)}
+                onMouseEnter={() => setHovered(n)}
+                onMouseLeave={() => setHovered(0)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer', fontSize: '19px',
+                  padding: '0 1px', lineHeight: 1,
+                  color: (hovered || selected) >= n ? 'var(--gold)' : 'var(--border-hover)',
+                  transition: 'color 0.1s',
+                }}
+              >★</button>
+            ))}
+          </div>
+          <button onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '11px', cursor: 'pointer' }}>
+            Şimdi değil
+          </button>
+        </div>
+      </div>
+
+      {selected > 0 && (
+        <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
+          <input value={review} onChange={e => setReview(e.target.value)}
+            placeholder="İsteğe bağlı yorum..."
+            style={{
+              flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px', outline: 'none',
+            }} />
+          <button className="btn-primary" onClick={submit} disabled={submitting} style={{ fontSize: '12px', padding: '8px 16px', flexShrink: 0 }}>
+            {submitting ? '...' : 'Gönder'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
