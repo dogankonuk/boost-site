@@ -37,9 +37,7 @@ export default function GamesSlider() {
 
   return (
     <section style={{ padding: '0 0 48px' }}>
-      <div style={{
-        maxWidth: '1100px', margin: '0 auto', padding: '0 48px',
-      }} ref={containerRef}>
+      <div className="container" ref={containerRef}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <NavBtn onClick={prev} disabled={offset === 0}>&#8249;</NavBtn>
 

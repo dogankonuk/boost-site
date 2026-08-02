@@ -53,12 +53,7 @@ export default async function OrderPage({ params }) {
       </div>
 
       <Container style={{ paddingTop: '40px', paddingBottom: '60px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 380px',
-          gap: '32px',
-          alignItems: 'flex-start',
-        }}>
+        <div className="content-sidebar-grid">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {service.description && (
               <div style={{

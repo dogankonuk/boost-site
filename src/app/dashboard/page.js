@@ -82,7 +82,7 @@ function DashboardContent() {
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
-      <div style={{ flex: 1, maxWidth: '1100px', margin: '0 auto', width: '100%', padding: '32px 48px', display: 'grid', gridTemplateColumns: '260px 1fr', gap: '24px', alignItems: 'flex-start' }}>
+      <div className="dashboard-grid" style={{ flex: 1 }}>
 
         {/* Sol sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'sticky', top: '80px' }}>

@@ -1,11 +1,9 @@
 export default function HeroSection() {
   return (
-    <section style={{
+    <section className="container" style={{
       textAlign: 'center',
-      padding: '72px 48px 48px',
-      maxWidth: '1100px',
-      margin: '0 auto',
-      width: '100%',
+      paddingTop: '72px',
+      paddingBottom: '48px',
     }}>
       <h1 className="hero-title" style={{ textTransform: 'uppercase' }}>
         Your best support<br />

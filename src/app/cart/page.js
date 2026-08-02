@@ -80,7 +80,7 @@ export default function CartPage() {
             </Link>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px', alignItems: 'flex-start' }}>
+          <div className="content-sidebar-grid" style={{ '--sidebar-width': '340px', '--sidebar-gap': '24px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {items.map(item => (
                 <div key={item.cartId} style={{

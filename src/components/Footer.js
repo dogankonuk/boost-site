@@ -16,10 +16,9 @@ export default function Footer() {
       borderTop: '1px solid var(--border)',
       marginTop: 'auto',
     }}>
-      <div style={{
-        maxWidth: '1100px',
-        margin: '0 auto',
-        padding: '28px 48px',
+      <div className="container" style={{
+        paddingTop: '28px',
+        paddingBottom: '28px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

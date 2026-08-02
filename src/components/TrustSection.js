@@ -1,11 +1,11 @@
 export default function TrustSection() {
   return (
-    <section style={{ padding: '0 48px 48px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+    <section className="container" style={{ paddingBottom: '48px' }}>
       <div style={{
         background: 'var(--bg-card)',
         border: '1px solid var(--border)',
         borderRadius: '16px',
-        padding: '40px',
+        padding: '32px 20px',
         textAlign: 'center',
       }}>
         <div style={{ fontSize: '28px', color: 'var(--gold)', letterSpacing: '4px', marginBottom: '12px' }}>

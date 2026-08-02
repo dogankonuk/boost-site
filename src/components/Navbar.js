@@ -21,6 +21,7 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState([])
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const { currency, setCurrency, format } = useCurrency()
   const { count: cartCount } = useCart()
 
@@ -124,10 +125,7 @@ export default function Navbar() {
       top: 0,
       zIndex: 100,
     }}>
-      <div style={{
-        maxWidth: '1100px',
-        margin: '0 auto',
-        padding: '0 48px',
+      <div className="navbar-inner" style={{
         height: '64px',
         display: 'flex',
         alignItems: 'center',
@@ -148,13 +146,14 @@ export default function Navbar() {
           }}>ShadowBoosting</span>
         </Link>
 
-        <Link href="/games" style={{
+        <Link href="/games" className="navbar-desktop-only" style={{
           fontFamily: 'var(--font-inter)',
           fontWeight: '500', fontSize: '14px',
           color: 'var(--text-muted)',
           padding: '6px 12px', borderRadius: '6px',
           transition: 'color 0.2s',
           textDecoration: 'none',
+          alignItems: 'center',
         }}
           onMouseEnter={e => e.target.style.color = 'var(--gold)'}
           onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
@@ -162,7 +161,7 @@ export default function Navbar() {
           Games
         </Link>
 
-        <div ref={searchRef} style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
+        <div ref={searchRef} className="navbar-search" style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
   <input
         value={search}
         onChange={e => handleSearch(e.target.value)}
@@ -252,7 +251,7 @@ export default function Navbar() {
       )}
     </div>
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <div className="navbar-desktop-only" style={{ marginLeft: 'auto', gap: '20px', alignItems: 'center' }}>
           <div ref={currencyRef} style={{ position: 'relative' }}>
             <button onClick={() => setCurrencyOpen(v => !v)} style={{
               display: 'flex', alignItems: 'center', gap: '6px',
@@ -461,8 +460,115 @@ export default function Navbar() {
             </Link>
           )}
         </div>
+
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setMobileMenuOpen(v => !v)}
+          aria-label="Menu"
+          style={{
+            marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
+            color: '#fff', alignItems: 'center', justifyContent: 'center',
+            width: '36px', height: '36px',
+          }}
+        >
+          {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+        </button>
       </div>
+
+      {mobileMenuOpen && (
+        <div style={{
+          borderTop: '1px solid var(--border)', background: 'var(--bg)',
+          padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: '14px',
+        }}>
+          <input
+            value={search}
+            onChange={e => handleSearch(e.target.value)}
+            placeholder="Search games & services..."
+            style={{
+              width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '13px',
+              fontFamily: 'var(--font-inter)', outline: 'none',
+            }}
+          />
+          {searchOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '-6px' }}>
+              {searchLoading ? (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Searching...</span>
+              ) : searchResults.length === 0 ? (
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No results found</span>
+              ) : (
+                searchResults.map((result, i) => (
+                  <a key={i} href={result.url} onClick={() => { setMobileMenuOpen(false); setSearchOpen(false); setSearch('') }}
+                    style={{
+                      fontSize: '13px', color: '#fff', textDecoration: 'none',
+                      padding: '8px 10px', background: 'var(--bg-elevated)', borderRadius: '8px',
+                    }}>
+                    {result.name}
+                  </a>
+                ))
+              )}
+            </div>
+          )}
+
+          <MobileMenuLink href="/games" onClick={() => setMobileMenuOpen(false)}>Games</MobileMenuLink>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {Object.keys(CURRENCY_SYMBOLS).map(code => (
+              <button key={code} onClick={() => setCurrency(code)} style={{
+                flex: 1, padding: '8px', borderRadius: '8px', cursor: 'pointer',
+                background: currency === code ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
+                border: `1px solid ${currency === code ? 'var(--gold)' : 'var(--border)'}`,
+                color: currency === code ? 'var(--gold)' : 'var(--text-muted)',
+                fontSize: '13px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+              }}>
+                {CURRENCY_SYMBOLS[code]} {code}
+              </button>
+            ))}
+          </div>
+
+          <MobileMenuLink href="/notifications" onClick={() => setMobileMenuOpen(false)}>
+            Notifications{notifications.filter(n => !n.isRead).length > 0 && ` (${notifications.filter(n => !n.isRead).length})`}
+          </MobileMenuLink>
+          <MobileMenuLink href="/cart" onClick={() => setMobileMenuOpen(false)}>
+            Cart{cartCount > 0 && ` (${cartCount})`}
+          </MobileMenuLink>
+
+          <div style={{ borderTop: '1px solid var(--border)', margin: '2px 0' }} />
+
+          {user ? (
+            <>
+              <MobileMenuLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>My Orders</MobileMenuLink>
+              <MobileMenuLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Account Settings</MobileMenuLink>
+              {isBooster && (
+                <MobileMenuLink href="/booster" onClick={() => setMobileMenuOpen(false)}>Booster Panel</MobileMenuLink>
+              )}
+              <button onClick={() => { logout(); setMobileMenuOpen(false) }} style={{
+                textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                color: '#ff6666', fontSize: '14px', fontFamily: 'var(--font-inter)', padding: '4px 0',
+              }}>
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
+              <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>
+                Sign In
+              </button>
+            </Link>
+          )}
+        </div>
+      )}
     </nav>
+  )
+}
+
+function MobileMenuLink({ href, onClick, children }) {
+  return (
+    <Link href={href} onClick={onClick} style={{
+      color: '#fff', fontSize: '14px', fontFamily: 'var(--font-inter)', textDecoration: 'none',
+    }}>
+      {children}
+    </Link>
   )
 }
 
@@ -524,6 +630,22 @@ function CartIcon() {
     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
       <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
       <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  )
+}
+
+function MenuIcon() {
+  return (
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round">
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  )
+}
+
+function CloseIcon() {
+  return (
+    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round">
+      <path d="M6 6l12 12M18 6L6 18" />
     </svg>
   )
 }

@@ -17,7 +17,7 @@ export default function GameServices({ services, game }) {
     : services.filter(s => (s.serviceCategory || 'Genel') === active)
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '28px', alignItems: 'flex-start' }}>
+    <div className="game-services-grid">
       <aside style={{
         background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: '14px', padding: '18px', position: 'sticky', top: '80px',

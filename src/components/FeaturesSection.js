@@ -25,13 +25,8 @@ const features = [
 
 export default function FeaturesSection() {
   return (
-    <section style={{
-      padding: '0 0 48px',
-      maxWidth: '1100px',
-      margin: '0 auto',
-      width: '100%',
-      paddingLeft: '48px',
-      paddingRight: '48px',
+    <section className="container" style={{
+      paddingBottom: '48px',
     }}>
       <div style={{
         display: 'grid',
