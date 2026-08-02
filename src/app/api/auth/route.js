@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
+import { rateLimit, getClientIp } from '@/lib/rateLimit'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -23,6 +24,43 @@ export async function POST(request) {
   try {
     const body = await request.json()
     const { action, email, username, password } = body
+    const ip = getClientIp(request)
+
+    if (action === 'login') {
+      const ipCheck = rateLimit(`login:ip:${ip}`, { maxAttempts: 10, windowMs: 5 * 60 * 1000 })
+      const emailCheck = email
+        ? rateLimit(`login:email:${email.toLowerCase()}`, { maxAttempts: 6, windowMs: 15 * 60 * 1000 })
+        : { allowed: true }
+      if (!ipCheck.allowed || !emailCheck.allowed) {
+        return NextResponse.json(
+          { success: false, error: 'Too many login attempts. Please try again in a few minutes.' },
+          { status: 429 }
+        )
+      }
+    }
+
+    if (action === 'register') {
+      const ipCheck = rateLimit(`register:ip:${ip}`, { maxAttempts: 5, windowMs: 60 * 60 * 1000 })
+      if (!ipCheck.allowed) {
+        return NextResponse.json(
+          { success: false, error: 'Too many accounts created from this location. Please try again later.' },
+          { status: 429 }
+        )
+      }
+    }
+
+    if (action === 'forgotPassword') {
+      const ipCheck = rateLimit(`forgot:ip:${ip}`, { maxAttempts: 8, windowMs: 60 * 60 * 1000 })
+      const emailCheck = email
+        ? rateLimit(`forgot:email:${email.toLowerCase()}`, { maxAttempts: 3, windowMs: 60 * 60 * 1000 })
+        : { allowed: true }
+      if (!ipCheck.allowed || !emailCheck.allowed) {
+        return NextResponse.json(
+          { success: false, error: 'Too many requests. Please try again later.' },
+          { status: 429 }
+        )
+      }
+    }
 
     if (action === 'register') {
       if (!password || password.length < 6) {
