@@ -188,6 +188,22 @@ export default function AdminGames({ secret }) {
     fetchGames()
   }
 
+  async function deleteGame(id, name) {
+    if (!window.confirm(`"${name}" oyununu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return
+    const res = await fetch(`/api/admin?type=game&id=${id}`, { method: 'DELETE', headers })
+    const d = await res.json()
+    if (d.success) { setMsg('Oyun silindi'); fetchGames() }
+    else setMsg(d.error || 'Hata')
+  }
+
+  async function deleteService(id, name) {
+    if (!window.confirm(`"${name}" hizmetini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return
+    const res = await fetch(`/api/admin?type=service&id=${id}`, { method: 'DELETE', headers })
+    const d = await res.json()
+    if (d.success) { setMsg('Hizmet silindi'); fetchGames() }
+    else setMsg(d.error || 'Hata')
+  }
+
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
 
   return (
@@ -250,6 +266,7 @@ export default function AdminGames({ secret }) {
                 serviceForm={serviceForm} setServiceForm={setServiceForm}
                 saveEditGame={saveEditGame} saveEditService={saveEditService}
                 addService={addService} toggleGame={toggleGame} toggleService={toggleService}
+                deleteGame={deleteGame} deleteService={deleteService}
                 gameCategories={gameCategories}
               />
             ))}
@@ -266,7 +283,8 @@ function SortableGameRow({
   showAddService, setShowAddService,
   editService, setEditService, editForm, setEditForm,
   serviceForm, setServiceForm,
-  saveEditGame, saveEditService, addService, toggleGame, toggleService
+  saveEditGame, saveEditService, addService, toggleGame, toggleService,
+  deleteGame, deleteService,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: game.id })
   const catInputRef = useRef(null)
@@ -319,6 +337,10 @@ function SortableGameRow({
             <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
               onClick={() => toggleGame(game.id, game.isActive)}>
               {game.isActive ? 'Pasif' : 'Aktif'}
+            </button>
+            <button style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
+              onClick={() => deleteGame(game.id, game.name)}>
+              Sil
             </button>
             <button onClick={onToggleExpand} style={{ width: '28px', height: '28px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▾</button>
           </div>
@@ -504,6 +526,10 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}
                             onClick={() => toggleService(s.id, s.isActive)}>
                             {s.isActive ? 'Pasif' : 'Aktif'}
+                          </button>
+                          <button style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
+                            onClick={() => deleteService(s.id, s.name)}>
+                            Sil
                           </button>
                         </div>
                       </td>

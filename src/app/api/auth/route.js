@@ -122,6 +122,13 @@ export async function POST(request) {
         )
       }
 
+      if (!user.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'This account has been deactivated. Please contact support.' },
+          { status: 403 }
+        )
+      }
+
       if (!user.passwordHash) {
         return NextResponse.json(
           { success: false, error: `This account signs in with ${user.oauthProvider || 'a social account'}. Please use that option instead.` },

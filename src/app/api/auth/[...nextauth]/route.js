@@ -45,6 +45,7 @@ const handler = NextAuth({
     async signIn({ user, account }) {
       if (!user?.email) return false
       const dbUser = await findOrCreateUser(user.email, account?.provider)
+      if (!dbUser.isActive) return false
       user.appUserId = dbUser.id
       user.appUsername = dbUser.username
       return true

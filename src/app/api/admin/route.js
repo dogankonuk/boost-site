@@ -93,6 +93,70 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: boosters })
     }
 
+    if (type === 'stats') {
+      const [totalUsers, totalBoosters, activeBoosters, orders] = await Promise.all([
+        prisma.user.count(),
+        prisma.booster.count(),
+        prisma.booster.count({ where: { status: 'active' } }),
+        prisma.order.findMany({
+          select: {
+            status: true, price: true, createdAt: true,
+            service: { select: { game: { select: { name: true } } } },
+          },
+        }),
+      ])
+
+      const statusCounts = { pending: 0, assigned: 0, in_progress: 0, completed: 0, cancelled: 0 }
+      let totalRevenue = 0
+      let last30Revenue = 0
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const gameRevenue = {}
+
+      for (const o of orders) {
+        if (statusCounts[o.status] !== undefined) statusCounts[o.status]++
+        if (o.status === 'completed') {
+          totalRevenue += o.price
+          if (o.createdAt > thirtyDaysAgo) last30Revenue += o.price
+          const gameName = o.service?.game?.name || 'Unknown'
+          gameRevenue[gameName] = (gameRevenue[gameName] || 0) + o.price
+        }
+      }
+
+      const topGames = Object.entries(gameRevenue)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, revenue]) => ({ name, revenue }))
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          totalUsers, totalBoosters, activeBoosters,
+          totalOrders: orders.length,
+          totalRevenue, last30Revenue,
+          statusCounts, topGames,
+        },
+      })
+    }
+
+    if (type === 'users') {
+      const users = await prisma.user.findMany({
+        include: {
+          orders: { select: { status: true, price: true } },
+          booster: { select: { id: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      const data = users.map(u => ({
+        id: u.id, username: u.username, email: u.email, isActive: u.isActive,
+        emailVerified: u.emailVerified, createdAt: u.createdAt,
+        oauthProvider: u.oauthProvider,
+        isBooster: !!u.booster,
+        orderCount: u.orders.length,
+        totalSpent: u.orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.price, 0),
+      }))
+      return NextResponse.json({ success: true, data })
+    }
+
     if (type === 'userSearch') {
       const q = searchParams.get('q')?.trim()
       if (!q || q.length < 2) return NextResponse.json({ success: true, data: [] })
@@ -255,9 +319,60 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true, data: booster })
     }
 
+    if (type === 'user') {
+      const user = await prisma.user.update({
+        where: { id: parseInt(id) },
+        data: { isActive: data.isActive },
+        select: { id: true, username: true, isActive: true },
+      })
+      return NextResponse.json({ success: true, data: user })
+    }
+
     return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
   } catch (error) {
     console.error('Admin PATCH error:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+  }
+}
+
+export async function DELETE(request) {
+  if (!isAdmin(request)) {
+    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const type = searchParams.get('type')
+    const id = parseInt(searchParams.get('id'))
+
+    if (type === 'game') {
+      const game = await prisma.game.findUnique({ where: { id }, include: { services: { select: { id: true } } } })
+      if (!game) {
+        return NextResponse.json({ success: false, error: 'Oyun bulunamadı' }, { status: 404 })
+      }
+      if (game.services.length > 0) {
+        return NextResponse.json({ success: false, error: 'Bu oyunun hizmetleri var, önce onları silin veya oyunu pasife alın' }, { status: 400 })
+      }
+      await prisma.game.delete({ where: { id } })
+      return NextResponse.json({ success: true })
+    }
+
+    if (type === 'service') {
+      const service = await prisma.service.findUnique({ where: { id } })
+      if (!service) {
+        return NextResponse.json({ success: false, error: 'Hizmet bulunamadı' }, { status: 404 })
+      }
+      const orderCount = await prisma.order.count({ where: { serviceId: id } })
+      if (orderCount > 0) {
+        return NextResponse.json({ success: false, error: 'Bu hizmete ait siparişler var, silmek yerine pasife alabilirsiniz' }, { status: 400 })
+      }
+      await prisma.service.delete({ where: { id } })
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+  } catch (error) {
+    console.error('Admin DELETE error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
