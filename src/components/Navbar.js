@@ -556,6 +556,7 @@ export default function Navbar() {
 
           <MobileMenuLink href="/games" onClick={() => setMobileMenuOpen(false)}>Games</MobileMenuLink>
           <MobileMenuLink href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</MobileMenuLink>
+          <MobileMenuLink href="/apply" onClick={() => setMobileMenuOpen(false)}>Work with us</MobileMenuLink>
 
           <div style={{ display: 'flex', gap: '8px' }}>
             {Object.keys(CURRENCY_SYMBOLS).map(code => (

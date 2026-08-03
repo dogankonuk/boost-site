@@ -213,6 +213,14 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data })
     }
 
+    if (type === 'applications') {
+      const applications = await prisma.application.findMany({
+        include: { user: { select: { username: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+      })
+      return NextResponse.json({ success: true, data: applications })
+    }
+
     if (type === 'userSearch') {
       const q = searchParams.get('q')?.trim()
       if (!q || q.length < 2) return NextResponse.json({ success: true, data: [] })
@@ -428,6 +436,52 @@ export async function PATCH(request) {
       }
 
       return NextResponse.json({ success: true, data: post })
+    }
+
+    if (type === 'application') {
+      const application = await prisma.application.findUnique({ where: { id: parseInt(id) } })
+      if (!application) {
+        return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 })
+      }
+
+      const decision = data.status
+      const updated = await prisma.application.update({
+        where: { id: parseInt(id) },
+        data: { status: decision, reviewNote: data.reviewNote?.trim() || null },
+      })
+
+      if (decision === 'approved') {
+        if (application.type === 'booster') {
+          const existingBooster = await prisma.booster.findUnique({ where: { userId: application.userId } })
+          if (!existingBooster) {
+            await prisma.booster.create({
+              data: {
+                userId: application.userId,
+                discordId: application.discord || null,
+                games: Array.isArray(application.games) && application.games.length > 0 ? application.games : null,
+              },
+            })
+          }
+        } else if (application.type === 'content_creator') {
+          await prisma.user.update({ where: { id: application.userId }, data: { isContentCreator: true } })
+        }
+      }
+
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: application.userId,
+            type: 'application_status',
+            title: decision === 'approved' ? 'Your application was approved! 🎉' : 'Your application was not approved',
+            body: application.type === 'booster' ? 'Booster application' : 'Content creator application',
+            link: decision === 'approved' ? (application.type === 'booster' ? '/booster' : '/creator') : '/apply',
+          },
+        })
+      } catch (err) {
+        console.error('application notification error:', err)
+      }
+
+      return NextResponse.json({ success: true, data: updated })
     }
 
     return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })

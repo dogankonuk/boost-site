@@ -76,6 +76,7 @@ model User {
   notifications Notification[]
   messages      Message[]
   blogPosts     BlogPost[]
+  applications  Application[]
 }
 
 model Booster {
@@ -170,4 +171,23 @@ model BlogPost {
   updatedAt   DateTime  @updatedAt
 
   @@index([isPublished, publishedAt])
+}
+
+model Application {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
+  type        String   // 'booster' | 'content_creator'
+  status      String   @default("pending") // pending | approved | rejected
+  discord     String?
+  telegram    String?
+  games       Json?
+  experience  String?
+  screenshots Json?
+  extra       Json?
+  reviewNote  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([type, status])
 }
