@@ -24,6 +24,8 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [gamesMenuOpen, setGamesMenuOpen] = useState(false)
   const [navGames, setNavGames] = useState([])
+  const [selectedGameSlug, setSelectedGameSlug] = useState(null)
+  const [gamesSearch, setGamesSearch] = useState('')
   const gamesMenuRef = useRef(null)
   const { currency, setCurrency, format } = useCurrency()
   const { count: cartCount } = useCart()
@@ -176,52 +178,15 @@ export default function Navbar() {
           </button>
 
           {gamesMenuOpen && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 8px)', left: 0,
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '12px', padding: '14px', width: '420px', zIndex: 200,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            }}>
-              {navGames.length === 0 ? (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  Loading...
-                </div>
-              ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', maxHeight: '360px', overflowY: 'auto' }}>
-                  {navGames.map(g => (
-                    <Link key={g.id} href={`/games/${g.slug}`} onClick={() => setGamesMenuOpen(false)} style={{
-                      display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
-                      padding: '6px 8px', borderRadius: '8px', transition: 'background 0.15s',
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{
-                        width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0,
-                        background: 'var(--bg-elevated)',
-                        backgroundImage: g.coverImage ? `url(${g.coverImage})` : 'none',
-                        backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
-                      }} />
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{
-                          fontSize: '12px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)',
-                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                        }}>{g.name}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{g.services?.length || 0} services</div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-              <div style={{ borderTop: '1px solid var(--border)', marginTop: '10px', paddingTop: '10px' }}>
-                <Link href="/games" onClick={() => setGamesMenuOpen(false)} style={{
-                  display: 'block', textAlign: 'center', fontSize: '12px', color: 'var(--gold)',
-                  fontFamily: 'var(--font-montserrat)', fontWeight: '600', textDecoration: 'none',
-                }}>
-                  View All Games →
-                </Link>
-              </div>
-            </div>
+            <GamesMegaMenu
+              navGames={navGames}
+              selectedGameSlug={selectedGameSlug}
+              setSelectedGameSlug={setSelectedGameSlug}
+              gamesSearch={gamesSearch}
+              setGamesSearch={setGamesSearch}
+              format={format}
+              onClose={() => setGamesMenuOpen(false)}
+            />
           )}
         </div>
 
@@ -623,6 +588,200 @@ export default function Navbar() {
         </div>
       )}
     </nav>
+  )
+}
+
+function groupServices(services) {
+  const grouped = {}
+  services.forEach(s => {
+    const cat = s.serviceCategory || 'General'
+    if (!grouped[cat]) grouped[cat] = []
+    grouped[cat].push(s)
+  })
+  return grouped
+}
+
+function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesSearch, setGamesSearch, format, onClose }) {
+  const filteredGames = navGames.filter(g => g.name.toLowerCase().includes(gamesSearch.trim().toLowerCase()))
+  const selectedGame = navGames.find(g => g.slug === selectedGameSlug)
+    || navGames.find(g => (g.services?.length || 0) > 0)
+    || navGames[0]
+
+  const hotServices = navGames
+    .flatMap(g => (g.services || []).filter(s => s.isHot).map(s => ({ ...s, game: g })))
+    .slice(0, 6)
+
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', top: '64px', left: 0, right: 0, bottom: 0,
+        background: 'rgba(0,0,0,0.6)', zIndex: 190,
+      }} />
+      <div style={{
+        position: 'fixed', top: '64px', left: 0, right: 0, zIndex: 200,
+        background: 'var(--bg-card)', borderBottom: '1px solid var(--border)',
+        boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+        maxHeight: 'calc(100vh - 64px)', overflowY: 'auto',
+      }}>
+        <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '28px 32px', position: 'relative', display: 'flex', gap: '28px' }}>
+          <button onClick={onClose} aria-label="Close" style={{
+            position: 'absolute', top: '0px', right: '32px',
+            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
+          >
+            <CloseIcon />
+          </button>
+
+          <div style={{ width: '240px', flexShrink: 0, borderRight: '1px solid var(--border)', paddingRight: '24px' }}>
+            <input
+              value={gamesSearch}
+              onChange={e => setGamesSearch(e.target.value)}
+              placeholder="Search game..."
+              style={{
+                width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px',
+                fontFamily: 'var(--font-inter)', outline: 'none', marginBottom: '14px',
+              }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '400px', overflowY: 'auto' }}>
+              {filteredGames.length === 0 ? (
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', padding: '8px 0' }}>No games found</div>
+              ) : filteredGames.map(g => {
+                const active = selectedGame?.slug === g.slug
+                return (
+                  <button key={g.id} onClick={() => setSelectedGameSlug(g.slug)} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left',
+                    padding: '8px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+                    background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
+                    transition: 'background 0.15s',
+                  }}
+                    onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                    onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
+                      background: 'var(--bg-elevated)',
+                      backgroundImage: g.coverImage ? `url(${g.coverImage})` : 'none',
+                      backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
+                    }} />
+                    <span style={{
+                      flex: 1, minWidth: 0, fontSize: '13px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+                      color: active ? 'var(--gold)' : '#fff',
+                      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                    }}>{g.name}</span>
+                    {active && (
+                      <svg width="12" height="12" fill="none" stroke="var(--gold)" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M9 6l6 6-6 6" />
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <Link href="/games" onClick={onClose} style={{
+              display: 'block', marginTop: '14px', fontSize: '12px', color: 'var(--gold)',
+              fontFamily: 'var(--font-montserrat)', fontWeight: '600', textDecoration: 'none',
+            }}>
+              View All Games →
+            </Link>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0, paddingRight: '24px' }}>
+            {selectedGame ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '7px', flexShrink: 0,
+                    backgroundImage: selectedGame.coverImage ? `url(${selectedGame.coverImage})` : 'none',
+                    backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
+                  }} />
+                  <h3 style={{ fontSize: '16px', fontFamily: 'var(--font-montserrat)', fontWeight: '700', color: '#fff', margin: 0 }}>
+                    {selectedGame.name}
+                  </h3>
+                </div>
+
+                {(selectedGame.services?.length || 0) === 0 ? (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                    No services listed yet for this game — check back soon.
+                  </div>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '24px' }}>
+                    {Object.entries(groupServices(selectedGame.services)).map(([category, services]) => (
+                      <div key={category}>
+                        <h4 style={{
+                          fontSize: '11px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)',
+                          fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em',
+                          margin: '0 0 10px',
+                        }}>{category}</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {services.map(s => (
+                            <Link key={s.id} href={`/order/${s.id}`} onClick={onClose} style={{
+                              fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none',
+                              transition: 'color 0.15s',
+                            }}
+                              onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
+                              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                            >
+                              {s.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Loading games...</div>
+            )}
+          </div>
+
+          <div style={{ width: '280px', flexShrink: 0, borderLeft: '1px solid var(--border)', paddingLeft: '24px' }}>
+            <h4 style={{
+              fontSize: '11px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)',
+              fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 14px',
+            }}>🔥 Popular Services</h4>
+            {hotServices.length === 0 ? (
+              <div style={{ color: 'var(--text-dim)', fontSize: '12px' }}>Nothing hot right now.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {hotServices.map(s => (
+                  <Link key={s.id} href={`/order/${s.id}`} onClick={onClose} style={{ textDecoration: 'none' }}>
+                    <div style={{
+                      display: 'flex', gap: '10px', padding: '10px', borderRadius: '10px',
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                      transition: 'border-color 0.15s',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+                    >
+                      <div style={{
+                        width: '44px', height: '44px', borderRadius: '8px', flexShrink: 0,
+                        background: 'var(--bg-card)',
+                        backgroundImage: s.imageUrl ? `url(${s.imageUrl})` : (s.game?.coverImage ? `url(${s.game.coverImage})` : 'none'),
+                        backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
+                      }} />
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{s.game?.name}</div>
+                        <div style={{
+                          fontSize: '12px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>{s.name}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--gold)', fontWeight: '700', marginTop: '2px' }}>
+                          from {format(s.basePrice)}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 
