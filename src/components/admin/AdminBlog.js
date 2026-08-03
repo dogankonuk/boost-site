@@ -98,7 +98,9 @@ export default function AdminBlog({ secret }) {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {filtered.map(post => (
+          {filtered.map(post => {
+            const scheduled = post.isPublished && post.publishedAt && new Date(post.publishedAt) > new Date()
+            return (
             <div key={post.id} style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '12px', padding: '16px 20px',
@@ -109,10 +111,12 @@ export default function AdminBlog({ secret }) {
                   <span style={{ fontSize: '14px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)' }}>{post.title}</span>
                   <span style={{
                     fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                    background: post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
-                    border: `1px solid ${post.isPublished ? '#4caf50' : 'var(--border)'}`,
-                    color: post.isPublished ? '#4caf50' : 'var(--text-dim)',
-                  }}>{post.isPublished ? 'Yayında' : 'Taslak'}</span>
+                    background: scheduled ? 'rgba(245,197,24,0.1)' : post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
+                    border: `1px solid ${scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--border)'}`,
+                    color: scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--text-dim)',
+                  }}>
+                    {scheduled ? `Zamanlandı: ${new Date(post.publishedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : post.isPublished ? 'Yayında' : 'Taslak'}
+                  </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   ✍️ {post.author?.username} · {post.category}{post.game ? ` · ${post.game.name}` : ''} · 👁 {post.views}
@@ -135,7 +139,8 @@ export default function AdminBlog({ secret }) {
                 </button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
         </>

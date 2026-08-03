@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { sendOrderStatusUpdate } from '@/lib/email'
+import { sendOrderStatusUpdate, sendBlogUnpublishedEmail } from '@/lib/email'
 import { notifyOrderStatus } from '@/lib/notify'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
@@ -388,7 +388,10 @@ export async function PATCH(request) {
     }
 
     if (type === 'blogPost') {
-      const existing = await prisma.blogPost.findUnique({ where: { id: parseInt(id) } })
+      const existing = await prisma.blogPost.findUnique({
+        where: { id: parseInt(id) },
+        include: { author: { select: { email: true, username: true } } },
+      })
       const post = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data,
@@ -405,6 +408,13 @@ export async function PATCH(request) {
               link: '/creator',
             },
           })
+          if (existing.author?.email) {
+            await sendBlogUnpublishedEmail({
+              to: existing.author.email,
+              username: existing.author.username,
+              postTitle: post.title,
+            })
+          }
         } catch (err) {
           console.error('blog unpublish notification error:', err)
         }

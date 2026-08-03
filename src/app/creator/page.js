@@ -8,7 +8,14 @@ import { authFetch } from '@/lib/authFetch'
 
 const CATEGORIES = ['Guide', 'Update', 'Playthrough', 'News']
 
-const emptyForm = { title: '', excerpt: '', content: '', coverImage: '', category: 'Guide', gameId: '' }
+const emptyForm = { title: '', excerpt: '', content: '', coverImage: '', category: 'Guide', gameId: '', publishedAt: '' }
+
+function toDatetimeLocal(date) {
+  if (!date) return ''
+  const d = new Date(date)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export default function CreatorPage() {
   const router = useRouter()
@@ -75,6 +82,7 @@ export default function CreatorPage() {
       coverImage: post.coverImage || '',
       category: post.category,
       gameId: post.gameId ? String(post.gameId) : '',
+      publishedAt: toDatetimeLocal(post.publishedAt),
     })
     setError('')
     setView('editor')
@@ -89,6 +97,7 @@ export default function CreatorPage() {
     setError('')
     try {
       const payload = { ...form, isPublished: publish }
+      if (!payload.publishedAt) delete payload.publishedAt
       const res = editingId
         ? await authFetch('/api/blog', {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -139,6 +148,8 @@ export default function CreatorPage() {
 
   if (!checkedAuth) return null
 
+  const isScheduled = form.publishedAt && new Date(form.publishedAt) > new Date()
+
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
@@ -163,7 +174,9 @@ export default function CreatorPage() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {posts.map(post => (
+                {posts.map(post => {
+                  const scheduled = post.isPublished && post.publishedAt && new Date(post.publishedAt) > new Date()
+                  return (
                   <div key={post.id} style={{
                     background: 'var(--bg-card)', border: '1px solid var(--border)',
                     borderRadius: '12px', padding: '16px 20px',
@@ -176,10 +189,12 @@ export default function CreatorPage() {
                         }}>{post.title}</span>
                         <span style={{
                           fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                          background: post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
-                          border: `1px solid ${post.isPublished ? '#4caf50' : 'var(--border)'}`,
-                          color: post.isPublished ? '#4caf50' : 'var(--text-dim)',
-                        }}>{post.isPublished ? 'Published' : 'Draft'}</span>
+                          background: scheduled ? 'rgba(245,197,24,0.1)' : post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
+                          border: `1px solid ${scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--border)'}`,
+                          color: scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--text-dim)',
+                        }}>
+                          {scheduled ? `Scheduled for ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : post.isPublished ? 'Published' : 'Draft'}
+                        </span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         {post.category}{post.game ? ` · ${post.game.name}` : ''} · 👁 {post.views}
@@ -193,7 +208,8 @@ export default function CreatorPage() {
                       <button onClick={() => deletePost(post)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Delete</button>
                     </div>
                   </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </>
@@ -227,6 +243,9 @@ export default function CreatorPage() {
               <Field label="Cover image URL (optional)">
                 <input value={form.coverImage} onChange={e => setForm(f => ({ ...f, coverImage: e.target.value }))} style={inputStyle} placeholder="https://..." />
               </Field>
+              <Field label="Publish date & time (optional — leave empty to publish immediately)">
+                <input type="datetime-local" value={form.publishedAt} onChange={e => setForm(f => ({ ...f, publishedAt: e.target.value }))} style={inputStyle} />
+              </Field>
               <Field label="Content (Markdown supported)">
                 <textarea
                   value={form.content}
@@ -246,7 +265,7 @@ export default function CreatorPage() {
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button className="btn-primary" onClick={() => save(true)} disabled={saving}>
-                  {saving ? 'Saving...' : 'Publish'}
+                  {saving ? 'Saving...' : isScheduled ? 'Schedule' : 'Publish'}
                 </button>
                 <button onClick={() => save(false)} disabled={saving} style={smallBtnStyle}>
                   Save as Draft

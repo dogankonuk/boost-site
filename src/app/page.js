@@ -9,7 +9,7 @@ import Footer from '@/components/Footer'
 
 export default async function HomePage() {
   const latestPosts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
+    where: { isPublished: true, publishedAt: { lte: new Date() } },
     include: {
       author: { select: { username: true, displayName: true } },
     },

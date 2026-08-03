@@ -79,6 +79,44 @@ export async function sendPasswordResetEmail({ to, username, link }) {
   }
 }
 
+export async function sendBlogUnpublishedEmail({ to, username, postTitle }) {
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: 'Your post was unpublished — ShadowBoosting',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
+              <h1 style="font-size:22px;font-weight:700;margin:0 0 6px;color:#fff;">Your post was unpublished</h1>
+              <p style="color:#777;margin:0 0 8px;font-size:14px;">Hi ${username}, an admin unpublished your post:</p>
+              <p style="color:#fff;margin:0 0 24px;font-size:16px;font-weight:600;">"${postTitle}"</p>
+              <p style="color:#555;font-size:12px;margin:0;">You can review and republish it from your Content Studio whenever you're ready.</p>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © 2024 ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}
+
 export async function sendOrderConfirmation({ to, username, orderNumber, gameName, serviceName, price, details }) {
   try {
     await resend.emails.send({

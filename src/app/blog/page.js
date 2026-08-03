@@ -7,6 +7,9 @@ import Container from '@/components/Container'
 export const metadata = {
   title: 'Blog',
   description: 'Guides, updates, and playthroughs from the ShadowBoosting team and content creators.',
+  alternates: {
+    types: { 'application/rss+xml': '/blog/rss.xml' },
+  },
 }
 
 const CATEGORIES = ['Guide', 'Update', 'Playthrough', 'News']
@@ -19,6 +22,7 @@ export default async function BlogPage({ searchParams }) {
   const posts = await prisma.blogPost.findMany({
     where: {
       isPublished: true,
+      publishedAt: { lte: new Date() },
       ...(category ? { category } : {}),
       ...(gameSlug ? { game: { slug: gameSlug } } : {}),
     },
@@ -39,10 +43,20 @@ export default async function BlogPage({ searchParams }) {
         padding: '40px 0 32px',
       }}>
         <Container>
-          <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>Blog</h1>
-          <p className="body-default" style={{ color: 'var(--text-muted)' }}>
-            Guides, updates, and playthroughs from our team and content creators.
-          </p>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div>
+              <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>Blog</h1>
+              <p className="body-default" style={{ color: 'var(--text-muted)' }}>
+                Guides, updates, and playthroughs from our team and content creators.
+              </p>
+            </div>
+            <a href="/blog/rss.xml" style={{
+              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-dim)',
+              textDecoration: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '6px 12px',
+            }}>
+              📡 RSS
+            </a>
+          </div>
         </Container>
       </div>
 

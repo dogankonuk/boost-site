@@ -41,13 +41,13 @@ export default async function BlogPostPage({ params }) {
   const { slug } = await params
   const post = await getPost(slug)
 
-  if (!post || !post.isPublished) return notFound()
+  if (!post || !post.isPublished || post.publishedAt > new Date()) return notFound()
 
   prisma.blogPost.update({ where: { id: post.id }, data: { views: { increment: 1 } } }).catch(() => {})
 
   const [morePosts, newestPosts] = await Promise.all([
     prisma.blogPost.findMany({
-      where: { isPublished: true, category: post.category, id: { not: post.id } },
+      where: { isPublished: true, publishedAt: { lte: new Date() }, category: post.category, id: { not: post.id } },
       include: {
         author: { select: { username: true, displayName: true } },
         game: { select: { name: true, slug: true } },
@@ -56,7 +56,7 @@ export default async function BlogPostPage({ params }) {
       take: 3,
     }),
     prisma.blogPost.findMany({
-      where: { isPublished: true, id: { not: post.id } },
+      where: { isPublished: true, publishedAt: { lte: new Date() }, id: { not: post.id } },
       select: { id: true, slug: true, title: true, coverImage: true, publishedAt: true },
       orderBy: { publishedAt: 'desc' },
       take: 5,

@@ -25,7 +25,7 @@ export default async function sitemap() {
   })
 
   const blogPosts = await prisma.blogPost.findMany({
-    where: { isPublished: true },
+    where: { isPublished: true, publishedAt: { lte: new Date() } },
     select: { slug: true, updatedAt: true },
   })
 

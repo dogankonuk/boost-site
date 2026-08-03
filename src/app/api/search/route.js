@@ -30,6 +30,7 @@ export async function GET(request) {
     const posts = await prisma.blogPost.findMany({
       where: {
         isPublished: true,
+        publishedAt: { lte: new Date() },
         title: { contains: q, mode: 'insensitive' }
       },
       take: 4,

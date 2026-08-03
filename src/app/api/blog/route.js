@@ -78,6 +78,7 @@ export async function POST(request) {
 
     const slug = await uniqueSlug(slugify(title))
     const isPublished = !!body.isPublished
+    const publishedAt = body.publishedAt ? new Date(body.publishedAt) : (isPublished ? new Date() : null)
 
     const post = await prisma.blogPost.create({
       data: {
@@ -90,7 +91,7 @@ export async function POST(request) {
         gameId: body.gameId ? parseInt(body.gameId) : null,
         authorId: user.id,
         isPublished,
-        publishedAt: isPublished ? new Date() : null,
+        publishedAt,
       },
     })
 
@@ -122,7 +123,11 @@ export async function PATCH(request) {
     if (body.gameId !== undefined) data.gameId = body.gameId ? parseInt(body.gameId) : null
     if (body.isPublished !== undefined) {
       data.isPublished = !!body.isPublished
-      if (data.isPublished && !existing.publishedAt) data.publishedAt = new Date()
+    }
+    if (body.publishedAt) {
+      data.publishedAt = new Date(body.publishedAt)
+    } else if (data.isPublished && !existing.publishedAt) {
+      data.publishedAt = new Date()
     }
 
     const post = await prisma.blogPost.update({ where: { id }, data })
