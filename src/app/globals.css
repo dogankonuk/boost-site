@@ -331,3 +331,16 @@ input, textarea, select {
   height: 100%;
   border: 0;
 }
+
+.auth-visual { display: flex; }
+@media (max-width: 900px) {
+  .auth-visual { display: none !important; }
+}
+
+@keyframes authRingSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.auth-ring-spin {
+  animation: authRingSpin 90s linear infinite;
+}

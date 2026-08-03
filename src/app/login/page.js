@@ -76,173 +76,232 @@ function LoginForm() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', background: 'var(--bg)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '32px',
-    }}>
-      <Link href="/" style={{ textDecoration: 'none', marginBottom: '32px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '40px', height: '40px', background: 'var(--gold)',
-            borderRadius: '10px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', fontSize: '20px', fontWeight: '800',
-            color: '#0a0a0a', fontFamily: 'var(--font-montserrat)',
-          }}>S</div>
-          <span style={{
-            fontFamily: 'var(--font-montserrat)', fontWeight: '700',
-            fontSize: '18px', color: '#fff',
-          }}>ShadowBoosting</span>
-        </div>
-      </Link>
-
-      <div style={{
-        background: 'var(--bg-card)', border: '1px solid var(--border)',
-        borderRadius: '20px', padding: '40px', width: '100%', maxWidth: '420px',
+    <div style={{ minHeight: '100vh', display: 'flex', background: 'var(--bg)' }}>
+      {/* Left — brand panel */}
+      <div className="auth-visual" style={{
+        flex: '1 1 46%', position: 'relative', overflow: 'hidden',
+        alignItems: 'center', justifyContent: 'center', padding: '60px',
+        background: `
+          radial-gradient(ellipse 700px 600px at 15% 10%, rgba(245, 197, 24, 0.16), transparent 60%),
+          radial-gradient(ellipse 800px 700px at 90% 90%, rgba(147, 51, 234, 0.20), transparent 60%),
+          #060606
+        `,
+        borderRight: '1px solid var(--border)',
       }}>
-        <div style={{ display: 'flex', marginBottom: '28px', borderBottom: '1px solid var(--border)' }}>
-          {[
-            { key: 'login', label: 'Login' },
-            { key: 'register', label: 'Register' },
-          ].map(t => (
-            <button key={t.key} onClick={() => { setTab(t.key); setError('') }} style={{
-              flex: 1, padding: '12px',
-              background: 'transparent', border: 'none',
-              borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
-              color: tab === t.key ? 'var(--gold)' : 'var(--text-muted)',
-              fontFamily: 'var(--font-montserrat)', fontWeight: '600', fontSize: '14px',
-              cursor: 'pointer', transition: 'color 0.2s',
-            }}>{t.label}</button>
+        {/* decorative rings */}
+        <div className="auth-ring-spin" style={{
+          position: 'absolute', top: '50%', left: '50%', width: '900px', height: '900px',
+          transform: 'translate(-50%, -50%)', pointerEvents: 'none',
+        }}>
+          {[900, 700, 520, 360].map((size, i) => (
+            <div key={size} style={{
+              position: 'absolute', top: '50%', left: '50%', width: `${size}px`, height: `${size}px`,
+              transform: 'translate(-50%, -50%)', borderRadius: '50%',
+              border: `1px solid rgba(245, 197, 24, ${0.14 - i * 0.02})`,
+            }} />
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-          <button
-            type="button"
-            onClick={() => signIn('google', { callbackUrl: '/oauth-complete' })}
-            style={socialButtonStyle}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <GoogleIcon /> Continue with Google
-          </button>
-          <button
-            type="button"
-            onClick={() => signIn('discord', { callbackUrl: '/oauth-complete' })}
-            style={socialButtonStyle}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <DiscordIcon /> Continue with Discord
-          </button>
-        </div>
+        {/* huge faint watermark */}
+        <div style={{
+          position: 'absolute', bottom: '-80px', right: '-40px',
+          fontSize: '420px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
+          color: 'rgba(245, 197, 24, 0.04)', lineHeight: 1, pointerEvents: 'none',
+        }}>S</div>
 
-        <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', marginTop: '-8px', marginBottom: '20px', lineHeight: '1.5' }}>
-          By continuing, you agree to our{' '}
-          <Link href="/terms" target="_blank" style={{ color: 'var(--text-muted)' }}>Terms of Service</Link>
-          {' '}and{' '}
-          <Link href="/privacy" target="_blank" style={{ color: 'var(--text-muted)' }}>Privacy Policy</Link>.
-        </p>
+        <div style={{ position: 'relative', maxWidth: '440px' }}>
+          <h1 style={{
+            fontFamily: 'var(--font-montserrat)', fontWeight: '800', fontSize: '46px',
+            lineHeight: '1.15', color: '#fff', margin: '0 0 20px',
+          }}>
+            Forge Your<br />Power in the <span style={{ color: 'var(--gold)' }}>Shadows</span>
+          </h1>
+          <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: '1.7', marginBottom: '48px' }}>
+            Join thousands of players who trust ShadowBoosting to level up their game — safe, fast, and guaranteed.
+          </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-          <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>OR</span>
-          <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div>
-            <label style={{
-              fontSize: '12px', color: 'var(--text-muted)',
-              fontFamily: 'var(--font-montserrat)', fontWeight: '600',
-              display: 'block', marginBottom: '6px',
-            }}>
-              {tab === 'login' ? 'Email or Username' : 'Email'}
-            </label>
-            <input
-              type="email"
-              placeholder="example@mail.com"
-              value={form.email}
-              onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-              style={inputStyle}
-            />
-          </div>
-
-          {tab === 'register' && (
-            <div>
-              <label style={labelStyle}>Username</label>
-              <input
-                type="text"
-                placeholder="shadowplayer"
-                value={form.username}
-                onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
-                style={inputStyle}
-              />
+          <div style={{
+            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+            borderRadius: '14px', padding: '20px 24px', display: 'inline-block',
+          }}>
+            <div style={{ fontSize: '18px', color: 'var(--gold)', letterSpacing: '3px', marginBottom: '8px' }}>★★★★★</div>
+            <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: 'var(--gold)', marginBottom: '2px' }}>
+              4.9 / 5 Trust Score
             </div>
-          )}
-
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
-              {tab === 'login' && (
-                <Link href="/forgot-password" style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}>
-                  Forgot password?
-                </Link>
-              )}
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              Trusted by 12,000+ players worldwide
             </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={form.password}
-              onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-              onKeyDown={e => e.key === 'Enter' && submit()}
-              style={inputStyle}
-            />
           </div>
-
-          {tab === 'register' && (
-            <label style={{
-              display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer',
-              fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5',
-            }}>
-              <input
-                type="checkbox"
-                checked={agreedToTerms}
-                onChange={e => setAgreedToTerms(e.target.checked)}
-                style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
-              />
-              <span>
-                I have read and agree to the{' '}
-                <Link href="/terms" target="_blank" style={{ color: 'var(--gold)' }}>Terms of Service</Link>
-                {' '}and{' '}
-                <Link href="/privacy" target="_blank" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
-              </span>
-            </label>
-          )}
-
-          {error && (
-            <div style={{
-              background: '#2a1a1a', border: '1px solid #4a2a2a',
-              borderRadius: '8px', padding: '10px 14px',
-              color: '#ff6666', fontSize: '13px',
-            }}>{error}</div>
-          )}
-
-          <button
-            className="btn-primary"
-            onClick={submit}
-            disabled={loading || (tab === 'register' && !agreedToTerms)}
-            style={{ width: '100%', marginTop: '4px', opacity: (loading || (tab === 'register' && !agreedToTerms)) ? 0.6 : 1 }}
-          >
-            {loading ? 'Please wait...' : tab === 'login' ? 'Login' : 'Create Account'}
-          </button>
         </div>
       </div>
 
-      <p style={{ color: 'var(--text-dim)', fontSize: '12px', marginTop: '24px' }}>
-        © 2024 ShadowBoosting.co — All rights reserved.
-      </p>
+      {/* Right — form panel */}
+      <div style={{
+        flex: '1 1 54%', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', padding: '32px',
+      }}>
+        <Link href="/" style={{ textDecoration: 'none', marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '40px', height: '40px', background: 'var(--gold)',
+              borderRadius: '10px', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '20px', fontWeight: '800',
+              color: '#0a0a0a', fontFamily: 'var(--font-montserrat)',
+            }}>S</div>
+            <span style={{
+              fontFamily: 'var(--font-montserrat)', fontWeight: '700',
+              fontSize: '18px', color: '#fff',
+            }}>ShadowBoosting</span>
+          </div>
+        </Link>
+
+        <div style={{ width: '100%', maxWidth: '400px' }}>
+          <div style={{
+            display: 'flex', marginBottom: '28px', padding: '4px',
+            background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px',
+          }}>
+            {[
+              { key: 'login', label: 'Login' },
+              { key: 'register', label: 'Register' },
+            ].map(t => (
+              <button key={t.key} onClick={() => { setTab(t.key); setError('') }} style={{
+                flex: 1, padding: '9px', borderRadius: '7px',
+                background: tab === t.key ? 'var(--gold)' : 'transparent',
+                border: 'none',
+                color: tab === t.key ? '#0a0a0a' : 'var(--text-muted)',
+                fontFamily: 'var(--font-montserrat)', fontWeight: '600', fontSize: '13px',
+                cursor: 'pointer', transition: 'background 0.2s, color 0.2s',
+              }}>{t.label}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+            <button
+              type="button"
+              onClick={() => signIn('google', { callbackUrl: '/oauth-complete' })}
+              style={socialButtonStyle}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <GoogleIcon /> Continue with Google
+            </button>
+            <button
+              type="button"
+              onClick={() => signIn('discord', { callbackUrl: '/oauth-complete' })}
+              style={socialButtonStyle}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-hover)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <DiscordIcon /> Continue with Discord
+            </button>
+          </div>
+
+          <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', marginTop: '-8px', marginBottom: '20px', lineHeight: '1.5' }}>
+            By continuing, you agree to our{' '}
+            <Link href="/terms" target="_blank" style={{ color: 'var(--text-muted)' }}>Terms of Service</Link>
+            {' '}and{' '}
+            <Link href="/privacy" target="_blank" style={{ color: 'var(--text-muted)' }}>Privacy Policy</Link>.
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <label style={{
+                fontSize: '12px', color: 'var(--text-muted)',
+                fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+                display: 'block', marginBottom: '6px',
+              }}>
+                {tab === 'login' ? 'Email or Username' : 'Email'}
+              </label>
+              <input
+                type="email"
+                placeholder="example@mail.com"
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+
+            {tab === 'register' && (
+              <div>
+                <label style={labelStyle}>Username</label>
+                <input
+                  type="text"
+                  placeholder="shadowplayer"
+                  value={form.username}
+                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+                {tab === 'login' && (
+                  <Link href="/forgot-password" style={{ fontSize: '12px', color: 'var(--gold)', textDecoration: 'none' }}>
+                    Forgot password?
+                  </Link>
+                )}
+              </div>
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={form.password}
+                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && submit()}
+                style={inputStyle}
+              />
+            </div>
+
+            {tab === 'register' && (
+              <label style={{
+                display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer',
+                fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={e => setAgreedToTerms(e.target.checked)}
+                  style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
+                />
+                <span>
+                  I have read and agree to the{' '}
+                  <Link href="/terms" target="_blank" style={{ color: 'var(--gold)' }}>Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" target="_blank" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
+                </span>
+              </label>
+            )}
+
+            {error && (
+              <div style={{
+                background: '#2a1a1a', border: '1px solid #4a2a2a',
+                borderRadius: '8px', padding: '10px 14px',
+                color: '#ff6666', fontSize: '13px',
+              }}>{error}</div>
+            )}
+
+            <button
+              className="btn-primary"
+              onClick={submit}
+              disabled={loading || (tab === 'register' && !agreedToTerms)}
+              style={{ width: '100%', marginTop: '4px', opacity: (loading || (tab === 'register' && !agreedToTerms)) ? 0.6 : 1 }}
+            >
+              {loading ? 'Please wait...' : tab === 'login' ? 'Login' : 'Create Account'}
+            </button>
+          </div>
+
+          <p style={{ color: 'var(--text-dim)', fontSize: '12px', marginTop: '28px', textAlign: 'center' }}>
+            © 2024 ShadowBoosting.co — All rights reserved.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
