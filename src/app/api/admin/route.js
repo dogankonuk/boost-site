@@ -377,10 +377,28 @@ export async function PATCH(request) {
     }
 
     if (type === 'blogPost') {
+      const existing = await prisma.blogPost.findUnique({ where: { id: parseInt(id) } })
       const post = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data,
       })
+
+      if (existing?.isPublished && data.isPublished === false) {
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: existing.authorId,
+              type: 'blog_unpublished',
+              title: 'Your post was unpublished',
+              body: post.title,
+              link: '/creator',
+            },
+          })
+        } catch (err) {
+          console.error('blog unpublish notification error:', err)
+        }
+      }
+
       return NextResponse.json({ success: true, data: post })
     }
 

@@ -27,6 +27,14 @@ export async function GET(request) {
       take: 5,
     })
 
+    const posts = await prisma.blogPost.findMany({
+      where: {
+        isPublished: true,
+        title: { contains: q, mode: 'insensitive' }
+      },
+      take: 4,
+    })
+
     const results = [
       ...games.map(g => ({
         type: 'game',
@@ -42,6 +50,13 @@ export async function GET(request) {
         basePriceUSD: s.basePrice,
         image: s.imageUrl || s.game?.coverImage,
         url: `/order/${s.id}`,
+      })),
+      ...posts.map(p => ({
+        type: 'post',
+        name: p.title,
+        category: p.category,
+        image: p.coverImage,
+        url: `/blog/${p.slug}`,
       })),
     ]
 

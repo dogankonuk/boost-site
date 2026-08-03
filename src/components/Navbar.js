@@ -267,24 +267,24 @@ export default function Navbar() {
                         background: 'var(--bg-elevated)', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '16px', border: '1px solid var(--border)',
-                      }}>🎮</div>
+                      }}>{result.type === 'post' ? '📝' : '🎮'}</div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {result.name}
                       </div>
                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {result.type === 'game' ? result.category : `${result.gameName} · ${format(result.basePriceUSD)}`}
+                        {result.type === 'game' || result.type === 'post' ? result.category : `${result.gameName} · ${format(result.basePriceUSD)}`}
                       </div>
                     </div>
                     <span style={{
                       fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                      background: result.type === 'game' ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
-                      color: result.type === 'game' ? 'var(--gold)' : 'var(--text-muted)',
-                      border: `1px solid ${result.type === 'game' ? 'var(--gold)' : 'var(--border)'}`,
+                      background: result.type === 'game' ? 'rgba(245,197,24,0.1)' : result.type === 'post' ? 'rgba(147,51,234,0.1)' : 'var(--bg-elevated)',
+                      color: result.type === 'game' ? 'var(--gold)' : result.type === 'post' ? 'var(--violet)' : 'var(--text-muted)',
+                      border: `1px solid ${result.type === 'game' ? 'var(--gold)' : result.type === 'post' ? 'var(--violet)' : 'var(--border)'}`,
                       fontFamily: 'var(--font-montserrat)', fontWeight: '600', flexShrink: 0,
                     }}>
-                      {result.type === 'game' ? 'Game' : 'Service'}
+                      {result.type === 'game' ? 'Game' : result.type === 'post' ? 'Post' : 'Service'}
                     </span>
                   </div>
                 </a>
