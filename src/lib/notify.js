@@ -29,6 +29,23 @@ export async function notifyOrderStatus(prisma, order, status) {
   }
 }
 
+// Notifies the customer when their booster releases the order back to the pool.
+export async function notifyOrderReleased(prisma, order) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId: order.userId,
+        type: 'order_status',
+        title: 'Your order is back in the queue',
+        body: `${order.service?.game?.name || ''} — ${order.service?.name || ''}. Another booster will pick it up soon.`.trim(),
+        link: '/dashboard',
+      },
+    })
+  } catch (err) {
+    console.error('notifyOrderReleased error:', err)
+  }
+}
+
 // Notifies a user that they've received a new message on an order's chat thread.
 export async function notifyNewMessage(prisma, { recipientUserId, senderUsername, orderNumber, link }) {
   try {

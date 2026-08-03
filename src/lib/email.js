@@ -189,6 +189,7 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
 
 export async function sendOrderStatusUpdate({ to, username, orderNumber, gameName, serviceName, status }) {
   const STATUS_LABELS = {
+    pending: 'Back in Queue',
     assigned: 'Booster Assigned',
     in_progress: 'In Progress',
     completed: 'Completed',
@@ -196,6 +197,7 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
   }
 
   const STATUS_COLORS = {
+    pending: '#f5c518',
     assigned: '#ffcc44',
     in_progress: '#44aaff',
     completed: '#4caf50',
@@ -203,6 +205,7 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
   }
 
   const STATUS_MESSAGES = {
+    pending: 'Your order was returned to the queue and will be picked up by another booster shortly. No action is needed on your end.',
     assigned: 'Your order has been assigned to a booster. It will be picked up shortly.',
     in_progress: "Your order is now actively being worked on. You'll be notified once it's complete.",
     completed: "Your order was completed successfully! Don't forget to rate your experience.",

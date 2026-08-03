@@ -46,6 +46,8 @@ export default function BoosterPage() {
   const [loadingOrders, setLoadingOrders] = useState(true)
   const [claimingId, setClaimingId] = useState(null)
   const [confirmingId, setConfirmingId] = useState(null)
+  const [confirmReleaseId, setConfirmReleaseId] = useState(null)
+  const [releasingId, setReleasingId] = useState(null)
   const [updatingId, setUpdatingId] = useState(null)
   const [msg, setMsg] = useState('')
   const [poolSearch, setPoolSearch] = useState('')
@@ -158,6 +160,21 @@ export default function BoosterPage() {
       if (d.success) fetchMine()
     } catch {}
     setUpdatingId(null)
+  }
+
+  async function releaseOrder(orderId) {
+    setReleasingId(orderId)
+    try {
+      const res = await authFetch('/api/booster', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, action: 'release' }),
+      })
+      if (!res) return
+      const d = await res.json()
+      if (d.success) { fetchPool(); fetchMine() }
+    } catch {}
+    setReleasingId(null)
+    setConfirmReleaseId(null)
   }
 
   const filteredPool = useMemo(() => {
@@ -370,20 +387,41 @@ export default function BoosterPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {activeMine.map(order => (
                       <OrderCard key={order.id} order={order} format={format} showStatus showMessages>
-                        {order.status === 'assigned' && (
-                          <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                            disabled={updatingId === order.id}
-                            onClick={() => updateStatus(order.id, 'in_progress')}>
-                            {updatingId === order.id ? '...' : 'Start'}
-                          </button>
-                        )}
-                        {order.status === 'in_progress' && (
-                          <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
-                            disabled={updatingId === order.id}
-                            onClick={() => updateStatus(order.id, 'completed')}>
-                            {updatingId === order.id ? '...' : 'Mark as Completed'}
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          {order.status === 'assigned' && (
+                            <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                              disabled={updatingId === order.id}
+                              onClick={() => updateStatus(order.id, 'in_progress')}>
+                              {updatingId === order.id ? '...' : 'Start'}
+                            </button>
+                          )}
+                          {order.status === 'in_progress' && (
+                            <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                              disabled={updatingId === order.id}
+                              onClick={() => updateStatus(order.id, 'completed')}>
+                              {updatingId === order.id ? '...' : 'Mark as Completed'}
+                            </button>
+                          )}
+
+                          {confirmReleaseId === order.id ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Give up this order?</span>
+                              <button onClick={() => releaseOrder(order.id)} disabled={releasingId === order.id}
+                                style={{ fontSize: '12px', color: '#ff6666', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>
+                                {releasingId === order.id ? '...' : 'Yes, release it'}
+                              </button>
+                              <button onClick={() => setConfirmReleaseId(null)}
+                                style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
+                                Never mind
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setConfirmReleaseId(order.id)}
+                              style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+                              Give up this order
+                            </button>
+                          )}
+                        </div>
                       </OrderCard>
                     ))}
                   </div>

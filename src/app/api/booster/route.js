@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate } from '@/lib/email'
-import { notifyOrderStatus } from '@/lib/notify'
+import { notifyOrderStatus, notifyOrderReleased } from '@/lib/notify'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -157,6 +157,40 @@ export async function PATCH(request) {
         data: { discordId: body.discordId || null },
       })
       return NextResponse.json({ success: true, data: updated })
+    }
+
+    if (body.action === 'release') {
+      const releaseOrderId = parseInt(body.orderId)
+      const existingRelease = await prisma.order.findUnique({ where: { id: releaseOrderId } })
+      if (!existingRelease || existingRelease.boosterId !== booster.id) {
+        return NextResponse.json({ success: false, error: 'This order is not assigned to you' }, { status: 403 })
+      }
+      if (!['assigned', 'in_progress'].includes(existingRelease.status)) {
+        return NextResponse.json({ success: false, error: 'This order can no longer be released' }, { status: 400 })
+      }
+
+      const releasedOrder = await prisma.order.update({
+        where: { id: releaseOrderId },
+        data: { status: 'pending', boosterId: null, assignedAt: null, startedAt: null },
+        include: {
+          user: { select: { username: true, email: true } },
+          service: { include: { game: true } },
+        },
+      })
+
+      try {
+        await sendOrderStatusUpdate({
+          to: releasedOrder.user?.email,
+          username: releasedOrder.user?.username,
+          orderNumber: releasedOrder.orderNumber,
+          gameName: releasedOrder.service?.game?.name,
+          serviceName: releasedOrder.service?.name,
+          status: 'pending',
+        })
+      } catch {}
+      await notifyOrderReleased(prisma, releasedOrder)
+
+      return NextResponse.json({ success: true, data: releasedOrder })
     }
 
     const orderId = parseInt(body.orderId)
