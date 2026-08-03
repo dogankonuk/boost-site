@@ -74,6 +74,10 @@ function DashboardContent() {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
   }
 
+  function handleIssueReported(orderId, message) {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, issueReport: message, issueResolved: false } : o))
+  }
+
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress' || o.status === 'assigned')
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
@@ -186,10 +190,10 @@ function DashboardContent() {
         {/* Sağ içerik */}
         <div>
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} username={username} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} username={username} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
@@ -202,7 +206,7 @@ function DashboardContent() {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, username }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported }) {
   const { format } = useCurrency()
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -281,16 +285,23 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, us
                   </div>
                 </div>
 
-                {order.boosterId && (
-                  <MessageThread orderId={order.id} currentUsername={username} />
+                {!['completed', 'cancelled'].includes(order.status) && (
+                  <MessageThread orderId={order.id} />
                 )}
 
                 {order.status === 'completed' && (
                   <RatingWidget order={order} onRated={onRated} />
                 )}
 
-                {['pending', 'assigned'].includes(order.status) && (
-                  <CancelOrderButton order={order} onCancelled={onCancelled} />
+                {order.status !== 'cancelled' && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ flex: 1 }}>
+                      {['pending', 'assigned'].includes(order.status) && (
+                        <CancelOrderButton order={order} onCancelled={onCancelled} />
+                      )}
+                    </div>
+                    <ReportIssueButton order={order} onReported={onIssueReported} />
+                  </div>
                 )}
               </div>
             )
@@ -581,6 +592,86 @@ function ProfileField({ label, value, onChange, type = 'text', placeholder, disa
   )
 }
 
+function ReportIssueButton({ order, onReported }) {
+  const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  if (order.issueReport && !order.issueResolved) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', width: '100%' }}>
+        ⚠️ Issue reported — our team will follow up with you.
+      </div>
+    )
+  }
+
+  async function submit() {
+    const text = message.trim()
+    if (!text) return
+    setSubmitting(true)
+    try {
+      const res = await authFetch('/api/orders', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id, action: 'reportIssue', message: text }),
+      })
+      if (res) {
+        const d = await res.json()
+        if (d.success) {
+          onReported(order.id, text)
+          setOpen(false)
+          setMessage('')
+        }
+      }
+    } catch {}
+    setSubmitting(false)
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        title="Having a problem with this order?"
+        aria-label="Report a problem with this order"
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          width: '26px', height: '26px', borderRadius: '50%',
+          background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer',
+          color: 'var(--text-dim)', fontSize: '12px', padding: 0, flexShrink: 0,
+          transition: 'color 0.15s, border-color 0.15s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#ffcc44'; e.currentTarget.style.borderColor = '#ffcc44' }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border)' }}
+      >
+        ⚠️
+      </button>
+    )
+  }
+
+  return (
+    <div style={{ width: '100%' }}>
+      <textarea
+        value={message}
+        onChange={e => setMessage(e.target.value)}
+        placeholder="Tell us what's wrong and we'll help sort it out..."
+        rows={2}
+        style={{
+          width: '100%', background: 'var(--bg-elevated)', border: '1px solid #3a3a1a',
+          borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px',
+          fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical', marginBottom: '8px',
+        }}
+      />
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <button className="btn-primary" onClick={submit} disabled={submitting || !message.trim()} style={{ fontSize: '12px', padding: '7px 16px' }}>
+          {submitting ? 'Sending...' : 'Submit'}
+        </button>
+        <button onClick={() => { setOpen(false); setMessage('') }} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '12px', cursor: 'pointer' }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function CancelOrderButton({ order, onCancelled }) {
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -603,7 +694,7 @@ function CancelOrderButton({ order, onCancelled }) {
 
   if (confirming) {
     return (
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cancel this order?</span>
         <button onClick={cancel} disabled={loading} style={{ fontSize: '12px', color: '#ff6666', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>
           {loading ? '...' : 'Yes, cancel it'}
@@ -616,7 +707,7 @@ function CancelOrderButton({ order, onCancelled }) {
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
+    <div>
       <button onClick={() => setConfirming(true)} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
         Cancel order
       </button>

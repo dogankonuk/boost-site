@@ -5,6 +5,9 @@ import { notifyNewMessage } from '@/lib/notify'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
+// Orders in these statuses are done — no more back-and-forth, only rating/review applies.
+const CLOSED_STATUSES = ['completed', 'cancelled']
+
 function getUserFromToken(request) {
   const auth = request.headers.get('authorization')
   if (!auth || !auth.startsWith('Bearer ')) return null
@@ -53,7 +56,9 @@ export async function GET(request) {
       orderBy: { createdAt: 'asc' },
     })
 
-    return NextResponse.json({ success: true, data: messages })
+    const data = messages.map(m => ({ ...m, isMine: m.senderId === user.userId }))
+
+    return NextResponse.json({ success: true, data })
   } catch (error) {
     console.error('Messages GET error:', error)
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })
@@ -79,8 +84,8 @@ export async function POST(request) {
     if (!order) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
     }
-    if (!order.boosterId) {
-      return NextResponse.json({ success: false, error: "This order doesn't have a booster assigned yet" }, { status: 400 })
+    if (CLOSED_STATUSES.includes(order.status)) {
+      return NextResponse.json({ success: false, error: 'This order is closed and can no longer be messaged' }, { status: 400 })
     }
 
     const message = await prisma.message.create({
@@ -89,17 +94,20 @@ export async function POST(request) {
     })
 
     const isCustomer = order.userId === user.userId
-    const recipientUserId = isCustomer ? order.booster.user.id : order.userId
-    const link = isCustomer ? '/booster' : '/dashboard'
+    const recipientUserId = isCustomer ? order.booster?.user?.id : order.userId
 
-    await notifyNewMessage(prisma, {
-      recipientUserId,
-      senderUsername: message.sender.username,
-      orderNumber: order.orderNumber,
-      link,
-    })
+    // No booster assigned yet means there's no one to notify — the message
+    // is just recorded and will be visible once someone claims the order.
+    if (recipientUserId) {
+      await notifyNewMessage(prisma, {
+        recipientUserId,
+        senderUsername: message.sender.username,
+        orderNumber: order.orderNumber,
+        link: isCustomer ? '/booster' : '/dashboard',
+      })
+    }
 
-    return NextResponse.json({ success: true, data: message }, { status: 201 })
+    return NextResponse.json({ success: true, data: { ...message, isMine: true } }, { status: 201 })
   } catch (error) {
     console.error('Messages POST error:', error)
     return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 })

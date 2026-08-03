@@ -13,7 +13,7 @@ function timeAgo(dateStr) {
   return `${days}d ago`
 }
 
-export default function MessageThread({ orderId, currentUsername }) {
+export default function MessageThread({ orderId }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
@@ -60,6 +60,8 @@ export default function MessageThread({ orderId, currentUsername }) {
         if (d.success) {
           setMessages(prev => [...prev, d.data])
           setText('')
+        } else {
+          alert(d.error || 'Could not send message')
         }
       }
     } catch {}
@@ -67,7 +69,7 @@ export default function MessageThread({ orderId, currentUsername }) {
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', paddingTop: open ? '12px' : 0, marginTop: open ? '4px' : 0 }}>
+    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
       <button
         onClick={() => setOpen(v => !v)}
         style={{
@@ -97,28 +99,26 @@ export default function MessageThread({ orderId, currentUsername }) {
             ) : messages.length === 0 ? (
               <p style={{ color: 'var(--text-dim)', fontSize: '12px', margin: 0 }}>No messages yet — say hello!</p>
             ) : (
-              messages.map(m => {
-                const mine = m.sender?.username === currentUsername
-                return (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+              messages.map(m => (
+                <div key={m.id} style={{ display: 'flex', justifyContent: m.isMine ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '80%', padding: '7px 12px', borderRadius: '12px',
+                    background: m.isMine ? 'rgba(245,197,24,0.14)' : 'rgba(68,170,255,0.12)',
+                    border: `1px solid ${m.isMine ? 'rgba(245,197,24,0.35)' : 'rgba(68,170,255,0.35)'}`,
+                  }}>
                     <div style={{
-                      maxWidth: '80%', padding: '7px 12px', borderRadius: '12px',
-                      background: mine ? 'rgba(245,197,24,0.12)' : 'var(--bg-elevated)',
-                      border: `1px solid ${mine ? 'rgba(245,197,24,0.3)' : 'var(--border)'}`,
+                      fontSize: '10px', fontWeight: '700', marginBottom: '2px',
+                      color: m.isMine ? 'var(--gold)' : '#44aaff',
                     }}>
-                      {!mine && (
-                        <div style={{ fontSize: '10px', color: 'var(--gold)', fontWeight: '700', marginBottom: '2px' }}>
-                          {m.sender?.username}
-                        </div>
-                      )}
-                      <div style={{ fontSize: '13px', color: '#fff', lineHeight: '1.4', wordBreak: 'break-word' }}>{m.body}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px', textAlign: mine ? 'right' : 'left' }}>
-                        {timeAgo(m.createdAt)}
-                      </div>
+                      {m.isMine ? 'You' : m.sender?.username}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#fff', lineHeight: '1.4', wordBreak: 'break-word' }}>{m.body}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px', textAlign: m.isMine ? 'right' : 'left' }}>
+                      {timeAgo(m.createdAt)}
                     </div>
                   </div>
-                )
-              })
+                </div>
+              ))
             )}
           </div>
 

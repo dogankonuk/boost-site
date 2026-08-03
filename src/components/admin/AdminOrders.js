@@ -52,6 +52,14 @@ export default function AdminOrders({ secret }) {
     setLoading(false)
   }
 
+  async function resolveIssue(orderId) {
+    await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'order', id: orderId, data: { issueResolved: true } }),
+    })
+    fetchOrders()
+  }
+
   async function updateStatus(id, status) {
     await fetch('/api/admin', {
       method: 'PATCH',
@@ -117,6 +125,13 @@ export default function AdminOrders({ secret }) {
                         fontSize: '11px', padding: '2px 8px', borderRadius: '20px',
                         background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
                       }}>{STATUS_LABELS[order.status]}</span>
+                      {order.issueReport && !order.issueResolved && (
+                        <span style={{
+                          fontSize: '11px', padding: '2px 8px', borderRadius: '20px',
+                          background: '#2a1a1a', border: '1px solid #4a2a2a', color: '#ff6666',
+                          fontWeight: '700',
+                        }}>⚠️ Sorun Bildirildi</span>
+                      )}
                     </div>
                     <div style={{ fontSize: '14px', color: '#fff', marginBottom: '2px' }}>
                       {order.service?.game?.name} — {order.service?.name}
@@ -236,6 +251,36 @@ export default function AdminOrders({ secret }) {
                         })}
                       </div>
                     </div>
+
+                    {order.issueReport && (
+                      <div style={{ gridColumn: 'span 2', background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '10px', padding: '14px 16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <h4 style={{ color: '#ff6666', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            ⚠️ Müşteri Sorun Bildirdi
+                          </h4>
+                          {order.issueResolved ? (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>✓ Çözüldü</span>
+                          ) : (
+                            <button onClick={() => resolveIssue(order.id)} style={{
+                              padding: '5px 12px', borderRadius: '8px', fontSize: '12px',
+                              fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+                              cursor: 'pointer', border: '1px solid #4a2a2a',
+                              background: 'transparent', color: '#ff6666',
+                            }}>
+                              Çözüldü Olarak İşaretle
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ fontSize: '13px', color: '#fff', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                          {order.issueReport}
+                        </p>
+                        {order.issueReportedAt && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '6px' }}>
+                            {new Date(order.issueReportedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

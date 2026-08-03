@@ -51,12 +51,10 @@ export default function BoosterPage() {
   const [poolSearch, setPoolSearch] = useState('')
   const [discordId, setDiscordId] = useState('')
   const [savingDiscord, setSavingDiscord] = useState(false)
-  const [username, setUsername] = useState('')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (!token) { router.push('/login'); return }
-    setUsername(localStorage.getItem('username') || '')
     fetchMe()
     setCheckedAuth(true)
   }, [])
@@ -371,7 +369,7 @@ export default function BoosterPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {activeMine.map(order => (
-                      <OrderCard key={order.id} order={order} format={format} showStatus showMessages currentUsername={username}>
+                      <OrderCard key={order.id} order={order} format={format} showStatus showMessages>
                         {order.status === 'assigned' && (
                           <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
                             disabled={updatingId === order.id}
@@ -399,7 +397,7 @@ export default function BoosterPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {completedMine.map(order => (
-                      <OrderCard key={order.id} order={order} format={format} showStatus muted showMessages currentUsername={username} />
+                      <OrderCard key={order.id} order={order} format={format} showStatus muted />
                     ))}
                   </div>
                 )}
@@ -523,7 +521,7 @@ function EmptyState({ icon, text, compact, children }) {
   )
 }
 
-function OrderCard({ order, format, showStatus, muted, showMessages, currentUsername, children }) {
+function OrderCard({ order, format, showStatus, muted, showMessages, children }) {
   const details = order.details || {}
   const selection = details.selection || {}
   const options = order.service?.options
@@ -603,7 +601,7 @@ function OrderCard({ order, format, showStatus, muted, showMessages, currentUser
       </div>
 
       {showMessages && (
-        <MessageThread orderId={order.id} currentUsername={currentUsername} />
+        <MessageThread orderId={order.id} />
       )}
     </div>
   )

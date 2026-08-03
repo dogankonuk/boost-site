@@ -22,6 +22,9 @@ export default function Navbar() {
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [gamesMenuOpen, setGamesMenuOpen] = useState(false)
+  const [navGames, setNavGames] = useState([])
+  const gamesMenuRef = useRef(null)
   const { currency, setCurrency, format } = useCurrency()
   const { count: cartCount } = useCart()
 
@@ -40,6 +43,11 @@ export default function Navbar() {
         .catch(() => setNotifications([]))
     }
 
+    fetch('/api/games')
+      .then(res => res.json())
+      .then(d => { if (d.success) setNavGames(d.data) })
+      .catch(() => setNavGames([]))
+
     function handleClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false)
@@ -52,6 +60,9 @@ export default function Navbar() {
       }
       if (notifRef.current && !notifRef.current.contains(e.target)) {
         setNotifOpen(false)
+      }
+      if (gamesMenuRef.current && !gamesMenuRef.current.contains(e.target)) {
+        setGamesMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -146,20 +157,73 @@ export default function Navbar() {
           }}>ShadowBoosting</span>
         </Link>
 
-        <Link href="/games" className="navbar-desktop-only" style={{
-          fontFamily: 'var(--font-inter)',
-          fontWeight: '500', fontSize: '14px',
-          color: 'var(--text-muted)',
-          padding: '6px 12px', borderRadius: '6px',
-          transition: 'color 0.2s',
-          textDecoration: 'none',
-          alignItems: 'center',
-        }}
-          onMouseEnter={e => e.target.style.color = 'var(--gold)'}
-          onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
-        >
-          Games
-        </Link>
+        <div ref={gamesMenuRef} className="navbar-desktop-only" style={{ position: 'relative', alignItems: 'center' }}>
+          <button onClick={() => setGamesMenuOpen(v => !v)} style={{
+            display: 'flex', alignItems: 'center', gap: '4px',
+            fontFamily: 'var(--font-inter)', fontWeight: '500', fontSize: '14px',
+            color: gamesMenuOpen ? 'var(--gold)' : 'var(--text-muted)',
+            padding: '6px 12px', borderRadius: '6px',
+            transition: 'color 0.2s', background: 'none', border: 'none', cursor: 'pointer',
+          }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
+            onMouseLeave={e => e.currentTarget.style.color = gamesMenuOpen ? 'var(--gold)' : 'var(--text-muted)'}
+          >
+            Games
+            <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"
+              style={{ transform: gamesMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+
+          {gamesMenuOpen && (
+            <div style={{
+              position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+              background: 'var(--bg-card)', border: '1px solid var(--border)',
+              borderRadius: '12px', padding: '14px', width: '420px', zIndex: 200,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+            }}>
+              {navGames.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  Loading...
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', maxHeight: '360px', overflowY: 'auto' }}>
+                  {navGames.map(g => (
+                    <Link key={g.id} href={`/games/${g.slug}`} onClick={() => setGamesMenuOpen(false)} style={{
+                      display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none',
+                      padding: '6px 8px', borderRadius: '8px', transition: 'background 0.15s',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '6px', flexShrink: 0,
+                        background: 'var(--bg-elevated)',
+                        backgroundImage: g.coverImage ? `url(${g.coverImage})` : 'none',
+                        backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
+                      }} />
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{
+                          fontSize: '12px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)',
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                        }}>{g.name}</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{g.services?.length || 0} services</div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '10px', paddingTop: '10px' }}>
+                <Link href="/games" onClick={() => setGamesMenuOpen(false)} style={{
+                  display: 'block', textAlign: 'center', fontSize: '12px', color: 'var(--gold)',
+                  fontFamily: 'var(--font-montserrat)', fontWeight: '600', textDecoration: 'none',
+                }}>
+                  View All Games →
+                </Link>
+              </div>
+            </div>
+          )}
+        </div>
 
         <div ref={searchRef} className="navbar-search" style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
   <input

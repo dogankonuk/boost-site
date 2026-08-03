@@ -213,6 +213,46 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true, data: updated })
     }
 
+    if (body.action === 'reportIssue') {
+      const orderId = parseInt(body.orderId)
+      const message = typeof body.message === 'string' ? body.message.trim().slice(0, 2000) : ''
+
+      if (!message) {
+        return NextResponse.json({ success: false, error: 'Please describe the issue' }, { status: 400 })
+      }
+
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { service: { include: { game: true } }, booster: { include: { user: true } } },
+      })
+      if (!order || order.userId !== user.userId) {
+        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
+      }
+
+      const updated = await prisma.order.update({
+        where: { id: orderId },
+        data: { issueReport: message, issueReportedAt: new Date(), issueResolved: false },
+      })
+
+      if (order.booster?.user) {
+        try {
+          await prisma.notification.create({
+            data: {
+              userId: order.booster.user.id,
+              type: 'order_status',
+              title: 'Customer reported an issue with this order',
+              body: `${order.service?.game?.name || ''} — ${order.service?.name || ''}`.trim(),
+              link: '/booster',
+            },
+          })
+        } catch (err) {
+          console.error('issue report notification error:', err)
+        }
+      }
+
+      return NextResponse.json({ success: true, data: updated })
+    }
+
     const orderId = parseInt(body.orderId)
     const rating = parseInt(body.rating)
     const review = typeof body.review === 'string' ? body.review.slice(0, 1000) : null
