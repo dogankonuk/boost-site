@@ -23,7 +23,7 @@ function hashToken(raw) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { action, email, username, password } = body
+    const { action, email, username, password, agreedToTerms } = body
     const ip = getClientIp(request)
 
     if (action === 'login') {
@@ -70,6 +70,13 @@ export async function POST(request) {
         )
       }
 
+      if (!agreedToTerms) {
+        return NextResponse.json(
+          { success: false, error: 'You must agree to the Terms of Service and Privacy Policy' },
+          { status: 400 }
+        )
+      }
+
       const existing = await prisma.user.findFirst({
         where: { OR: [{ email }, { username }] }
       })
@@ -88,6 +95,7 @@ export async function POST(request) {
           email, username, passwordHash,
           verificationTokenHash,
           verificationTokenExpiry: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
+          termsAcceptedAt: new Date(),
         }
       })
 

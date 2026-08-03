@@ -58,6 +58,7 @@ model User {
   verificationTokenExpiry     DateTime?
   resetTokenHash              String?
   resetTokenExpiry            DateTime?
+  termsAcceptedAt              DateTime?
 
   billingName       String?
   billingAddress    String?

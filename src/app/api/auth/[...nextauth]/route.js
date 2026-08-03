@@ -33,7 +33,7 @@ async function findOrCreateUser(email, provider) {
   }
 
   return prisma.user.create({
-    data: { email, username, passwordHash: null, oauthProvider: provider, emailVerified: true },
+    data: { email, username, passwordHash: null, oauthProvider: provider, emailVerified: true, termsAcceptedAt: new Date() },
   })
 }
 

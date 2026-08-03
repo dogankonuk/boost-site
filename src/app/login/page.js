@@ -17,6 +17,7 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const [tab, setTab] = useState('login')
   const [form, setForm] = useState({ email: '', username: '', password: '' })
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -42,9 +43,15 @@ function LoginForm() {
       return
     }
 
+    if (tab === 'register' && !agreedToTerms) {
+      setError('You must agree to the Terms of Service and Privacy Policy')
+      setLoading(false)
+      return
+    }
+
     const body = tab === 'login'
       ? { action: 'login', email: form.email, password: form.password }
-      : { action: 'register', email: form.email, username: form.username, password: form.password }
+      : { action: 'register', email: form.email, username: form.username, password: form.password, agreedToTerms }
 
     try {
       const res = await fetch('/api/auth', {
@@ -131,6 +138,13 @@ function LoginForm() {
           </button>
         </div>
 
+        <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', marginTop: '-8px', marginBottom: '20px', lineHeight: '1.5' }}>
+          By continuing, you agree to our{' '}
+          <Link href="/terms" target="_blank" style={{ color: 'var(--text-muted)' }}>Terms of Service</Link>
+          {' '}and{' '}
+          <Link href="/privacy" target="_blank" style={{ color: 'var(--text-muted)' }}>Privacy Policy</Link>.
+        </p>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
           <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>OR</span>
@@ -187,6 +201,26 @@ function LoginForm() {
             />
           </div>
 
+          {tab === 'register' && (
+            <label style={{
+              display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer',
+              fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5',
+            }}>
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
+              />
+              <span>
+                I have read and agree to the{' '}
+                <Link href="/terms" target="_blank" style={{ color: 'var(--gold)' }}>Terms of Service</Link>
+                {' '}and{' '}
+                <Link href="/privacy" target="_blank" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
+              </span>
+            </label>
+          )}
+
           {error && (
             <div style={{
               background: '#2a1a1a', border: '1px solid #4a2a2a',
@@ -198,8 +232,8 @@ function LoginForm() {
           <button
             className="btn-primary"
             onClick={submit}
-            disabled={loading}
-            style={{ width: '100%', marginTop: '4px', opacity: loading ? 0.7 : 1 }}
+            disabled={loading || (tab === 'register' && !agreedToTerms)}
+            style={{ width: '100%', marginTop: '4px', opacity: (loading || (tab === 'register' && !agreedToTerms)) ? 0.6 : 1 }}
           >
             {loading ? 'Please wait...' : tab === 'login' ? 'Login' : 'Create Account'}
           </button>

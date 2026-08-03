@@ -7,6 +7,7 @@ const links = [
   { label: 'FAQ', href: '/faq' },
   { label: 'Refund Policy', href: '/refund' },
   { label: 'Terms of Service', href: '/terms' },
+  { label: 'Privacy Policy', href: '/privacy' },
 ]
 
 export default function Footer() {
