@@ -151,10 +151,22 @@ export async function GET(request) {
         emailVerified: u.emailVerified, createdAt: u.createdAt,
         oauthProvider: u.oauthProvider,
         isBooster: !!u.booster,
+        isContentCreator: u.isContentCreator,
         orderCount: u.orders.length,
         totalSpent: u.orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.price, 0),
       }))
       return NextResponse.json({ success: true, data })
+    }
+
+    if (type === 'blogPosts') {
+      const posts = await prisma.blogPost.findMany({
+        include: {
+          author: { select: { username: true } },
+          game: { select: { name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      return NextResponse.json({ success: true, data: posts })
     }
 
     if (type === 'userSearch') {
@@ -320,12 +332,23 @@ export async function PATCH(request) {
     }
 
     if (type === 'user') {
+      const updateData = {}
+      if (data.isActive !== undefined) updateData.isActive = data.isActive
+      if (data.isContentCreator !== undefined) updateData.isContentCreator = data.isContentCreator
       const user = await prisma.user.update({
         where: { id: parseInt(id) },
-        data: { isActive: data.isActive },
-        select: { id: true, username: true, isActive: true },
+        data: updateData,
+        select: { id: true, username: true, isActive: true, isContentCreator: true },
       })
       return NextResponse.json({ success: true, data: user })
+    }
+
+    if (type === 'blogPost') {
+      const post = await prisma.blogPost.update({
+        where: { id: parseInt(id) },
+        data,
+      })
+      return NextResponse.json({ success: true, data: post })
     }
 
     return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
@@ -367,6 +390,11 @@ export async function DELETE(request) {
         return NextResponse.json({ success: false, error: 'Bu hizmete ait siparişler var, silmek yerine pasife alabilirsiniz' }, { status: 400 })
       }
       await prisma.service.delete({ where: { id } })
+      return NextResponse.json({ success: true })
+    }
+
+    if (type === 'blogPost') {
+      await prisma.blogPost.delete({ where: { id } })
       return NextResponse.json({ success: true })
     }
 

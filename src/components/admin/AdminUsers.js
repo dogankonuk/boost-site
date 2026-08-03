@@ -36,6 +36,16 @@ export default function AdminUsers({ secret }) {
     setTimeout(() => setMsg(''), 3000)
   }
 
+  async function toggleContentCreator(user) {
+    await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'user', id: user.id, data: { isContentCreator: !user.isContentCreator } }),
+    })
+    setMsg(user.isContentCreator ? `${user.username} icerik ureticiligi kaldirildi` : `${user.username} icerik ureticisi yapildi`)
+    fetchUsers()
+    setTimeout(() => setMsg(''), 3000)
+  }
+
   const filtered = useMemo(() => {
     let list = users
     if (filter === 'active') list = list.filter(u => u.isActive)
@@ -109,6 +119,7 @@ export default function AdminUsers({ secret }) {
                   <td style={{ padding: '10px 14px', fontSize: '13px', color: '#fff' }}>
                     {u.username}
                     {u.isBooster && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'rgba(245,197,24,0.1)', border: '1px solid var(--gold)', color: 'var(--gold)' }}>Booster</span>}
+                    {u.isContentCreator && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'rgba(147,51,234,0.1)', border: '1px solid var(--violet)', color: 'var(--violet)' }}>İçerik Üreticisi</span>}
                     {!u.emailVerified && !u.oauthProvider && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44' }}>Doğrulanmadı</span>}
                   </td>
                   <td style={{ padding: '10px 14px', fontSize: '12px', color: 'var(--text-muted)' }}>{u.email}</td>
@@ -126,15 +137,26 @@ export default function AdminUsers({ secret }) {
                     }}>{u.isActive ? 'Aktif' : 'Pasif'}</span>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <button
-                      onClick={() => toggleActive(u)}
-                      style={{
-                        background: 'transparent', border: `1px solid ${u.isActive ? '#4a2a2a' : 'var(--border)'}`,
-                        borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
-                        color: u.isActive ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
-                      }}>
-                      {u.isActive ? 'Pasifleştir' : 'Aktifleştir'}
-                    </button>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => toggleActive(u)}
+                        style={{
+                          background: 'transparent', border: `1px solid ${u.isActive ? '#4a2a2a' : 'var(--border)'}`,
+                          borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                          color: u.isActive ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
+                        }}>
+                        {u.isActive ? 'Pasifleştir' : 'Aktifleştir'}
+                      </button>
+                      <button
+                        onClick={() => toggleContentCreator(u)}
+                        style={{
+                          background: 'transparent', border: `1px solid ${u.isContentCreator ? 'var(--violet)' : 'var(--border)'}`,
+                          borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                          color: u.isContentCreator ? 'var(--violet)' : 'var(--text-muted)', cursor: 'pointer',
+                        }}>
+                        {u.isContentCreator ? 'Yazarlığı Kaldır' : 'Yazar Yap'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

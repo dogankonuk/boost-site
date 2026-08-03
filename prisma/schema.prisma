@@ -21,6 +21,7 @@ model Game {
   createdAt   DateTime  @default(now())
   services    Service[]
   serviceCategories Json?
+  blogPosts   BlogPost[]
 }
 
 model Service {
@@ -67,10 +68,13 @@ model User {
   billingPhone      String?
   billingPostalCode String?
 
+  isContentCreator Boolean @default(false)
+
   orders        Order[]
   booster       Booster?
   notifications Notification[]
   messages      Message[]
+  blogPosts     BlogPost[]
 }
 
 model Booster {
@@ -140,4 +144,25 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([orderId, createdAt])
+}
+
+model BlogPost {
+  id          Int       @id @default(autoincrement())
+  slug        String    @unique
+  title       String
+  excerpt     String?
+  content     String
+  coverImage  String?
+  category    String    @default("Guide")
+  gameId      Int?
+  game        Game?     @relation(fields: [gameId], references: [id])
+  authorId    Int
+  author      User      @relation(fields: [authorId], references: [id])
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+  views       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isPublished, publishedAt])
 }

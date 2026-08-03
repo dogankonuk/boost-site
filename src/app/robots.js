@@ -9,6 +9,7 @@ export default function robots() {
         '/api/',
         '/admin',
         '/booster',
+        '/creator',
         '/dashboard',
         '/cart',
         '/notifications',

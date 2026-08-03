@@ -190,6 +190,21 @@ export default function Navbar() {
           )}
         </div>
 
+        <Link href="/blog" className="navbar-desktop-only" style={{
+          fontFamily: 'var(--font-inter)',
+          fontWeight: '500', fontSize: '14px',
+          color: 'var(--text-muted)',
+          padding: '6px 12px', borderRadius: '6px',
+          transition: 'color 0.2s',
+          textDecoration: 'none',
+          alignItems: 'center',
+        }}
+          onMouseEnter={e => e.target.style.color = 'var(--gold)'}
+          onMouseLeave={e => e.target.style.color = 'var(--text-muted)'}
+        >
+          Blog
+        </Link>
+
         <div ref={searchRef} className="navbar-search" style={{ position: 'relative', flex: 1, maxWidth: '320px' }}>
   <input
         value={search}
@@ -540,6 +555,7 @@ export default function Navbar() {
           )}
 
           <MobileMenuLink href="/games" onClick={() => setMobileMenuOpen(false)}>Games</MobileMenuLink>
+          <MobileMenuLink href="/blog" onClick={() => setMobileMenuOpen(false)}>Blog</MobileMenuLink>
 
           <div style={{ display: 'flex', gap: '8px' }}>
             {Object.keys(CURRENCY_SYMBOLS).map(code => (

@@ -2,6 +2,7 @@
 import Link from 'next/link'
 
 const links = [
+  { label: 'Blog', href: '/blog' },
   { label: 'Help Center', href: '/help' },
   { label: 'Contact Us', href: '/contact' },
   { label: 'FAQ', href: '/faq' },
