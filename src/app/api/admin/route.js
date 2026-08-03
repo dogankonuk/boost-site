@@ -279,9 +279,16 @@ export async function PATCH(request) {
     const { type, id, data } = body
 
     if (type === 'order') {
+      const existingOrder = await prisma.order.findUnique({ where: { id: parseInt(id) } })
+      const timelineData = {}
+      if ('boosterId' in data && data.boosterId) timelineData.assignedAt = new Date()
+      if (data.status === 'in_progress' && !existingOrder?.startedAt) timelineData.startedAt = new Date()
+      if (data.status === 'completed') timelineData.completedAt = new Date()
+      if (data.status === 'cancelled') timelineData.cancelledAt = new Date()
+
       const order = await prisma.order.update({
         where: { id: parseInt(id) },
-        data,
+        data: { ...data, ...timelineData },
         include: {
           user: { select: { email: true, username: true } },
           service: { include: { game: true } },

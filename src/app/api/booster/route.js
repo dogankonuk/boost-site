@@ -101,7 +101,7 @@ export async function POST(request) {
     // is still unassigned, so two boosters can't both claim the same order.
     const result = await prisma.order.updateMany({
       where: { id: orderId, boosterId: null },
-      data: { boosterId: booster.id, status: 'assigned' },
+      data: { boosterId: booster.id, status: 'assigned', assignedAt: new Date() },
     })
 
     if (result.count === 0) {
@@ -172,9 +172,13 @@ export async function PATCH(request) {
       return NextResponse.json({ success: false, error: 'This order is not assigned to you' }, { status: 403 })
     }
 
+    const timelineData = {}
+    if (status === 'in_progress' && !existing.startedAt) timelineData.startedAt = new Date()
+    if (status === 'completed') timelineData.completedAt = new Date()
+
     const order = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: { status, ...timelineData },
       include: {
         user: { select: { username: true, email: true } },
         service: { include: { game: true } },

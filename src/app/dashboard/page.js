@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
+import OrderTimeline from '@/components/OrderTimeline'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -284,6 +285,8 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                     </div>
                   </div>
                 </div>
+
+                <OrderTimeline order={order} />
 
                 {!['completed', 'cancelled'].includes(order.status) && (
                   <MessageThread orderId={order.id} />

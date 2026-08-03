@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import OrderTimeline from '@/components/OrderTimeline'
 
 const STATUS_COLORS = {
   pending:     { bg: '#1a1a2a', border: '#2a2a4a', color: '#8888ff' },
@@ -173,6 +174,10 @@ export default function AdminOrders({ secret }) {
                     gridTemplateColumns: '1fr 1fr',
                     gap: '20px',
                   }}>
+                    <div style={{ gridColumn: 'span 2' }}>
+                      <OrderTimeline order={order} />
+                    </div>
+
                     <div>
                       <h4 style={{ color: 'var(--gold)', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         Sipariş Detayı

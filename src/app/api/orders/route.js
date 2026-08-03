@@ -191,7 +191,7 @@ export async function PATCH(request) {
 
       const updated = await prisma.order.update({
         where: { id: orderId },
-        data: { status: 'cancelled' },
+        data: { status: 'cancelled', cancelledAt: new Date() },
       })
 
       if (order.booster?.user) {

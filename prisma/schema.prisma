@@ -110,6 +110,10 @@ model Order {
   issueReport      String?
   issueReportedAt  DateTime?
   issueResolved    Boolean   @default(false)
+  assignedAt  DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   messages    Message[]
