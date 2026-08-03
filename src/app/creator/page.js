@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { authFetch } from '@/lib/authFetch'
+import ImageUpload from '@/components/ImageUpload'
 
 const CATEGORIES = ['Guide', 'Update', 'Playthrough', 'News']
 
@@ -240,9 +241,7 @@ export default function CreatorPage() {
                   </select>
                 </Field>
               </div>
-              <Field label="Cover image URL (optional)">
-                <input value={form.coverImage} onChange={e => setForm(f => ({ ...f, coverImage: e.target.value }))} style={inputStyle} placeholder="https://..." />
-              </Field>
+              <ImageUpload label="Cover image (optional)" value={form.coverImage} onChange={v => setForm(f => ({ ...f, coverImage: v }))} />
               <Field label="Publish date & time (optional — leave empty to publish immediately)">
                 <input type="datetime-local" value={form.publishedAt} onChange={e => setForm(f => ({ ...f, publishedAt: e.target.value }))} style={inputStyle} />
               </Field>

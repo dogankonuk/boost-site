@@ -7,6 +7,7 @@ import {
   arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import ImageUpload from '@/components/ImageUpload'
 
 
 export default function AdminGames({ secret }) {
@@ -365,8 +366,8 @@ function SortableGameRow({
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <Field label="Banner Görsel URL" placeholder="https://..." value={editGameForm.bannerImage} onChange={v => setEditGameForm(f => ({ ...f, bannerImage: v }))} />
-              <Field label="Kart Görseli URL (200x280px)" placeholder="https://..." value={editGameForm.coverImage} onChange={v => setEditGameForm(f => ({ ...f, coverImage: v }))} />
+              <ImageUpload label="Banner Görsel" value={editGameForm.bannerImage} onChange={v => setEditGameForm(f => ({ ...f, bannerImage: v }))} />
+              <ImageUpload label="Kart Görseli (200x280px)" value={editGameForm.coverImage} onChange={v => setEditGameForm(f => ({ ...f, coverImage: v }))} />
             </div>
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Hizmet Kategorileri</label>
@@ -424,7 +425,7 @@ function SortableGameRow({
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <Field label="Görsel URL" placeholder="https://..." value={serviceForm.imageUrl} onChange={v => setServiceForm(f => ({ ...f, imageUrl: v }))} />
+              <ImageUpload label="Görsel" value={serviceForm.imageUrl} onChange={v => setServiceForm(f => ({ ...f, imageUrl: v }))} />
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', paddingTop: '20px' }}>
                 <input type="checkbox" id="isHotNew" checked={serviceForm.isHot} onChange={e => setServiceForm(f => ({ ...f, isHot: e.target.checked }))} />
                 <label htmlFor="isHotNew" style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer' }}>HOT olarak işaretle</label>
@@ -543,7 +544,7 @@ function SortableGameRow({
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                               <Field label="Hizmet Adı" value={editForm.name} onChange={v => setEditForm(f => ({ ...f, name: v }))} />
                               <Field label="Fiyat ($)" type="number" value={editForm.basePrice} onChange={v => setEditForm(f => ({ ...f, basePrice: v }))} />
-                              <Field label="Görsel URL" value={editForm.imageUrl} onChange={v => setEditForm(f => ({ ...f, imageUrl: v }))} />
+                              <ImageUpload label="Görsel" value={editForm.imageUrl} onChange={v => setEditForm(f => ({ ...f, imageUrl: v }))} />
                               <div>
                                 <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori</label>
                                 <select value={editForm.serviceCategory || ''} onChange={e => setEditForm(f => ({ ...f, serviceCategory: e.target.value }))}
