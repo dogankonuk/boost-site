@@ -86,7 +86,15 @@ export async function GET(request) {
       const boosters = await prisma.booster.findMany({
         include: {
           user: { select: { username: true, email: true, isActive: true } },
-          orders: { select: { id: true, status: true } },
+          orders: {
+            select: {
+              id: true, orderNumber: true, status: true, price: true, createdAt: true,
+              issueReport: true, issueReportedAt: true, issueResolved: true,
+              user: { select: { username: true } },
+              service: { select: { name: true, game: { select: { name: true } } } },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -167,6 +175,31 @@ export async function GET(request) {
         orderBy: { createdAt: 'desc' },
       })
       return NextResponse.json({ success: true, data: posts })
+    }
+
+    if (type === 'contentCreators') {
+      const creators = await prisma.user.findMany({
+        where: { isContentCreator: true },
+        include: {
+          blogPosts: {
+            select: { isPublished: true, views: true, createdAt: true, game: { select: { name: true } } },
+          },
+        },
+        orderBy: { username: 'asc' },
+      })
+      const data = creators.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        isActive: u.isActive,
+        totalPosts: u.blogPosts.length,
+        publishedCount: u.blogPosts.filter(p => p.isPublished).length,
+        draftCount: u.blogPosts.filter(p => !p.isPublished).length,
+        totalViews: u.blogPosts.reduce((s, p) => s + p.views, 0),
+        games: [...new Set(u.blogPosts.map(p => p.game?.name).filter(Boolean))],
+        lastPostAt: u.blogPosts.reduce((latest, p) => (!latest || p.createdAt > latest) ? p.createdAt : latest, null),
+      }))
+      return NextResponse.json({ success: true, data })
     }
 
     if (type === 'userSearch') {

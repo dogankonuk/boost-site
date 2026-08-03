@@ -7,6 +7,10 @@ const STATUS_COLORS = {
   inactive: { bg: '#2a1a1a', border: '#4a2a2a', color: '#ff6666' },
 }
 
+function money(n) {
+  return `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
 export default function AdminBoosters({ secret }) {
   const [boosters, setBoosters] = useState([])
   const [games, setGames] = useState([])
@@ -15,6 +19,7 @@ export default function AdminBoosters({ secret }) {
   const [msg, setMsg] = useState('')
   const [editGamesFor, setEditGamesFor] = useState(null)
   const [editGamesSelection, setEditGamesSelection] = useState([])
+  const [expandedId, setExpandedId] = useState(null)
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
@@ -93,8 +98,11 @@ export default function AdminBoosters({ secret }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {boosters.map(b => {
             const sc = STATUS_COLORS[b.status] || STATUS_COLORS.inactive
-            const active = (b.orders || []).filter(o => ['assigned', 'in_progress'].includes(o.status)).length
-            const completed = (b.orders || []).filter(o => o.status === 'completed').length
+            const orders = b.orders || []
+            const activeOrders = orders.filter(o => ['assigned', 'in_progress'].includes(o.status))
+            const completedOrders = orders.filter(o => o.status === 'completed')
+            const issueOrders = orders.filter(o => o.issueReport && !o.issueResolved)
+            const expanded = expandedId === b.id
             return (
               <div key={b.id} style={{
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -113,17 +121,27 @@ export default function AdminBoosters({ secret }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>{b.user?.username}</span>
                       <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '20px', background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color }}>{STATUS_LABELS[b.status]}</span>
+                      {issueOrders.length > 0 && (
+                        <span style={{
+                          fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
+                          background: '#2a1a1a', border: '1px solid #4a2a2a', color: '#ff6666', fontWeight: '700',
+                        }}>⚠️ {issueOrders.length} Sorun</span>
+                      )}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{b.user?.email}</div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '18px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    <Stat label="Aktif" value={active} />
-                    <Stat label="Tamamlanan" value={completed} />
+                    <Stat label="Aktif" value={activeOrders.length} />
+                    <Stat label="Tamamlanan" value={completedOrders.length} />
                     <Stat label="Puan" value={b.rating > 0 ? b.rating.toFixed(1) : '—'} />
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px' }}>
+                    <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+                      onClick={() => setExpandedId(expanded ? null : b.id)}>
+                      {expanded ? 'Detayları Gizle' : 'Detaylar'}
+                    </button>
                     <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
                       onClick={() => editGamesFor === b.id ? setEditGamesFor(null) : startEditGames(b)}>
                       Oyunlar
@@ -138,6 +156,10 @@ export default function AdminBoosters({ secret }) {
                 <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '8px' }}>
                   Yetkili olduğu oyunlar: {gameNames(b.games)}
                 </div>
+
+                {expanded && (
+                  <BoosterDetail activeOrders={activeOrders} completedOrders={completedOrders} issueOrders={issueOrders} />
+                )}
 
                 {editGamesFor === b.id && (
                   <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -171,6 +193,84 @@ export default function AdminBoosters({ secret }) {
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+function BoosterDetail({ activeOrders, completedOrders, issueOrders }) {
+  return (
+    <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {issueOrders.length > 0 && (
+        <div>
+          <h4 style={{ fontSize: '11px', color: '#ff6666', fontFamily: 'var(--font-montserrat)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+            ⚠️ Sorun Bildirilen Siparişler
+          </h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {issueOrders.map(o => (
+              <div key={o.id} style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px' }}>
+                <div style={{ fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+                  {o.service?.game?.name} — {o.service?.name} <span style={{ color: 'var(--text-dim)', fontWeight: '400' }}>· 👤 {o.user?.username} · {o.orderNumber}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#ff9999', marginTop: '4px' }}>{o.issueReport}</div>
+                {o.issueReportedAt && (
+                  <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '4px' }}>
+                    {new Date(o.issueReportedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div>
+        <h4 style={{ fontSize: '11px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+          Üzerinde Çalıştığı İşler ({activeOrders.length})
+        </h4>
+        {activeOrders.length === 0 ? (
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Şu anda üzerinde çalıştığı bir iş yok.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {activeOrders.map(o => (
+              <OrderRow key={o.id} order={o} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h4 style={{ fontSize: '11px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+          Tamamladığı İşler ({completedOrders.length})
+        </h4>
+        {completedOrders.length === 0 ? (
+          <p style={{ fontSize: '12px', color: 'var(--text-dim)' }}>Henüz tamamlanmış bir işi yok.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '240px', overflowY: 'auto' }}>
+            {completedOrders.map(o => (
+              <OrderRow key={o.id} order={o} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function OrderRow({ order }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+      background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px',
+      fontSize: '12px', flexWrap: 'wrap',
+    }}>
+      <span style={{ color: '#fff' }}>
+        {order.service?.game?.name} — {order.service?.name}
+      </span>
+      <span style={{ color: 'var(--text-muted)' }}>👤 {order.user?.username}</span>
+      <span style={{ color: 'var(--gold)', fontWeight: '600' }}>{money(order.price)}</span>
+      <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}>
+        {new Date(order.createdAt).toLocaleDateString('tr-TR')}
+      </span>
     </div>
   )
 }
