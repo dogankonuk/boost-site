@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { markdownToHtml } from '@/lib/markdown'
+import ViewTracker from '@/components/ViewTracker'
 import { BlogCard } from '../page'
 
 const getPost = cache(async (slug) => {
@@ -43,8 +44,6 @@ export default async function BlogPostPage({ params }) {
 
   if (!post || !post.isPublished || post.publishedAt > new Date()) return notFound()
 
-  prisma.blogPost.update({ where: { id: post.id }, data: { views: { increment: 1 } } }).catch(() => {})
-
   const [morePosts, newestPosts] = await Promise.all([
     prisma.blogPost.findMany({
       where: { isPublished: true, publishedAt: { lte: new Date() }, category: post.category, id: { not: post.id } },
@@ -68,6 +67,7 @@ export default async function BlogPostPage({ params }) {
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
+      <ViewTracker slug={post.slug} />
 
       <Container style={{ paddingTop: '32px', paddingBottom: '64px', maxWidth: '1080px', flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '20px', fontSize: '13px', color: 'var(--text-dim)', flexWrap: 'wrap' }}>
