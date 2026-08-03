@@ -287,7 +287,7 @@ export async function PUT(request) {
           username: true, email: true, displayName: true, discordId: true,
           billingName: true, billingAddress: true, billingCity: true,
           billingCountry: true, billingPhone: true, billingPostalCode: true,
-          createdAt: true, emailVerified: true, isContentCreator: true,
+          createdAt: true, emailVerified: true, isContentCreator: true, isAdmin: true,
         }
       })
       return NextResponse.json({ success: true, data: user })

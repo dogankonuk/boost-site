@@ -1,13 +1,24 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
+import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate } from '@/lib/email'
 import { notifyOrderStatus } from '@/lib/notify'
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'boost-admin-2024'
+const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
-function isAdmin(request) {
+// Re-checks isAdmin from the DB on every request (rather than trusting a JWT
+// claim) so revoking admin access takes effect immediately, not just after
+// the token expires.
+async function requireAdmin(request) {
   const auth = request.headers.get('authorization')
-  return auth === `Bearer ${ADMIN_SECRET}`
+  if (!auth || !auth.startsWith('Bearer ')) return false
+  try {
+    const decoded = jwt.verify(auth.split(' ')[1], JWT_SECRET)
+    const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
+    return !!(user && user.isAdmin && user.isActive)
+  } catch {
+    return false
+  }
 }
 
 async function pingBoosterOnDiscord(order, booster) {
@@ -38,7 +49,7 @@ async function pingBoosterOnDiscord(order, booster) {
 }
 
 export async function GET(request) {
-  if (!isAdmin(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 
@@ -227,7 +238,7 @@ export async function GET(request) {
 }
 
 export async function POST(request) {
-  if (!isAdmin(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 
@@ -259,7 +270,7 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  if (!isAdmin(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 
@@ -410,7 +421,7 @@ export async function PATCH(request) {
 }
 
 export async function DELETE(request) {
-  if (!isAdmin(request)) {
+  if (!(await requireAdmin(request))) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 

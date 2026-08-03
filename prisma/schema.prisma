@@ -69,6 +69,7 @@ model User {
   billingPostalCode String?
 
   isContentCreator Boolean @default(false)
+  isAdmin          Boolean @default(false)
 
   orders        Order[]
   booster       Booster?

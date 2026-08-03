@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import AdminOverview from '@/components/admin/AdminOverview'
 import AdminGames from '@/components/admin/AdminGames'
 import AdminOrders from '@/components/admin/AdminOrders'
@@ -7,30 +9,40 @@ import AdminBoosters from '@/components/admin/AdminBoosters'
 import AdminUsers from '@/components/admin/AdminUsers'
 import AdminBlog from '@/components/admin/AdminBlog'
 
-const ADMIN_SECRET = 'boost-admin-2024'
-
 export default function AdminPage() {
+  const router = useRouter()
   const [tab, setTab] = useState('overview')
-  const [auth, setAuth] = useState(false)
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const [status, setStatus] = useState('loading') // loading | no-token | not-admin | ok
+  const [token, setToken] = useState(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('admin_auth')
-    if (saved === ADMIN_SECRET) setAuth(true)
+    const stored = localStorage.getItem('token')
+    if (!stored) { setStatus('no-token'); return }
+    fetch('/api/auth', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored}` },
+      body: JSON.stringify({ action: 'getProfile' }),
+    })
+      .then(res => res.json())
+      .then(d => {
+        if (d.success && d.data?.isAdmin) {
+          setToken(stored)
+          setStatus('ok')
+        } else {
+          setStatus('not-admin')
+        }
+      })
+      .catch(() => setStatus('no-token'))
   }, [])
 
-  function login() {
-    if (password === ADMIN_SECRET) {
-      localStorage.setItem('admin_auth', ADMIN_SECRET)
-      setAuth(true)
-      setError('')
-    } else {
-      setError('Şifre hatalı')
-    }
+  function logout() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    router.push('/login')
   }
 
-  if (!auth) {
+  if (status === 'loading') return null
+
+  if (status === 'no-token' || status === 'not-admin') {
     return (
       <div style={{
         minHeight: '100vh', background: 'var(--bg)',
@@ -38,23 +50,21 @@ export default function AdminPage() {
       }}>
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border)',
-          borderRadius: '16px', padding: '40px', width: '360px',
+          borderRadius: '16px', padding: '40px', width: '360px', textAlign: 'center',
         }}>
-          <h2 className="h2" style={{ color: '#fff', marginBottom: '8px' }}>Admin Girişi</h2>
+          <h2 className="h2" style={{ color: '#fff', marginBottom: '10px' }}>Admin Girişi</h2>
           <p className="body-small" style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
-            ShadowBoosting yönetim paneli
+            {status === 'no-token'
+              ? 'Bu paneli görüntülemek için yönetici yetkisi olan bir hesapla giriş yapman gerekiyor.'
+              : 'Bu hesabın yönetici yetkisi yok.'}
           </p>
-          <input type="password" placeholder="Şifre" value={password}
-            onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && login()}
-            style={{
-              width: '100%', background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)', borderRadius: '8px',
-              padding: '10px 14px', color: '#fff', fontSize: '14px',
-              fontFamily: 'var(--font-inter)', outline: 'none', marginBottom: '12px',
-            }} />
-          {error && <p style={{ color: '#ff4444', fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
-          <button className="btn-primary" style={{ width: '100%' }} onClick={login}>Giriş Yap</button>
+          {status === 'no-token' ? (
+            <Link href="/login" style={{ textDecoration: 'none' }}>
+              <button className="btn-primary" style={{ width: '100%' }}>Giriş Yap</button>
+            </Link>
+          ) : (
+            <button className="btn-secondary" style={{ width: '100%' }} onClick={logout}>Çıkış Yap</button>
+          )}
         </div>
       </div>
     )
@@ -68,8 +78,7 @@ export default function AdminPage() {
           <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: 'var(--gold)' }}>
             ShadowBoosting — Admin
           </div>
-          <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }}
-            onClick={() => { localStorage.removeItem('admin_auth'); setAuth(false) }}>
+          <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
             Çıkış
           </button>
         </div>
@@ -92,12 +101,12 @@ export default function AdminPage() {
 
       {/* Content */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 48px' }}>
-        {tab === 'overview' && <AdminOverview secret={ADMIN_SECRET} />}
-        {tab === 'games' && <AdminGames secret={ADMIN_SECRET} />}
-        {tab === 'orders' && <AdminOrders secret={ADMIN_SECRET} />}
-        {tab === 'boosters' && <AdminBoosters secret={ADMIN_SECRET} />}
-        {tab === 'users' && <AdminUsers secret={ADMIN_SECRET} />}
-        {tab === 'blog' && <AdminBlog secret={ADMIN_SECRET} />}
+        {tab === 'overview' && <AdminOverview secret={token} />}
+        {tab === 'games' && <AdminGames secret={token} />}
+        {tab === 'orders' && <AdminOrders secret={token} />}
+        {tab === 'boosters' && <AdminBoosters secret={token} />}
+        {tab === 'users' && <AdminUsers secret={token} />}
+        {tab === 'blog' && <AdminBlog secret={token} />}
       </div>
     </div>
   )
