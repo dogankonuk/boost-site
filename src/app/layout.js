@@ -1,8 +1,11 @@
 import './globals.css'
+import 'nprogress/nprogress.css'
+import { Suspense } from 'react'
 import { Montserrat, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { CurrencyProvider } from '@/context/CurrencyContext'
 import { CartProvider } from '@/context/CartContext'
+import RouteProgress from '@/components/RouteProgress'
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -28,6 +31,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         <CurrencyProvider>
           <CartProvider>
             <div style={{ flex: 1 }}>

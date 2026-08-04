@@ -198,6 +198,18 @@ body, p, span, a, input, textarea {
   --text-dim: #555555;
 }
 
+#nprogress .bar {
+  background: var(--gold);
+  height: 3px;
+  z-index: 9999;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px var(--gold), 0 0 5px var(--gold);
+}
+#nprogress .spinner {
+  display: none;
+}
+
 html, body {
   background:
     radial-gradient(ellipse 900px 700px at 8% -8%, rgba(245, 197, 24, 0.12), transparent 60%),
