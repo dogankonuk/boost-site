@@ -300,6 +300,7 @@ export async function PUT(request) {
           billingCountry: true, billingPhone: true, billingPostalCode: true,
           createdAt: true, emailVerified: true, isContentCreator: true, isAdmin: true,
           referralCode: true, bonusPoints: true,
+          booster: { select: { status: true } },
           _count: { select: { referrals: true } },
           orders: { where: { status: { not: 'cancelled' } }, select: { price: true } },
         }
@@ -307,14 +308,15 @@ export async function PUT(request) {
       if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
 
       const referralCode = await ensureReferralCode(user)
-      const { orders, _count, ...profile } = user
+      const { orders, _count, booster, ...profile } = user
       const totalSpent = orders.reduce((sum, o) => sum + o.price, 0)
       const points = pointsFromSpend(totalSpent) + (profile.bonusPoints || 0)
       const loyaltyTier = getLoyaltyTier(points)
+      const isBooster = !!(booster && booster.status === 'active')
 
       return NextResponse.json({
         success: true,
-        data: { ...profile, referralCode, referralCount: _count.referrals, totalSpent, points, loyaltyTier },
+        data: { ...profile, isBooster, referralCode, referralCount: _count.referrals, totalSpent, points, loyaltyTier },
       })
     }
 

@@ -266,6 +266,13 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         Here's a quick look at your activity.
       </p>
 
+      {(profile?.isBooster || profile?.isContentCreator) && (
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '20px' }}>
+          {profile?.isBooster && <PanelShortcut href="/booster" icon="🛠️" title="Booster Panel" subtitle="Manage your assigned orders" />}
+          {profile?.isContentCreator && <PanelShortcut href="/creator" icon="✍️" title="Creator Dashboard" subtitle="Write and manage your blog posts" />}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '24px' }}>
         <OverviewStat icon="📦" label="Total Orders" value={orders.length} />
         <OverviewStat icon="⚡" label="Active" value={activeOrders.length} />
@@ -409,6 +416,29 @@ function ReferralCard({ profile }) {
         </button>
       </div>
     </div>
+  )
+}
+
+function PanelShortcut({ href, icon, title, subtitle }) {
+  return (
+    <Link href={href} style={{ textDecoration: 'none', flex: '1 1 220px', minWidth: '220px' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '12px',
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: '14px', padding: '14px 18px', cursor: 'pointer',
+        transition: 'border-color 0.15s',
+      }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+      >
+        <span style={{ fontSize: '22px', flexShrink: 0 }}>{icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>{title}</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '1px' }}>{subtitle}</div>
+        </div>
+        <span style={{ color: 'var(--gold)', fontSize: '16px', flexShrink: 0 }}>→</span>
+      </div>
+    </Link>
   )
 }
 

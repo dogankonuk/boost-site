@@ -18,6 +18,7 @@ export default function Navbar() {
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const currencyRef = useRef(null)
   const [isBooster, setIsBooster] = useState(false)
+  const [isContentCreator, setIsContentCreator] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef(null)
@@ -35,10 +36,18 @@ export default function Navbar() {
     const username = localStorage.getItem('username')
     if (token && username) {
       setUser({ username })
-      fetch('/api/booster?type=me', { headers: { Authorization: `Bearer ${token}` } })
+      fetch('/api/auth', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ action: 'getProfile' }),
+      })
         .then(res => res.json())
-        .then(d => setIsBooster(!!(d.success && d.data && d.data.status === 'active')))
-        .catch(() => setIsBooster(false))
+        .then(d => {
+          if (!d.success) return
+          setIsBooster(!!d.data.isBooster)
+          setIsContentCreator(!!d.data.isContentCreator)
+        })
+        .catch(() => {})
       fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
         .then(res => res.json())
         .then(d => setNotifications(d.success ? d.data : []))
@@ -474,6 +483,9 @@ export default function Navbar() {
                   {isBooster && (
                     <DropdownItem href="/booster" icon="🛠️" label="Booster Panel" onClick={() => setDropdownOpen(false)} />
                   )}
+                  {isContentCreator && (
+                    <DropdownItem href="/creator" icon="✍️" label="Creator Dashboard" onClick={() => setDropdownOpen(false)} />
+                  )}
                   <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }} />
                   <button onClick={logout} style={{
                     display: 'flex', alignItems: 'center', gap: '10px',
@@ -589,6 +601,9 @@ export default function Navbar() {
               <MobileMenuLink href="/dashboard?tab=account" onClick={() => setMobileMenuOpen(false)}>Account Settings</MobileMenuLink>
               {isBooster && (
                 <MobileMenuLink href="/booster" onClick={() => setMobileMenuOpen(false)}>Booster Panel</MobileMenuLink>
+              )}
+              {isContentCreator && (
+                <MobileMenuLink href="/creator" onClick={() => setMobileMenuOpen(false)}>Creator Dashboard</MobileMenuLink>
               )}
               <button onClick={() => { logout(); setMobileMenuOpen(false) }} style={{
                 textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
