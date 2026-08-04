@@ -26,6 +26,24 @@ function tiersToLines(tiers, aKey, bKey) {
   return tiers.map(t => `${t[aKey]}:${t[bKey]}`).join('\n')
 }
 
+// Turns a sparse tiers array (band upper-bounds) into one price per level step,
+// so every level in [min, max) has an explicit, individually editable price.
+function expandTiersToPerLevel(tiers, min, max, basePrice) {
+  const sorted = Array.isArray(tiers) ? [...tiers].sort((a, b) => a.upTo - b.upTo) : []
+  const steps = Math.max(0, max - min)
+  const prices = []
+  for (let i = 0; i < steps; i++) {
+    const levelStart = min + i
+    const band = sorted.find(b => levelStart < b.upTo)
+    prices.push(band ? band.pricePerUnit : basePrice)
+  }
+  return prices
+}
+
+function pricesToTiers(prices, min) {
+  return prices.map((p, i) => ({ upTo: min + i + 1, pricePerUnit: p }))
+}
+
 export default function AdminGames({ secret }) {
   const [games, setGames] = useState([])
   const [gameCategories, setGameCategories] = useState([])
@@ -42,7 +60,7 @@ export default function AdminGames({ secret }) {
     name: '', slug: '', basePrice: '', priceType: 'fixed',
     description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '',
     pricingType: 'fixed',
-    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' },
+    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
   })
   const [msg, setMsg] = useState('')
 
@@ -140,9 +158,9 @@ export default function AdminGames({ secret }) {
       options = { type: 'quantity', unitName: serviceForm.pricingOptions.unitName, unitPrice: parseFloat(serviceForm.pricingOptions.unitPrice), minQty: parseInt(serviceForm.pricingOptions.minQty), maxQty: parseInt(serviceForm.pricingOptions.maxQty) }
       if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (serviceForm.pricingType === 'range') {
-      const tiers = parseTierLines(serviceForm.pricingOptions.tiersText).map(t => ({ upTo: t.a, pricePerUnit: t.b }))
+      const tiers = serviceForm.pricingOptions.tiers
       options = { type: 'range', unitName: serviceForm.pricingOptions.unitName, pricePerUnit: parseFloat(serviceForm.pricingOptions.pricePerUnit), min: parseInt(serviceForm.pricingOptions.min), max: parseInt(serviceForm.pricingOptions.max) }
-      if (tiers.length > 0) options.tiers = tiers
+      if (Array.isArray(tiers) && tiers.length > 0) options.tiers = tiers
     } else if (serviceForm.pricingType === 'options') {
       options = { type: 'options', choices: serviceForm.pricingOptions.choices }
     }
@@ -164,7 +182,7 @@ export default function AdminGames({ secret }) {
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', priceType: 'fixed', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' } })
+      setServiceForm({ name: '', slug: '', basePrice: '', priceType: 'fixed', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -177,9 +195,9 @@ export default function AdminGames({ secret }) {
       options = { type: 'quantity', unitName: editForm.pricingOptions.unitName, unitPrice: parseFloat(editForm.pricingOptions.unitPrice), minQty: parseInt(editForm.pricingOptions.minQty), maxQty: parseInt(editForm.pricingOptions.maxQty) }
       if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (editForm.pricingType === 'range') {
-      const tiers = parseTierLines(editForm.pricingOptions.tiersText).map(t => ({ upTo: t.a, pricePerUnit: t.b }))
+      const tiers = editForm.pricingOptions.tiers
       options = { type: 'range', unitName: editForm.pricingOptions.unitName, pricePerUnit: parseFloat(editForm.pricingOptions.pricePerUnit), min: parseInt(editForm.pricingOptions.min), max: parseInt(editForm.pricingOptions.max) }
-      if (tiers.length > 0) options.tiers = tiers
+      if (Array.isArray(tiers) && tiers.length > 0) options.tiers = tiers
     } else if (editForm.pricingType === 'options') {
       options = { type: 'options', choices: editForm.pricingOptions.choices }
     }
@@ -486,11 +504,14 @@ function SortableGameRow({
                   <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.pricePerUnit} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.min} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.max} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
-                  <TierTextarea
-                    label="Kademeli fiyat bantları (opsiyonel)"
-                    hint='Her satıra "üst_sınır:birim_fiyat" — örn. 60:2 sonra 70:3 sonra 100:5 (1-60 arası $2/birim, 60-70 arası $3/birim...). Boş bırakılırsa yukarıdaki sabit birim fiyat kullanılır.'
-                    value={serviceForm.pricingOptions.tiersText}
-                    onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiersText: v } }))}
+                  <PerLevelPriceEditor
+                    key={`new-${serviceForm.pricingOptions.min}-${serviceForm.pricingOptions.max}`}
+                    min={serviceForm.pricingOptions.min}
+                    max={serviceForm.pricingOptions.max}
+                    unitName={serviceForm.pricingOptions.unitName}
+                    basePrice={serviceForm.pricingOptions.pricePerUnit}
+                    tiers={serviceForm.pricingOptions.tiers}
+                    onChange={tiers => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiers } }))}
                   />
                 </div>
               )}
@@ -557,7 +578,7 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
-                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiersText: tiersToLines(s.options.tiers, 'upTo', 'pricePerUnit'), volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' } })
+                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
@@ -626,11 +647,14 @@ function SortableGameRow({
                                   <Field label="Birim Fiyatı" type="number" value={editForm.pricingOptions?.pricePerUnit || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                                   <Field label="Min" type="number" value={editForm.pricingOptions?.min || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                                   <Field label="Max" type="number" value={editForm.pricingOptions?.max || 100} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
-                                  <TierTextarea
-                                    label="Kademeli fiyat bantları (opsiyonel)"
-                                    hint='Her satıra "üst_sınır:birim_fiyat" — örn. 60:2 sonra 70:3'
-                                    value={editForm.pricingOptions?.tiersText || ''}
-                                    onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiersText: v } }))}
+                                  <PerLevelPriceEditor
+                                    key={`edit-${editService}-${editForm.pricingOptions?.min}-${editForm.pricingOptions?.max}`}
+                                    min={editForm.pricingOptions?.min || 1}
+                                    max={editForm.pricingOptions?.max || 100}
+                                    unitName={editForm.pricingOptions?.unitName}
+                                    basePrice={editForm.pricingOptions?.pricePerUnit}
+                                    tiers={editForm.pricingOptions?.tiers || []}
+                                    onChange={tiers => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiers } }))}
                                   />
                                 </div>
                               )}
@@ -816,6 +840,67 @@ function TierTextarea({ label, hint, value, onChange, placeholder = '60:2\n70:3\
         placeholder={placeholder}
         style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '12px', fontFamily: 'monospace', outline: 'none', resize: 'vertical' }} />
       <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px', lineHeight: '1.5' }}>{hint}</div>
+    </div>
+  )
+}
+
+// One editable price per level step (min→min+1, min+1→min+2, ...), so admin can
+// hand-set every level individually instead of thinking in bands.
+function PerLevelPriceEditor({ min, max, unitName, basePrice, tiers, onChange }) {
+  const minN = parseInt(min) || 1
+  const maxN = Math.max(minN + 1, parseInt(max) || minN + 1)
+  const baseN = parseFloat(basePrice) || 0
+
+  const [prices, setPrices] = useState(() => expandTiersToPerLevel(tiers, minN, maxN, baseN))
+  const [fillValue, setFillValue] = useState('')
+
+  function updatePrice(i, value) {
+    const next = [...prices]
+    next[i] = parseFloat(value) || 0
+    setPrices(next)
+    onChange(pricesToTiers(next, minN))
+  }
+
+  function fillAll() {
+    const v = parseFloat(fillValue)
+    if (isNaN(v)) return
+    const next = prices.map(() => v)
+    setPrices(next)
+    onChange(pricesToTiers(next, minN))
+  }
+
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          Level bazında fiyat (opsiyonel — her {unitName || 'seviye'} için ayrı fiyat)
+        </label>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <input type="number" placeholder="Tümüne uygula" value={fillValue} onChange={e => setFillValue(e.target.value)}
+            style={{ width: '110px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', color: '#fff', fontSize: '11px', outline: 'none' }} />
+          <button type="button" onClick={fillAll} style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)' }}>
+            Tümünü Doldur
+          </button>
+        </div>
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: '6px',
+        maxHeight: '220px', overflowY: 'auto', padding: '10px', background: 'var(--bg)',
+        borderRadius: '8px', border: '1px solid var(--border)',
+      }}>
+        {prices.map((p, i) => (
+          <div key={i}>
+            <label style={{ fontSize: '9px', color: 'var(--text-dim)', display: 'block', marginBottom: '2px' }}>
+              {minN + i} → {minN + i + 1}
+            </label>
+            <input type="number" value={p} onChange={e => updatePrice(i, e.target.value)}
+              style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '5px', padding: '5px 6px', color: '#fff', fontSize: '11px', outline: 'none' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px' }}>
+        Boş bırakılırsa yukarıdaki taban birim fiyat kullanılır. {prices.length} {unitName || 'seviye'} adımı düzenleniyor.
+      </div>
     </div>
   )
 }
