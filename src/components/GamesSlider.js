@@ -93,6 +93,14 @@ export default function GamesSlider() {
                         borderRadius: '14px',
                       }} />
                     )}
+                    {game.services?.some(s => s.isHot) && (
+                      <span style={{
+                        position: 'absolute', top: '10px', left: '10px', zIndex: 2,
+                        fontSize: '10px', fontWeight: '800', padding: '3px 9px', borderRadius: '20px',
+                        background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
+                        fontFamily: 'var(--font-montserrat)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                      }}>🔥 HOT</span>
+                    )}
                     <div style={{
                       fontFamily: 'var(--font-montserrat)',
                       fontSize: '14px', fontWeight: '700',
@@ -100,10 +108,22 @@ export default function GamesSlider() {
                       lineHeight: '1.3', position: 'relative', zIndex: 1,
                     }}>{game.name}</div>
                     <div style={{
-                      fontSize: '12px', color: 'var(--gold)',
-                      marginTop: '6px', fontFamily: 'var(--font-inter)',
-                      fontWeight: '500', position: 'relative', zIndex: 1,
-                    }}>{game.category}</div>
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      marginTop: '6px', position: 'relative', zIndex: 1,
+                    }}>
+                      <span style={{
+                        fontSize: '12px', color: 'var(--gold)',
+                        fontFamily: 'var(--font-inter)', fontWeight: '500',
+                      }}>{game.category}</span>
+                      {game.services?.length > 0 && (
+                        <>
+                          <span style={{ color: 'var(--text-dim)', fontSize: '10px' }}>&bull;</span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'var(--font-inter)' }}>
+                            {game.services.length} service{game.services.length !== 1 ? 's' : ''}
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}
