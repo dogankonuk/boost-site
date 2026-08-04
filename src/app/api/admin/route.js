@@ -113,46 +113,83 @@ export async function GET(request) {
     }
 
     if (type === 'stats') {
-      const [totalUsers, totalBoosters, activeBoosters, orders] = await Promise.all([
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+
+      const [totalUsers, totalBoosters, activeBoosters, orders, games, pendingApplications, usersLast30, usersPrev30] = await Promise.all([
         prisma.user.count(),
         prisma.booster.count(),
         prisma.booster.count({ where: { status: 'active' } }),
         prisma.order.findMany({
           select: {
-            status: true, price: true, createdAt: true,
-            service: { select: { game: { select: { name: true } } } },
+            status: true, price: true, createdAt: true, rating: true,
+            issueReport: true, issueResolved: true,
+            service: { select: { game: { select: { id: true, name: true } } } },
           },
         }),
+        prisma.game.findMany({ select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }),
+        prisma.application.count({ where: { status: 'pending' } }),
+        prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+        prisma.user.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
       ])
 
       const statusCounts = { pending: 0, assigned: 0, in_progress: 0, completed: 0, cancelled: 0 }
-      let totalRevenue = 0
-      let last30Revenue = 0
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      const gameRevenue = {}
+      let totalRevenue = 0, last30Revenue = 0, prev30Revenue = 0
+      let openIssues = 0, unratedCompleted = 0
+      const gameStats = {}
+
+      const now = new Date()
+      const dailyRevenue = []
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(now); d.setDate(d.getDate() - i)
+        dailyRevenue.push({ date: d.toISOString().slice(0, 10), revenue: 0 })
+      }
+      const dailyIndex = Object.fromEntries(dailyRevenue.map((d, idx) => [d.date, idx]))
 
       for (const o of orders) {
         if (statusCounts[o.status] !== undefined) statusCounts[o.status]++
+        if (o.issueReport && !o.issueResolved) openIssues++
+        if (o.status === 'completed' && !o.rating) unratedCompleted++
+
+        const gameId = o.service?.game?.id
+        const gameName = o.service?.game?.name || 'Unknown'
+        if (gameId) {
+          if (!gameStats[gameId]) gameStats[gameId] = { name: gameName, orders: 0, activeOrders: 0, revenue: 0 }
+          gameStats[gameId].orders++
+          if (['pending', 'assigned', 'in_progress'].includes(o.status)) gameStats[gameId].activeOrders++
+        }
+
         if (o.status === 'completed') {
           totalRevenue += o.price
-          if (o.createdAt > thirtyDaysAgo) last30Revenue += o.price
-          const gameName = o.service?.game?.name || 'Unknown'
-          gameRevenue[gameName] = (gameRevenue[gameName] || 0) + o.price
+          if (o.createdAt >= thirtyDaysAgo) last30Revenue += o.price
+          else if (o.createdAt >= sixtyDaysAgo) prev30Revenue += o.price
+          if (gameId) gameStats[gameId].revenue += o.price
+          const key = o.createdAt.toISOString().slice(0, 10)
+          if (dailyIndex[key] !== undefined) dailyRevenue[dailyIndex[key]].revenue += o.price
         }
       }
 
-      const topGames = Object.entries(gameRevenue)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([name, revenue]) => ({ name, revenue }))
+      for (const g of games) {
+        if (!gameStats[g.id]) gameStats[g.id] = { name: g.name, orders: 0, activeOrders: 0, revenue: 0 }
+      }
+      const gameBreakdown = Object.values(gameStats).sort((a, b) => b.revenue - a.revenue || b.orders - a.orders)
+
+      const revenueGrowthPct = prev30Revenue > 0
+        ? Math.round(((last30Revenue - prev30Revenue) / prev30Revenue) * 100)
+        : (last30Revenue > 0 ? 100 : 0)
+      const userGrowthPct = usersPrev30 > 0
+        ? Math.round(((usersLast30 - usersPrev30) / usersPrev30) * 100)
+        : (usersLast30 > 0 ? 100 : 0)
 
       return NextResponse.json({
         success: true,
         data: {
           totalUsers, totalBoosters, activeBoosters,
           totalOrders: orders.length,
-          totalRevenue, last30Revenue,
-          statusCounts, topGames,
+          totalRevenue, last30Revenue, revenueGrowthPct,
+          usersLast30, userGrowthPct,
+          statusCounts, gameBreakdown, revenueTrend: dailyRevenue,
+          pendingApplications, openIssues, unratedCompleted,
         },
       })
     }

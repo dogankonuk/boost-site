@@ -102,7 +102,7 @@ export default function AdminPage() {
 
       {/* Content */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 48px' }}>
-        {tab === 'overview' && <AdminOverview secret={token} />}
+        {tab === 'overview' && <AdminOverview secret={token} onNavigate={setTab} />}
         {tab === 'games' && <AdminGames secret={token} />}
         {tab === 'orders' && <AdminOrders secret={token} />}
         {tab === 'boosters' && <AdminBoosters secret={token} />}
