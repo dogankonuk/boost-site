@@ -10,7 +10,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 // Only these accounts may grant or revoke admin access from others. A regular
 // admin promoted later (even via this same panel) cannot mint new admins —
 // this caps the blast radius if a non-founder admin account is ever compromised.
-const FOUNDER_EMAILS = ['dogankonuk@gmail.com', 'mrtatessacan@gmail.com']
+const FOUNDER_EMAILS = ['dogankonuk@gmail.com', 'mrtatessacan@gmail.com', 'dogankonuk2@gmail.com']
 
 // Re-checks isAdmin from the DB on every request (rather than trusting a JWT
 // claim) so revoking admin access takes effect immediately, not just after
