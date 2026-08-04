@@ -79,9 +79,16 @@ export default function AdminPage() {
           <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: 'var(--gold)' }}>
             ShadowBoosting — Admin
           </div>
-          <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
-            Çıkış
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Link href="/" style={{ textDecoration: 'none' }}>
+              <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                🏠 Anasayfaya Git
+              </button>
+            </Link>
+            <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
+              Çıkış
+            </button>
+          </div>
         </div>
       </div>
 
