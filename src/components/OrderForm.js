@@ -6,15 +6,48 @@ import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 
+// Sums marginal cost across price bands (options.tiers, sorted ascending by upTo).
+// Any span beyond the last defined band falls back to the flat options.pricePerUnit.
+function calculateTieredRangeCost(options, from, to) {
+  if (to <= from) return 0
+  if (!options.tiers || options.tiers.length === 0) {
+    return (to - from) * options.pricePerUnit
+  }
+  let cost = 0
+  let prevBound = options.min
+  for (const band of options.tiers) {
+    const segStart = Math.max(from, prevBound)
+    const segEnd = Math.min(to, band.upTo)
+    if (segEnd > segStart) cost += (segEnd - segStart) * band.pricePerUnit
+    prevBound = band.upTo
+    if (prevBound >= to) return cost
+  }
+  if (prevBound < to) cost += (to - prevBound) * options.pricePerUnit
+  return cost
+}
+
+// Highest-qualifying threshold wins (options.volumeDiscounts, sorted ascending by minQty).
+function calculateVolumeDiscountPct(options, quantity) {
+  if (!options.volumeDiscounts || options.volumeDiscounts.length === 0) return 0
+  let pct = 0
+  for (const tier of options.volumeDiscounts) {
+    if (quantity >= tier.minQty) pct = tier.discountPct
+  }
+  return pct
+}
+
 function calculatePrice(options, basePrice, selection) {
   if (!options || options.type === 'fixed') return basePrice
   if (options.type === 'quantity') {
-    return Math.max(options.minQty, selection.quantity || options.minQty) * options.unitPrice
+    const qty = Math.max(options.minQty, selection.quantity || options.minQty)
+    const base = qty * options.unitPrice
+    const discountPct = calculateVolumeDiscountPct(options, qty)
+    return discountPct > 0 ? Math.round(base * (1 - discountPct / 100) * 100) / 100 : base
   }
   if (options.type === 'range') {
     const from = parseInt(selection.from || options.min)
     const to = parseInt(selection.to || options.min + 1)
-    return Math.max(0, to - from) * options.pricePerUnit
+    return calculateTieredRangeCost(options, from, to)
   }
   if (options.type === 'options') {
     const choice = options.choices?.find(c => c.label === selection.choice)
@@ -52,6 +85,9 @@ export default function OrderForm({ service }) {
   const price = calculatePrice(options, service.basePrice, selection)
   const discountPct = tier?.discount || 0
   const finalPrice = discountPct > 0 ? Math.round(price * (1 - discountPct / 100) * 100) / 100 : price
+  const volumeDiscountPct = options?.type === 'quantity'
+    ? calculateVolumeDiscountPct(options, Math.max(options.minQty, selection.quantity || options.minQty))
+    : 0
 
   useEffect(() => {
     const hasToken = !!localStorage.getItem('token')
@@ -158,12 +194,16 @@ export default function OrderForm({ service }) {
           )}
           {options?.type === 'range' && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              {Math.max(0, selection.to - selection.from)} {options.unitName} · {format(options.pricePerUnit)} each
+              {Math.max(0, selection.to - selection.from)} {options.unitName}
+              {(!options.tiers || options.tiers.length === 0) && ` · ${format(options.pricePerUnit)} each`}
             </div>
           )}
           {options?.type === 'quantity' && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {selection.quantity} × {format(options.unitPrice)}
+              {volumeDiscountPct > 0 && (
+                <span style={{ color: '#4caf50', fontWeight: '700', marginLeft: '6px' }}>−{volumeDiscountPct}% bulk</span>
+              )}
             </div>
           )}
         </div>
@@ -202,6 +242,22 @@ export default function OrderForm({ service }) {
               <span>Min {options.minQty}</span>
               <span>Max {options.maxQty}</span>
             </div>
+            {options.volumeDiscounts && options.volumeDiscounts.length > 0 && (
+              <div style={{
+                marginTop: '10px', background: 'var(--bg-elevated)', borderRadius: '10px',
+                padding: '10px 16px', border: '1px solid var(--border)',
+                display: 'flex', flexDirection: 'column', gap: '4px',
+              }}>
+                {options.volumeDiscounts.map((t, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{t.minQty}+ {options.unitName}</span>
+                    <span style={{ color: selection.quantity >= t.minQty ? '#4caf50' : 'var(--gold)', fontWeight: '700' }}>
+                      −{t.discountPct}% {selection.quantity >= t.minQty && '✓'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -244,14 +300,38 @@ export default function OrderForm({ service }) {
               </div>
             </div>
 
-            <div style={{
-              background: 'var(--bg-elevated)', borderRadius: '10px',
-              padding: '12px 16px', border: '1px solid var(--border)',
-              fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center',
-            }}>
-              <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{Math.max(0, selection.to - selection.from)}</span> {options.unitName} boost
-              &nbsp;·&nbsp; <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{format(options.pricePerUnit)}</span> per unit
-            </div>
+            {options.tiers && options.tiers.length > 0 ? (
+              <div style={{
+                background: 'var(--bg-elevated)', borderRadius: '10px',
+                padding: '10px 16px', border: '1px solid var(--border)',
+                display: 'flex', flexDirection: 'column', gap: '4px',
+              }}>
+                {(() => {
+                  let bound = options.min
+                  const rows = options.tiers.map((band, i) => {
+                    const row = { from: bound, to: band.upTo, price: band.pricePerUnit }
+                    bound = band.upTo
+                    return row
+                  })
+                  if (bound < options.max) rows.push({ from: bound, to: options.max, price: options.pricePerUnit })
+                  return rows.map((r, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <span style={{ color: 'var(--text-muted)' }}>{r.from}–{r.to} {options.unitName}</span>
+                      <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{format(r.price)}/unit</span>
+                    </div>
+                  ))
+                })()}
+              </div>
+            ) : (
+              <div style={{
+                background: 'var(--bg-elevated)', borderRadius: '10px',
+                padding: '12px 16px', border: '1px solid var(--border)',
+                fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center',
+              }}>
+                <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{Math.max(0, selection.to - selection.from)}</span> {options.unitName} boost
+                &nbsp;·&nbsp; <span style={{ color: 'var(--gold)', fontWeight: '700' }}>{format(options.pricePerUnit)}</span> per unit
+              </div>
+            )}
           </div>
         )}
 

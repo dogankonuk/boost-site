@@ -9,6 +9,22 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import ImageUpload from '@/components/ImageUpload'
 
+// Parses "60:2\n70:3" style admin input into [{a:60,b:2},{a:70,b:3}], sorted by a.
+function parseTierLines(text) {
+  if (!text) return []
+  return text.split('\n').map(l => l.trim()).filter(Boolean)
+    .map(line => {
+      const [a, b] = line.split(':').map(s => parseFloat(s.trim()))
+      return { a, b }
+    })
+    .filter(t => !isNaN(t.a) && !isNaN(t.b))
+    .sort((x, y) => x.a - y.a)
+}
+
+function tiersToLines(tiers, aKey, bKey) {
+  if (!Array.isArray(tiers) || tiers.length === 0) return ''
+  return tiers.map(t => `${t[aKey]}:${t[bKey]}`).join('\n')
+}
 
 export default function AdminGames({ secret }) {
   const [games, setGames] = useState([])
@@ -26,7 +42,7 @@ export default function AdminGames({ secret }) {
     name: '', slug: '', basePrice: '', priceType: 'fixed',
     description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '',
     pricingType: 'fixed',
-    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [] },
+    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' },
   })
   const [msg, setMsg] = useState('')
 
@@ -120,9 +136,13 @@ export default function AdminGames({ secret }) {
     }
     let options = null
     if (serviceForm.pricingType === 'quantity') {
+      const volumeDiscounts = parseTierLines(serviceForm.pricingOptions.volumeText).map(t => ({ minQty: t.a, discountPct: t.b }))
       options = { type: 'quantity', unitName: serviceForm.pricingOptions.unitName, unitPrice: parseFloat(serviceForm.pricingOptions.unitPrice), minQty: parseInt(serviceForm.pricingOptions.minQty), maxQty: parseInt(serviceForm.pricingOptions.maxQty) }
+      if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (serviceForm.pricingType === 'range') {
+      const tiers = parseTierLines(serviceForm.pricingOptions.tiersText).map(t => ({ upTo: t.a, pricePerUnit: t.b }))
       options = { type: 'range', unitName: serviceForm.pricingOptions.unitName, pricePerUnit: parseFloat(serviceForm.pricingOptions.pricePerUnit), min: parseInt(serviceForm.pricingOptions.min), max: parseInt(serviceForm.pricingOptions.max) }
+      if (tiers.length > 0) options.tiers = tiers
     } else if (serviceForm.pricingType === 'options') {
       options = { type: 'options', choices: serviceForm.pricingOptions.choices }
     }
@@ -144,7 +164,7 @@ export default function AdminGames({ secret }) {
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', priceType: 'fixed', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [] } })
+      setServiceForm({ name: '', slug: '', basePrice: '', priceType: 'fixed', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' } })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -153,9 +173,13 @@ export default function AdminGames({ secret }) {
   async function saveEditService() {
     let options = null
     if (editForm.pricingType === 'quantity') {
+      const volumeDiscounts = parseTierLines(editForm.pricingOptions.volumeText).map(t => ({ minQty: t.a, discountPct: t.b }))
       options = { type: 'quantity', unitName: editForm.pricingOptions.unitName, unitPrice: parseFloat(editForm.pricingOptions.unitPrice), minQty: parseInt(editForm.pricingOptions.minQty), maxQty: parseInt(editForm.pricingOptions.maxQty) }
+      if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (editForm.pricingType === 'range') {
+      const tiers = parseTierLines(editForm.pricingOptions.tiersText).map(t => ({ upTo: t.a, pricePerUnit: t.b }))
       options = { type: 'range', unitName: editForm.pricingOptions.unitName, pricePerUnit: parseFloat(editForm.pricingOptions.pricePerUnit), min: parseInt(editForm.pricingOptions.min), max: parseInt(editForm.pricingOptions.max) }
+      if (tiers.length > 0) options.tiers = tiers
     } else if (editForm.pricingType === 'options') {
       options = { type: 'options', choices: editForm.pricingOptions.choices }
     }
@@ -447,6 +471,13 @@ function SortableGameRow({
                   <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.unitPrice} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.minQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, minQty: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.maxQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, maxQty: v } }))} />
+                  <TierTextarea
+                    label="Toplu alım indirimi (opsiyonel)"
+                    hint='Her satıra "min_miktar:indirim_yüzdesi" — örn. 500:10 (500+ alımda %10 indirim)'
+                    placeholder={'500:10\n1000:15'}
+                    value={serviceForm.pricingOptions.volumeText}
+                    onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, volumeText: v } }))}
+                  />
                 </div>
               )}
               {serviceForm.pricingType === 'range' && (
@@ -455,6 +486,12 @@ function SortableGameRow({
                   <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.pricePerUnit} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.min} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.max} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
+                  <TierTextarea
+                    label="Kademeli fiyat bantları (opsiyonel)"
+                    hint='Her satıra "üst_sınır:birim_fiyat" — örn. 60:2 sonra 70:3 sonra 100:5 (1-60 arası $2/birim, 60-70 arası $3/birim...). Boş bırakılırsa yukarıdaki sabit birim fiyat kullanılır.'
+                    value={serviceForm.pricingOptions.tiersText}
+                    onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiersText: v } }))}
+                  />
                 </div>
               )}
               {serviceForm.pricingType === 'options' && (
@@ -520,7 +557,7 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
-                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [] } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [] } })
+                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiersText: tiersToLines(s.options.tiers, 'upTo', 'pricePerUnit'), volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiersText: '', volumeText: '' } })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
@@ -574,6 +611,13 @@ function SortableGameRow({
                                   <Field label="Birim Fiyatı" type="number" value={editForm.pricingOptions?.unitPrice || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
                                   <Field label="Min" type="number" value={editForm.pricingOptions?.minQty || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, minQty: v } }))} />
                                   <Field label="Max" type="number" value={editForm.pricingOptions?.maxQty || 999} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, maxQty: v } }))} />
+                                  <TierTextarea
+                                    label="Toplu alım indirimi (opsiyonel)"
+                                    hint='Her satıra "min_miktar:indirim_yüzdesi" — örn. 500:10'
+                                    placeholder={'500:10\n1000:15'}
+                                    value={editForm.pricingOptions?.volumeText || ''}
+                                    onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, volumeText: v } }))}
+                                  />
                                 </div>
                               )}
                               {editForm.pricingType === 'range' && (
@@ -582,6 +626,12 @@ function SortableGameRow({
                                   <Field label="Birim Fiyatı" type="number" value={editForm.pricingOptions?.pricePerUnit || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                                   <Field label="Min" type="number" value={editForm.pricingOptions?.min || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                                   <Field label="Max" type="number" value={editForm.pricingOptions?.max || 100} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
+                                  <TierTextarea
+                                    label="Kademeli fiyat bantları (opsiyonel)"
+                                    hint='Her satıra "üst_sınır:birim_fiyat" — örn. 60:2 sonra 70:3'
+                                    value={editForm.pricingOptions?.tiersText || ''}
+                                    onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, tiersText: v } }))}
+                                  />
                                 </div>
                               )}
                               {editForm.pricingType === 'options' && (
@@ -754,6 +804,18 @@ function ChoiceAdder({ onAdd }) {
       </div>
       <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '7px 12px' }}
         onClick={() => { if (label.trim() && price) { onAdd({ label: label.trim(), price: parseFloat(price) }); setLabel(''); setPrice('') } }}>Ekle</button>
+    </div>
+  )
+}
+
+function TierTextarea({ label, hint, value, onChange, placeholder = '60:2\n70:3\n100:5' }) {
+  return (
+    <div style={{ gridColumn: '1 / -1' }}>
+      <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>{label}</label>
+      <textarea value={value} onChange={e => onChange(e.target.value)} rows={2}
+        placeholder={placeholder}
+        style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '12px', fontFamily: 'monospace', outline: 'none', resize: 'vertical' }} />
+      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px', lineHeight: '1.5' }}>{hint}</div>
     </div>
   )
 }
