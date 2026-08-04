@@ -468,8 +468,9 @@ export default function Navbar() {
                   minWidth: '180px', zIndex: 200,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 }}>
-                  <DropdownItem href="/dashboard" icon="📦" label="My Orders" onClick={() => setDropdownOpen(false)} />
-                  <DropdownItem href="/dashboard" icon="⚙️" label="My Account" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard" icon="🏠" label="Dashboard" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard?tab=orders" icon="📦" label="My Orders" onClick={() => setDropdownOpen(false)} />
+                  <DropdownItem href="/dashboard?tab=account" icon="⚙️" label="My Account" onClick={() => setDropdownOpen(false)} />
                   {isBooster && (
                     <DropdownItem href="/booster" icon="🛠️" label="Booster Panel" onClick={() => setDropdownOpen(false)} />
                   )}
@@ -583,8 +584,9 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <MobileMenuLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>My Orders</MobileMenuLink>
-              <MobileMenuLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Account Settings</MobileMenuLink>
+              <MobileMenuLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>Dashboard</MobileMenuLink>
+              <MobileMenuLink href="/dashboard?tab=orders" onClick={() => setMobileMenuOpen(false)}>My Orders</MobileMenuLink>
+              <MobileMenuLink href="/dashboard?tab=account" onClick={() => setMobileMenuOpen(false)}>Account Settings</MobileMenuLink>
               {isBooster && (
                 <MobileMenuLink href="/booster" onClick={() => setMobileMenuOpen(false)}>Booster Panel</MobileMenuLink>
               )}

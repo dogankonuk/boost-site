@@ -43,7 +43,9 @@ function DashboardContent() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
-  const [tab, setTab] = useState(searchParams.get('tab') === 'account' ? 'account' : 'overview')
+  const [tab, setTab] = useState(
+    ['account', 'orders', 'active'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview'
+  )
 
   useEffect(() => {
     const token = localStorage.getItem('token')
