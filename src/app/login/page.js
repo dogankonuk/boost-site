@@ -4,6 +4,24 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import toast from 'react-hot-toast'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email or username is required'),
+  password: z.string().min(1, 'Password is required'),
+})
+
+const registerSchema = z.object({
+  email: z.string().email('Enter a valid email address'),
+  username: z.string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be at most 20 characters')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+  agreedToTerms: z.literal(true, { error: 'You must agree to the Terms of Service and Privacy Policy' }),
+})
 
 export default function LoginPage() {
   return (
@@ -17,10 +35,13 @@ function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [tab, setTab] = useState('login')
-  const [form, setForm] = useState({ email: '', username: '', password: '' })
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const { register, handleSubmit, clearErrors, formState: { errors } } = useForm({
+    resolver: zodResolver(tab === 'login' ? loginSchema : registerSchema),
+    defaultValues: { email: '', username: '', password: '', agreedToTerms: false },
+  })
 
   useEffect(() => {
     if (searchParams.get('expired') === '1') {
@@ -31,31 +52,19 @@ function LoginForm() {
     }
   }, [])
 
-  async function submit() {
+  function switchTab(key) {
+    setTab(key)
+    setError('')
+    clearErrors()
+  }
+
+  async function onSubmit(data) {
     setLoading(true)
     setError('')
 
-    if (tab === 'register' && !form.username) {
-      setError('Username is required')
-      setLoading(false)
-      return
-    }
-
-    if (tab === 'register' && form.password.length < 6) {
-      setError('Password must be at least 6 characters long')
-      setLoading(false)
-      return
-    }
-
-    if (tab === 'register' && !agreedToTerms) {
-      setError('You must agree to the Terms of Service and Privacy Policy')
-      setLoading(false)
-      return
-    }
-
     const body = tab === 'login'
-      ? { action: 'login', email: form.email, password: form.password }
-      : { action: 'register', email: form.email, username: form.username, password: form.password, agreedToTerms, referralCode: searchParams.get('ref') || undefined }
+      ? { action: 'login', email: data.email, password: data.password }
+      : { action: 'register', email: data.email, username: data.username, password: data.password, agreedToTerms: data.agreedToTerms, referralCode: searchParams.get('ref') || undefined }
 
     try {
       const res = await fetch('/api/auth', {
@@ -171,7 +180,7 @@ function LoginForm() {
               { key: 'login', label: 'Login' },
               { key: 'register', label: 'Register' },
             ].map(t => (
-              <button key={t.key} onClick={() => { setTab(t.key); setError('') }} style={{
+              <button key={t.key} type="button" onClick={() => switchTab(t.key)} style={{
                 flex: 1, padding: '9px', borderRadius: '7px',
                 background: tab === t.key ? 'var(--gold)' : 'transparent',
                 border: 'none',
@@ -216,22 +225,18 @@ function LoginForm() {
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div>
-              <label style={{
-                fontSize: '12px', color: 'var(--text-muted)',
-                fontFamily: 'var(--font-montserrat)', fontWeight: '600',
-                display: 'block', marginBottom: '6px',
-              }}>
+              <label style={labelStyle}>
                 {tab === 'login' ? 'Email or Username' : 'Email'}
               </label>
               <input
                 type="email"
                 placeholder="example@mail.com"
-                value={form.email}
-                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 style={inputStyle}
+                {...register('email')}
               />
+              {errors.email && <FieldError>{errors.email.message}</FieldError>}
             </div>
 
             {tab === 'register' && (
@@ -240,10 +245,10 @@ function LoginForm() {
                 <input
                   type="text"
                   placeholder="shadowplayer"
-                  value={form.username}
-                  onChange={e => setForm(f => ({ ...f, username: e.target.value }))}
                   style={inputStyle}
+                  {...register('username')}
                 />
+                {errors.username && <FieldError>{errors.username.message}</FieldError>}
               </div>
             )}
 
@@ -259,31 +264,32 @@ function LoginForm() {
               <input
                 type="password"
                 placeholder="••••••••"
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && submit()}
                 style={inputStyle}
+                {...register('password')}
               />
+              {errors.password && <FieldError>{errors.password.message}</FieldError>}
             </div>
 
             {tab === 'register' && (
-              <label style={{
-                display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer',
-                fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5',
-              }}>
-                <input
-                  type="checkbox"
-                  checked={agreedToTerms}
-                  onChange={e => setAgreedToTerms(e.target.checked)}
-                  style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
-                />
-                <span>
-                  I have read and agree to the{' '}
-                  <Link href="/terms" target="_blank" style={{ color: 'var(--gold)' }}>Terms of Service</Link>
-                  {' '}and{' '}
-                  <Link href="/privacy" target="_blank" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
-                </span>
-              </label>
+              <div>
+                <label style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer',
+                  fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5',
+                }}>
+                  <input
+                    type="checkbox"
+                    style={{ marginTop: '2px', flexShrink: 0, cursor: 'pointer' }}
+                    {...register('agreedToTerms')}
+                  />
+                  <span>
+                    I have read and agree to the{' '}
+                    <Link href="/terms" target="_blank" style={{ color: 'var(--gold)' }}>Terms of Service</Link>
+                    {' '}and{' '}
+                    <Link href="/privacy" target="_blank" style={{ color: 'var(--gold)' }}>Privacy Policy</Link>.
+                  </span>
+                </label>
+                {errors.agreedToTerms && <FieldError>{errors.agreedToTerms.message}</FieldError>}
+              </div>
             )}
 
             {error && (
@@ -295,14 +301,14 @@ function LoginForm() {
             )}
 
             <button
+              type="submit"
               className="btn-primary"
-              onClick={submit}
-              disabled={loading || (tab === 'register' && !agreedToTerms)}
-              style={{ width: '100%', marginTop: '4px', opacity: (loading || (tab === 'register' && !agreedToTerms)) ? 0.6 : 1 }}
+              disabled={loading}
+              style={{ width: '100%', marginTop: '4px', opacity: loading ? 0.6 : 1 }}
             >
               {loading ? 'Please wait...' : tab === 'login' ? 'Login' : 'Create Account'}
             </button>
-          </div>
+          </form>
 
           <p style={{ color: 'var(--text-dim)', fontSize: '12px', marginTop: '28px', textAlign: 'center' }}>
             © 2024 ShadowBoosting.co — All rights reserved.
@@ -310,6 +316,12 @@ function LoginForm() {
         </div>
       </div>
     </div>
+  )
+}
+
+function FieldError({ children }) {
+  return (
+    <p style={{ fontSize: '11px', color: '#ff6666', marginTop: '5px' }}>{children}</p>
   )
 }
 
