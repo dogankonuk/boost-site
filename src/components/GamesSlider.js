@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { motion } from 'framer-motion'
 
 export default function GamesSlider() {
   const [games, setGames] = useState([])
@@ -48,9 +49,12 @@ export default function GamesSlider() {
 
   return (
     <section style={{ padding: '0 0 48px' }}>
-      <div className="container" ref={containerRef}
+      <motion.div className="container" ref={containerRef}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <NavBtn onClick={prev} disabled={offset === 0}>&#8249;</NavBtn>
@@ -132,7 +136,7 @@ export default function GamesSlider() {
 
           <NavBtn onClick={next} disabled={offset >= maxOffset}>&#8250;</NavBtn>
         </div>
-      </div>
+      </motion.div>
     </section>
   )
 }

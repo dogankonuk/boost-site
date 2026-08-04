@@ -1,4 +1,5 @@
 'use client'
+import Reveal from './motion/Reveal'
 
 const features = [
   {
@@ -33,21 +34,23 @@ export default function FeaturesSection() {
         gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: '12px',
       }}>
-        {features.map(f => (
-          <div key={f.title} style={{
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: '12px',
-            padding: '20px',
-            transition: 'border-color 0.2s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
-            <div style={{ fontSize: '24px', marginBottom: '12px' }}>{f.icon}</div>
-            <h3 className="h4" style={{ color: '#fff', marginBottom: '8px' }}>{f.title}</h3>
-            <p className="body-small" style={{ color: 'var(--text-muted)' }}>{f.desc}</p>
-          </div>
+        {features.map((f, i) => (
+          <Reveal key={f.title} delay={i * 0.08}>
+            <div style={{
+              background: 'var(--bg-card)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+              padding: '20px',
+              transition: 'border-color 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--gold)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <div style={{ fontSize: '24px', marginBottom: '12px' }}>{f.icon}</div>
+              <h3 className="h4" style={{ color: '#fff', marginBottom: '8px' }}>{f.title}</h3>
+              <p className="body-small" style={{ color: 'var(--text-muted)' }}>{f.desc}</p>
+            </div>
+          </Reveal>
         ))}
       </div>
     </section>

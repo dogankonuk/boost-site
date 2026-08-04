@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useCurrency } from '@/context/CurrencyContext'
+import Reveal from './motion/Reveal'
 
 export default function PopularServicesStrip({ services }) {
   const { format } = useCurrency()
@@ -18,8 +19,9 @@ export default function PopularServicesStrip({ services }) {
           display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px',
           scrollbarWidth: 'thin',
         }}>
-          {services.map(service => (
-            <Link key={service.id} href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+          {services.map((service, i) => (
+            <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>
+            <Link href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
               <div style={{
                 width: '220px', borderRadius: '14px', overflow: 'hidden',
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -59,6 +61,7 @@ export default function PopularServicesStrip({ services }) {
                 </div>
               </div>
             </Link>
+            </Reveal>
           ))}
         </div>
       </div>
