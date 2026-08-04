@@ -8,6 +8,7 @@ import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
 import OrderTimeline from '@/components/OrderTimeline'
+import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -41,6 +42,7 @@ function DashboardContent() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState(searchParams.get('tab') === 'account' ? 'account' : 'overview')
 
   useEffect(() => {
@@ -49,6 +51,7 @@ function DashboardContent() {
     if (!token) { router.push('/login'); return }
     setUsername(uname || '')
     fetchOrders()
+    fetchProfile()
   }, [])
 
   async function fetchOrders() {
@@ -59,6 +62,18 @@ function DashboardContent() {
       if (d.success) setOrders(d.data)
     } catch {}
     setLoading(false)
+  }
+
+  async function fetchProfile() {
+    try {
+      const res = await authFetch('/api/auth', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getProfile' }),
+      })
+      if (!res) return
+      const d = await res.json()
+      if (d.success) setProfile(d.data)
+    } catch {}
   }
 
   function logout() {
@@ -82,6 +97,7 @@ function DashboardContent() {
   const activeOrders = orders.filter(o => o.status === 'pending' || o.status === 'in_progress' || o.status === 'assigned')
   const completedOrders = orders.filter(o => o.status === 'completed')
   const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
+  const tier = profile?.loyaltyTier || getLoyaltyTier(pointsFromSpend(totalSpent))
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -114,8 +130,8 @@ function DashboardContent() {
                 <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: '#0a0a0a' }}>
                   {username}
                 </div>
-                <div style={{ fontSize: '11px', color: 'rgba(0,0,0,0.6)', marginTop: '2px' }}>
-                  Member
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'rgba(0,0,0,0.7)', marginTop: '2px', fontWeight: '700' }}>
+                  <span>{tier.icon}</span>{tier.name} Member
                 </div>
               </div>
             </div>
@@ -192,7 +208,7 @@ function DashboardContent() {
         {/* Sağ içerik */}
         <div>
           {tab === 'overview' && (
-            <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} />
+            <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} tier={tier} profile={profile} />
           )}
           {tab === 'orders' && (
             <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
@@ -227,22 +243,8 @@ function buildMonthlySpend(orders) {
   return months
 }
 
-function OverviewTab({ username, orders, loading, onNavigate }) {
+function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
   const { format } = useCurrency()
-  const [profile, setProfile] = useState(null)
-
-  useEffect(() => {
-    async function fetchProfile() {
-      const res = await authFetch('/api/auth', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getProfile' }),
-      })
-      if (!res) return
-      const d = await res.json()
-      if (d.success) setProfile(d.data)
-    }
-    fetchProfile()
-  }, [])
 
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -270,7 +272,46 @@ function OverviewTab({ username, orders, loading, onNavigate }) {
         <OverviewStat icon="⚡" label="Active" value={activeOrders.length} />
         <OverviewStat icon="✅" label="Completed" value={completedOrders.length} />
         <OverviewStat icon="💰" label="Total Spent" value={format(totalSpent)} accent />
+        <OverviewStat icon="🏆" label="Loyalty Points" value={tier.points.toLocaleString('en-US')} />
         <OverviewStat icon="🗓️" label="Member Since" value={memberSince} small />
+      </div>
+
+      <div style={{
+        background: 'var(--bg-card)', border: `1px solid ${tier.color}55`,
+        borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+        display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap',
+      }}>
+        <div style={{
+          width: '52px', height: '52px', borderRadius: '14px', flexShrink: 0,
+          background: `${tier.color}1a`, border: `1px solid ${tier.color}55`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px',
+        }}>{tier.icon}</div>
+
+        <div style={{ flex: 1, minWidth: '220px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{ fontSize: '15px', fontWeight: '800', color: tier.color, fontFamily: 'var(--font-montserrat)' }}>
+              {tier.name} Member
+            </span>
+            {tier.discount > 0 && (
+              <span style={{
+                fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '20px',
+                background: 'rgba(76,175,80,0.12)', color: '#4caf50',
+              }}>-{tier.discount}% on every order</span>
+            )}
+          </div>
+          {tier.next ? (
+            <>
+              <div style={{ height: '6px', background: 'var(--bg-elevated)', borderRadius: '3px', overflow: 'hidden', marginBottom: '6px' }}>
+                <div style={{ width: `${tier.progress * 100}%`, height: '100%', background: tier.color, borderRadius: '3px' }} />
+              </div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                {tier.remaining.toLocaleString('en-US')} more points to reach <strong style={{ color: tier.next.color }}>{tier.next.icon} {tier.next.name}</strong> (-{tier.next.discount}% discount)
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You've reached our highest tier — thank you!</div>
+          )}
+        </div>
       </div>
 
       {currentOrder && (

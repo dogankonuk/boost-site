@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
+import { getLoyaltyTier } from '@/lib/loyalty'
 
 function calculatePrice(options, basePrice, selection) {
   if (!options || options.type === 'fixed') return basePrice
@@ -39,6 +40,7 @@ export default function OrderForm({ service }) {
   const [loggedIn, setLoggedIn] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
+  const [tier, setTier] = useState(null)
   const [selection, setSelection] = useState({
     quantity: service.options?.minQty || 1,
     from: service.options?.min || 1,
@@ -48,10 +50,22 @@ export default function OrderForm({ service }) {
 
   const options = service.options
   const price = calculatePrice(options, service.basePrice, selection)
+  const discountPct = tier?.discount || 0
+  const finalPrice = discountPct > 0 ? Math.round(price * (1 - discountPct / 100) * 100) / 100 : price
 
   useEffect(() => {
-    setLoggedIn(!!localStorage.getItem('token'))
+    const hasToken = !!localStorage.getItem('token')
+    setLoggedIn(hasToken)
     const t = setTimeout(() => setMounted(true), 20)
+
+    if (hasToken) {
+      authFetch('/api/auth', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getProfile' }),
+      }).then(res => res?.json()).then(d => {
+        if (d?.success) setTier(d.data.loyaltyTier)
+      }).catch(() => {})
+    }
     return () => clearTimeout(t)
   }, [])
 
@@ -65,7 +79,7 @@ export default function OrderForm({ service }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: service.id,
-          details: { note, selection, calculatedPrice: price },
+          details: { note, selection, calculatedPrice: finalPrice },
         }),
       })
       if (!res) return
@@ -94,7 +108,7 @@ export default function OrderForm({ service }) {
       selectionSummary: getSelectionSummary(),
       selection,
       note,
-      price,
+      price: finalPrice,
     })
     setAddedToCart(true)
     setTimeout(() => setAddedToCart(false), 2000)
@@ -128,9 +142,20 @@ export default function OrderForm({ service }) {
           {options?.type === 'fixed' || !options ? 'Price' : 'Total price'}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+          {discountPct > 0 && (
+            <div style={{ fontSize: '18px', color: 'var(--text-dim)', textDecoration: 'line-through', lineHeight: 1 }}>
+              {format(price)}
+            </div>
+          )}
           <div style={{ fontSize: '38px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
-            {format(price)}
+            {format(finalPrice)}
           </div>
+          {discountPct > 0 && (
+            <span style={{
+              fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
+              background: `${tier.color}22`, color: tier.color,
+            }}>{tier.icon} -{discountPct}% {tier.name}</span>
+          )}
           {options?.type === 'range' && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
               {Math.max(0, selection.to - selection.from)} {options.unitName} · {format(options.pricePerUnit)} each
@@ -325,7 +350,7 @@ export default function OrderForm({ service }) {
                 <Spinner /> Processing...
               </>
             ) : loggedIn ? (
-              `${format(price)} — Buy Now`
+              `${format(finalPrice)} — Buy Now`
             ) : (
               'Sign In to Purchase'
             )}

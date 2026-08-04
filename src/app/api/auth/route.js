@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/rateLimit'
+import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -288,9 +289,17 @@ export async function PUT(request) {
           billingName: true, billingAddress: true, billingCity: true,
           billingCountry: true, billingPhone: true, billingPostalCode: true,
           createdAt: true, emailVerified: true, isContentCreator: true, isAdmin: true,
+          orders: { where: { status: { not: 'cancelled' } }, select: { price: true } },
         }
       })
-      return NextResponse.json({ success: true, data: user })
+      if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
+
+      const { orders, ...profile } = user
+      const totalSpent = orders.reduce((sum, o) => sum + o.price, 0)
+      const points = pointsFromSpend(totalSpent) + (profile.bonusPoints || 0)
+      const loyaltyTier = getLoyaltyTier(points)
+
+      return NextResponse.json({ success: true, data: { ...profile, totalSpent, points, loyaltyTier } })
     }
 
     if (action === 'resendVerification') {
