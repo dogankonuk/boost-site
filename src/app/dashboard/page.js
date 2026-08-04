@@ -41,7 +41,7 @@ function DashboardContent() {
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState(searchParams.get('tab') === 'account' ? 'account' : 'orders')
+  const [tab, setTab] = useState(searchParams.get('tab') === 'account' ? 'account' : 'overview')
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -147,6 +147,7 @@ function DashboardContent() {
             {/* Menü */}
             <div style={{ padding: '8px' }}>
               {[
+                { key: 'overview', icon: '🏠', label: 'Overview' },
                 { key: 'orders', icon: '📦', label: 'My Orders' },
                 { key: 'active', icon: '⚡', label: 'Active Orders' },
                 { key: 'account', icon: '⚙️', label: 'Account Settings' },
@@ -190,6 +191,9 @@ function DashboardContent() {
 
         {/* Sağ içerik */}
         <div>
+          {tab === 'overview' && (
+            <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} />
+          )}
           {tab === 'orders' && (
             <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
           )}
@@ -204,6 +208,138 @@ function DashboardContent() {
 
       <Footer />
     </main>
+  )
+}
+
+function buildMonthlySpend(orders) {
+  const now = new Date()
+  const months = []
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    months.push({ key: `${d.getFullYear()}-${d.getMonth()}`, label: d.toLocaleDateString('en-US', { month: 'short' }), total: 0 })
+  }
+  orders.filter(o => o.status !== 'cancelled').forEach(o => {
+    const d = new Date(o.createdAt)
+    const key = `${d.getFullYear()}-${d.getMonth()}`
+    const m = months.find(m => m.key === key)
+    if (m) m.total += (o.price || 0)
+  })
+  return months
+}
+
+function OverviewTab({ username, orders, loading, onNavigate }) {
+  const { format } = useCurrency()
+  const [profile, setProfile] = useState(null)
+
+  useEffect(() => {
+    async function fetchProfile() {
+      const res = await authFetch('/api/auth', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getProfile' }),
+      })
+      if (!res) return
+      const d = await res.json()
+      if (d.success) setProfile(d.data)
+    }
+    fetchProfile()
+  }, [])
+
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+
+  const activeOrders = orders.filter(o => ['pending', 'assigned', 'in_progress'].includes(o.status))
+  const completedOrders = orders.filter(o => o.status === 'completed')
+  const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
+  const currentOrder = activeOrders[0]
+  const monthlySpend = buildMonthlySpend(orders)
+  const maxMonthly = Math.max(1, ...monthlySpend.map(m => m.total))
+  const memberSince = profile?.createdAt
+    ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : '—'
+
+  return (
+    <div>
+      <h2 className="h3" style={{ color: '#fff', marginBottom: '4px' }}>
+        Welcome back, {profile?.displayName || username}
+      </h2>
+      <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '24px' }}>
+        Here's a quick look at your activity.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '24px' }}>
+        <OverviewStat icon="📦" label="Total Orders" value={orders.length} />
+        <OverviewStat icon="⚡" label="Active" value={activeOrders.length} />
+        <OverviewStat icon="✅" label="Completed" value={completedOrders.length} />
+        <OverviewStat icon="💰" label="Total Spent" value={format(totalSpent)} accent />
+        <OverviewStat icon="🗓️" label="Member Since" value={memberSince} small />
+      </div>
+
+      {currentOrder && (
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <h3 className="h4" style={{ color: '#fff' }}>Continue Where You Left Off</h3>
+            <button onClick={() => onNavigate('orders')} style={{ background: 'none', border: 'none', color: 'var(--gold)', fontSize: '12px', cursor: 'pointer' }}>
+              View all orders →
+            </button>
+          </div>
+          <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', marginBottom: '10px' }}>
+            {currentOrder.service?.game?.name} — {currentOrder.service?.name}
+          </div>
+          <OrderTimeline order={currentOrder} />
+        </div>
+      )}
+
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+      }}>
+        <h3 className="h4" style={{ color: '#fff', marginBottom: '16px' }}>Spending — Last 6 Months</h3>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '110px' }}>
+          {monthlySpend.map(m => (
+            <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
+              <div title={format(m.total)} style={{
+                width: '100%', maxWidth: '36px', borderRadius: '4px 4px 0 0',
+                height: `${Math.max(3, (m.total / maxMonthly) * 82)}px`,
+                background: m.total > 0 ? 'var(--gold)' : 'var(--bg-elevated)',
+                border: m.total > 0 ? 'none' : '1px solid var(--border)',
+                transition: 'height 0.2s',
+              }} />
+              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{m.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+        <Link href="/games" style={{ textDecoration: 'none', flex: 1, minWidth: '160px' }}>
+          <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>+ New Order</button>
+        </Link>
+        <button className="btn-secondary" style={{ flex: 1, minWidth: '160px', padding: '11px' }} onClick={() => onNavigate('orders')}>
+          View All Orders
+        </button>
+        <button className="btn-secondary" style={{ flex: 1, minWidth: '160px', padding: '11px' }} onClick={() => onNavigate('account')}>
+          Account Settings
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function OverviewStat({ icon, label, value, accent, small }) {
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderRadius: '12px', padding: '14px 16px',
+    }}>
+      <div style={{ fontSize: '16px', marginBottom: '6px' }}>{icon}</div>
+      <div style={{
+        fontSize: small ? '13px' : '18px', fontWeight: '800', color: accent ? 'var(--gold)' : '#fff',
+        fontFamily: 'var(--font-montserrat)', lineHeight: 1.2,
+      }}>{value}</div>
+      <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
+    </div>
   )
 }
 
