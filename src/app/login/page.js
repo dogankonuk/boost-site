@@ -25,6 +25,9 @@ function LoginForm() {
     if (searchParams.get('expired') === '1') {
       setError('Your session has expired. Please sign in again.')
     }
+    if (searchParams.get('ref')) {
+      setTab('register')
+    }
   }, [])
 
   async function submit() {
@@ -51,7 +54,7 @@ function LoginForm() {
 
     const body = tab === 'login'
       ? { action: 'login', email: form.email, password: form.password }
-      : { action: 'register', email: form.email, username: form.username, password: form.password, agreedToTerms }
+      : { action: 'register', email: form.email, username: form.username, password: form.password, agreedToTerms, referralCode: searchParams.get('ref') || undefined }
 
     try {
       const res = await fetch('/api/auth', {

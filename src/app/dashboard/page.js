@@ -314,6 +314,8 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         </div>
       </div>
 
+      <ReferralCard profile={profile} />
+
       {currentOrder && (
         <div style={{
           background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -362,6 +364,50 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         </button>
         <button className="btn-secondary" style={{ flex: 1, minWidth: '160px', padding: '11px' }} onClick={() => onNavigate('account')}>
           Account Settings
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ReferralCard({ profile }) {
+  const [copied, setCopied] = useState(false)
+  if (!profile?.referralCode) return null
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const link = `${origin}/login?ref=${profile.referralCode}`
+
+  function copyLink() {
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)', border: '1px solid var(--border)',
+      borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+        <h3 className="h4" style={{ color: '#fff' }}>🎁 Invite Friends, Earn Points</h3>
+        {profile.referralCount > 0 && (
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            <strong style={{ color: 'var(--gold)' }}>{profile.referralCount}</strong> friend{profile.referralCount !== 1 ? 's' : ''} joined
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.6' }}>
+        Share your link — when a friend signs up and completes their first order, you get <strong style={{ color: '#fff' }}>+100 points</strong> and they get <strong style={{ color: '#fff' }}>+50 points</strong>.
+      </p>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        <input readOnly value={link} onClick={e => e.target.select()}
+          style={{
+            flex: 1, minWidth: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+            borderRadius: '8px', padding: '10px 14px', color: 'var(--text-muted)', fontSize: '12px', outline: 'none',
+          }} />
+        <button className="btn-primary" onClick={copyLink} style={{ padding: '10px 18px', fontSize: '13px', flexShrink: 0 }}>
+          {copied ? 'Copied!' : 'Copy Link'}
         </button>
       </div>
     </div>

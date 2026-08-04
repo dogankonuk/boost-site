@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate } from '@/lib/email'
 import { notifyOrderStatus, notifyOrderReleased } from '@/lib/notify'
+import { maybeAwardReferralBonus } from '@/lib/referral'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -224,6 +225,7 @@ export async function PATCH(request) {
         where: { id: booster.id },
         data: { completedCount: { increment: 1 } },
       })
+      await maybeAwardReferralBonus(order.userId)
     }
 
     try {

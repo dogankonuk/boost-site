@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/rateLimit'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
+import { generateReferralCode, ensureReferralCode } from '@/lib/referral'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -24,7 +25,7 @@ function hashToken(raw) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { action, email, username, password, agreedToTerms } = body
+    const { action, email, username, password, agreedToTerms, referralCode } = body
     const ip = getClientIp(request)
 
     if (action === 'login') {
@@ -89,14 +90,23 @@ export async function POST(request) {
         )
       }
 
+      let referredById = null
+      if (referralCode) {
+        const referrer = await prisma.user.findUnique({ where: { referralCode: referralCode.trim().toUpperCase() } })
+        if (referrer) referredById = referrer.id
+      }
+
       const passwordHash = await bcrypt.hash(password, 10)
       const { raw: verificationToken, hash: verificationTokenHash } = createToken()
+      const newReferralCode = await generateReferralCode()
       const user = await prisma.user.create({
         data: {
           email, username, passwordHash,
           verificationTokenHash,
           verificationTokenExpiry: new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS),
           termsAcceptedAt: new Date(),
+          referralCode: newReferralCode,
+          referredById,
         }
       })
 
@@ -285,21 +295,27 @@ export async function PUT(request) {
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
         select: {
-          username: true, email: true, displayName: true, discordId: true,
+          id: true, username: true, email: true, displayName: true, discordId: true,
           billingName: true, billingAddress: true, billingCity: true,
           billingCountry: true, billingPhone: true, billingPostalCode: true,
           createdAt: true, emailVerified: true, isContentCreator: true, isAdmin: true,
+          referralCode: true, bonusPoints: true,
+          _count: { select: { referrals: true } },
           orders: { where: { status: { not: 'cancelled' } }, select: { price: true } },
         }
       })
       if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 })
 
-      const { orders, ...profile } = user
+      const referralCode = await ensureReferralCode(user)
+      const { orders, _count, ...profile } = user
       const totalSpent = orders.reduce((sum, o) => sum + o.price, 0)
       const points = pointsFromSpend(totalSpent) + (profile.bonusPoints || 0)
       const loyaltyTier = getLoyaltyTier(points)
 
-      return NextResponse.json({ success: true, data: { ...profile, totalSpent, points, loyaltyTier } })
+      return NextResponse.json({
+        success: true,
+        data: { ...profile, referralCode, referralCount: _count.referrals, totalSpent, points, loyaltyTier },
+      })
     }
 
     if (action === 'resendVerification') {

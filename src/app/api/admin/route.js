@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate, sendBlogUnpublishedEmail } from '@/lib/email'
 import { notifyOrderStatus } from '@/lib/notify'
+import { maybeAwardReferralBonus } from '@/lib/referral'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -351,6 +352,10 @@ export async function PATCH(request) {
           status: data.status,
         })
         await notifyOrderStatus(prisma, order, data.status)
+      }
+
+      if (data.status === 'completed') {
+        await maybeAwardReferralBonus(order.userId)
       }
 
       // 'boosterId' being present in the payload means this PATCH is (also) an assignment action

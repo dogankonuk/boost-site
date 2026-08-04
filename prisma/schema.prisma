@@ -71,6 +71,13 @@ model User {
   isContentCreator Boolean @default(false)
   isAdmin          Boolean @default(false)
 
+  bonusPoints         Int      @default(0)
+  referralCode        String?  @unique
+  referredById        Int?
+  referredBy          User?    @relation("Referrals", fields: [referredById], references: [id])
+  referrals           User[]   @relation("Referrals")
+  referralRewardGiven Boolean  @default(false)
+
   orders        Order[]
   booster       Booster?
   notifications Notification[]
