@@ -5,6 +5,7 @@ import Link from 'next/link'
 export default function GamesSlider() {
   const [games, setGames] = useState([])
   const [offset, setOffset] = useState(0)
+  const [paused, setPaused] = useState(false)
   const containerRef = useRef(null)
   const [visibleCount, setVisibleCount] = useState(5)
   const cardW = 200
@@ -35,9 +36,22 @@ export default function GamesSlider() {
   function prev() { setOffset(o => Math.max(0, o - 1)) }
   function next() { setOffset(o => Math.min(maxOffset, o + 1)) }
 
+  // Auto-advance so the homepage feels alive; pauses while the visitor is
+  // hovering or has manually interacted, loops back to the start at the end.
+  useEffect(() => {
+    if (paused || maxOffset <= 0) return
+    const id = setInterval(() => {
+      setOffset(o => (o >= maxOffset ? 0 : o + 1))
+    }, 3500)
+    return () => clearInterval(id)
+  }, [paused, maxOffset])
+
   return (
     <section style={{ padding: '0 0 48px' }}>
-      <div className="container" ref={containerRef}>
+      <div className="container" ref={containerRef}
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <NavBtn onClick={prev} disabled={offset === 0}>&#8249;</NavBtn>
 

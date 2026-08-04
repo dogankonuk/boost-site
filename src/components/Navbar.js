@@ -80,6 +80,14 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  // Lets other parts of the page (e.g. the homepage hero's "View Services"
+  // button) open the Games mega menu without lifting this state up.
+  useEffect(() => {
+    function handleOpenGamesMenu() { setGamesMenuOpen(true) }
+    window.addEventListener('open-games-menu', handleOpenGamesMenu)
+    return () => window.removeEventListener('open-games-menu', handleOpenGamesMenu)
+  }, [])
+
   function logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('username')

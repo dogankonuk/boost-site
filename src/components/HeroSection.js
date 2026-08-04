@@ -1,4 +1,13 @@
+'use client'
+import Link from 'next/link'
+
 export default function HeroSection() {
+  function openGamesMenu(e) {
+    e.stopPropagation()
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.dispatchEvent(new Event('open-games-menu'))
+  }
+
   return (
     <section className="container" style={{
       textAlign: 'center',
@@ -18,8 +27,10 @@ export default function HeroSection() {
         Level up your game with our professional boost team. Safe, fast, and guaranteed.
       </p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-        <button className="btn-primary">Get Started</button>
-        <button className="btn-secondary">View Services</button>
+        <Link href="/games" style={{ textDecoration: 'none' }}>
+          <button className="btn-primary">Get Started</button>
+        </Link>
+        <button className="btn-secondary" onClick={openGamesMenu}>View Services</button>
       </div>
     </section>
   )
