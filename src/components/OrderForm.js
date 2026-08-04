@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import toast from 'react-hot-toast'
 import { useCurrency } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
+import { celebrate } from '@/lib/celebrate'
 
 // Sums marginal cost across price bands (options.tiers, sorted ascending by upTo).
 // Any span beyond the last defined band falls back to the flat options.pricePerUnit.
@@ -117,9 +119,18 @@ export default function OrderForm({ service }) {
       })
       if (!res) return
       const d = await res.json()
-      if (d.success) router.push('/dashboard')
-      else setError(d.error || 'An error occurred')
-    } catch { setError('Failed to connect to the server') }
+      if (d.success) {
+        celebrate()
+        toast.success('Order placed!')
+        router.push('/dashboard')
+      } else {
+        setError(d.error || 'An error occurred')
+        toast.error(d.error || 'An error occurred')
+      }
+    } catch {
+      setError('Failed to connect to the server')
+      toast.error('Failed to connect to the server')
+    }
     setLoading(false)
   }
 
@@ -144,6 +155,7 @@ export default function OrderForm({ service }) {
       price: finalPrice,
     })
     setAddedToCart(true)
+    toast.success('Added to cart')
     setTimeout(() => setAddedToCart(false), 2000)
   }
 

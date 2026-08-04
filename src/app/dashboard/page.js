@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
@@ -9,6 +10,28 @@ import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
 import OrderTimeline from '@/components/OrderTimeline'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
+import { celebrate } from '@/lib/celebrate'
+
+// Compares against the last-seen tier/referral count in localStorage so a
+// reward toast + confetti only fires the moment a milestone is newly crossed.
+function checkRewardMilestones(data) {
+  if (typeof window === 'undefined' || !data) return
+  const key = `milestones_${data.username || 'user'}`
+  const prev = JSON.parse(localStorage.getItem(key) || '{}')
+  const tierName = data.loyaltyTier?.name
+  const referralCount = data.referralCount || 0
+
+  if (prev.tierName && tierName && tierName !== prev.tierName) {
+    celebrate()
+    toast.success(`You've reached ${tierName} tier!`)
+  }
+  if (typeof prev.referralCount === 'number' && referralCount > prev.referralCount) {
+    celebrate()
+    toast.success('Referral bonus earned!')
+  }
+
+  localStorage.setItem(key, JSON.stringify({ tierName, referralCount }))
+}
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -74,7 +97,10 @@ function DashboardContent() {
       })
       if (!res) return
       const d = await res.json()
-      if (d.success) setProfile(d.data)
+      if (d.success) {
+        checkRewardMilestones(d.data)
+        setProfile(d.data)
+      }
     } catch {}
   }
 
@@ -385,6 +411,7 @@ function ReferralCard({ profile }) {
   function copyLink() {
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true)
+      toast.success('Referral link copied!')
       setTimeout(() => setCopied(false), 2000)
     })
   }

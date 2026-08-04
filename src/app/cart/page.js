@@ -2,12 +2,14 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import toast from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
+import { celebrate } from '@/lib/celebrate'
 
 export default function CartPage() {
   const router = useRouter()
@@ -53,9 +55,13 @@ export default function CartPage() {
     setCheckingOut(false)
 
     if (failed.length === 0) {
+      celebrate()
+      toast.success('Order placed!')
       router.push('/dashboard')
     } else {
-      setError(`Could not place order for: ${failed.join(', ')}. The rest were ordered successfully.`)
+      const msg = `Could not place order for: ${failed.join(', ')}. The rest were ordered successfully.`
+      setError(msg)
+      toast.error(msg)
     }
   }
 
@@ -123,7 +129,7 @@ export default function CartPage() {
                     <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                       {format(item.price)}
                     </div>
-                    <button onClick={() => removeItem(item.cartId)} style={{
+                    <button onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{
                       background: 'none', border: 'none', color: 'var(--text-dim)',
                       fontSize: '12px', cursor: 'pointer', padding: 0,
                       transition: 'color 0.15s',

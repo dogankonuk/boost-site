@@ -1,5 +1,6 @@
 import './globals.css'
 import { Montserrat, Inter } from 'next/font/google'
+import { Toaster } from 'react-hot-toast'
 import { CurrencyProvider } from '@/context/CurrencyContext'
 import { CartProvider } from '@/context/CartContext'
 
@@ -32,6 +33,19 @@ export default function RootLayout({ children }) {
             <div style={{ flex: 1 }}>
               {children}
             </div>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: 'var(--bg-card)',
+                  color: '#fff',
+                  border: '1px solid var(--border)',
+                  fontFamily: 'var(--font-inter)',
+                  fontSize: '13px',
+                },
+                success: { iconTheme: { primary: '#f5c518', secondary: '#0a0a0a' } },
+              }}
+            />
           </CartProvider>
         </CurrencyProvider>
       </body>

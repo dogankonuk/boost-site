@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
+import toast from 'react-hot-toast'
 
 export default function LoginPage() {
   return (
@@ -67,12 +68,15 @@ function LoginForm() {
       if (d.success) {
         localStorage.setItem('token', d.data.token)
         localStorage.setItem('username', d.data.username)
+        toast.success(tab === 'login' ? `Welcome back, ${d.data.username}!` : 'Account created!')
         router.push('/dashboard')
       } else {
         setError(d.error || 'An error occurred')
+        toast.error(d.error || 'An error occurred')
       }
     } catch {
       setError('Failed to connect to the server')
+      toast.error('Failed to connect to the server')
     }
 
     setLoading(false)
