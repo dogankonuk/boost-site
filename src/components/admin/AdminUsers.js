@@ -7,6 +7,7 @@ function money(n) {
 
 export default function AdminUsers({ secret }) {
   const [users, setUsers] = useState([])
+  const [viewerIsFounder, setViewerIsFounder] = useState(false)
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -21,7 +22,7 @@ export default function AdminUsers({ secret }) {
     try {
       const res = await fetch('/api/admin?type=users', { headers })
       const d = await res.json()
-      if (d.success) setUsers(d.data)
+      if (d.success) { setUsers(d.data); setViewerIsFounder(!!d.viewerIsFounder) }
     } catch {}
     setLoading(false)
   }
@@ -42,6 +43,32 @@ export default function AdminUsers({ secret }) {
       body: JSON.stringify({ type: 'user', id: user.id, data: { isContentCreator: !user.isContentCreator } }),
     })
     setMsg(user.isContentCreator ? `${user.username} icerik ureticiligi kaldirildi` : `${user.username} icerik ureticisi yapildi`)
+    fetchUsers()
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  async function toggleBooster(user) {
+    await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'user', id: user.id, data: { isBooster: !user.isBooster } }),
+    })
+    setMsg(user.isBooster ? `${user.username} booster'likten cikarildi` : `${user.username} booster yapildi`)
+    fetchUsers()
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  async function toggleAdmin(user) {
+    if (!window.confirm(user.isAdmin
+      ? `${user.username} kullanicisinin admin yetkisini kaldirmak istediginden emin misin?`
+      : `${user.username} kullanicisina admin yetkisi vermek istediginden emin misin? Bu kisi site genelinde tam yetkiye sahip olacak.`
+    )) return
+    const res = await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'user', id: user.id, data: { isAdmin: !user.isAdmin } }),
+    })
+    const d = await res.json()
+    if (!d.success) { setMsg(d.error || 'Hata olustu'); setTimeout(() => setMsg(''), 4000); return }
+    setMsg(user.isAdmin ? `${user.username} admin yetkisi kaldirildi` : `${user.username} admin yapildi`)
     fetchUsers()
     setTimeout(() => setMsg(''), 3000)
   }
@@ -118,6 +145,7 @@ export default function AdminUsers({ secret }) {
                 <tr key={u.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '10px 14px', fontSize: '13px', color: '#fff' }}>
                     {u.username}
+                    {u.isAdmin && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'rgba(255,102,102,0.1)', border: '1px solid #ff6666', color: '#ff6666' }}>Admin</span>}
                     {u.isBooster && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'rgba(245,197,24,0.1)', border: '1px solid var(--gold)', color: 'var(--gold)' }}>Booster</span>}
                     {u.isContentCreator && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: 'rgba(147,51,234,0.1)', border: '1px solid var(--violet)', color: 'var(--violet)' }}>İçerik Üreticisi</span>}
                     {!u.emailVerified && !u.oauthProvider && <span style={{ marginLeft: '6px', fontSize: '9px', padding: '1px 6px', borderRadius: '20px', background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44' }}>Doğrulanmadı</span>}
@@ -156,6 +184,26 @@ export default function AdminUsers({ secret }) {
                         }}>
                         {u.isContentCreator ? 'Yazarlığı Kaldır' : 'Yazar Yap'}
                       </button>
+                      <button
+                        onClick={() => toggleBooster(u)}
+                        style={{
+                          background: 'transparent', border: `1px solid ${u.isBooster ? 'var(--gold)' : 'var(--border)'}`,
+                          borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                          color: u.isBooster ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer',
+                        }}>
+                        {u.isBooster ? 'Booster\'likten Çıkar' : 'Booster Yap'}
+                      </button>
+                      {viewerIsFounder && (
+                        <button
+                          onClick={() => toggleAdmin(u)}
+                          style={{
+                            background: 'transparent', border: `1px solid ${u.isAdmin ? '#ff6666' : 'var(--border)'}`,
+                            borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                            color: u.isAdmin ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
+                          }}>
+                          {u.isAdmin ? 'Admin Yetkisini Kaldır' : 'Admin Yap'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

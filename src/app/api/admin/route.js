@@ -7,18 +7,25 @@ import { maybeAwardReferralBonus } from '@/lib/referral'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
+// Only these accounts may grant or revoke admin access from others. A regular
+// admin promoted later (even via this same panel) cannot mint new admins —
+// this caps the blast radius if a non-founder admin account is ever compromised.
+const FOUNDER_EMAILS = ['dogankonuk@gmail.com', 'mrtatessacan@gmail.com']
+
 // Re-checks isAdmin from the DB on every request (rather than trusting a JWT
 // claim) so revoking admin access takes effect immediately, not just after
-// the token expires.
+// the token expires. Returns the user record (so callers can check founder
+// status) or null if unauthorized.
 async function requireAdmin(request) {
   const auth = request.headers.get('authorization')
-  if (!auth || !auth.startsWith('Bearer ')) return false
+  if (!auth || !auth.startsWith('Bearer ')) return null
   try {
     const decoded = jwt.verify(auth.split(' ')[1], JWT_SECRET)
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } })
-    return !!(user && user.isAdmin && user.isActive)
+    if (!(user && user.isAdmin && user.isActive)) return null
+    return user
   } catch {
-    return false
+    return null
   }
 }
 
@@ -50,7 +57,8 @@ async function pingBoosterOnDiscord(order, booster) {
 }
 
 export async function GET(request) {
-  if (!(await requireAdmin(request))) {
+  const adminUser = await requireAdmin(request)
+  if (!adminUser) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 
@@ -199,7 +207,7 @@ export async function GET(request) {
       const users = await prisma.user.findMany({
         include: {
           orders: { select: { status: true, price: true } },
-          booster: { select: { id: true } },
+          booster: { select: { id: true, status: true } },
         },
         orderBy: { createdAt: 'desc' },
       })
@@ -207,12 +215,13 @@ export async function GET(request) {
         id: u.id, username: u.username, email: u.email, isActive: u.isActive,
         emailVerified: u.emailVerified, createdAt: u.createdAt,
         oauthProvider: u.oauthProvider,
-        isBooster: !!u.booster,
+        isBooster: !!(u.booster && u.booster.status === 'active'),
         isContentCreator: u.isContentCreator,
+        isAdmin: u.isAdmin,
         orderCount: u.orders.length,
         totalSpent: u.orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.price, 0),
       }))
-      return NextResponse.json({ success: true, data })
+      return NextResponse.json({ success: true, data, viewerIsFounder: FOUNDER_EMAILS.includes(adminUser.email) })
     }
 
     if (type === 'blogPosts') {
@@ -316,7 +325,8 @@ export async function POST(request) {
 }
 
 export async function PATCH(request) {
-  if (!(await requireAdmin(request))) {
+  const admin = await requireAdmin(request)
+  if (!admin) {
     return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
   }
 
@@ -436,12 +446,40 @@ export async function PATCH(request) {
       const updateData = {}
       if (data.isActive !== undefined) updateData.isActive = data.isActive
       if (data.isContentCreator !== undefined) updateData.isContentCreator = data.isContentCreator
-      const user = await prisma.user.update({
+      if (data.isAdmin !== undefined) {
+        if (!FOUNDER_EMAILS.includes(admin.email)) {
+          return NextResponse.json({ success: false, error: 'Only founder accounts can grant or revoke admin access' }, { status: 403 })
+        }
+        updateData.isAdmin = data.isAdmin
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await prisma.user.update({ where: { id: parseInt(id) }, data: updateData })
+      }
+
+      if (data.isBooster !== undefined) {
+        if (data.isBooster) {
+          await prisma.booster.upsert({
+            where: { userId: parseInt(id) },
+            create: { userId: parseInt(id), status: 'active' },
+            update: { status: 'active' },
+          })
+        } else {
+          await prisma.booster.updateMany({ where: { userId: parseInt(id) }, data: { status: 'inactive' } })
+        }
+      }
+
+      const user = await prisma.user.findUnique({
         where: { id: parseInt(id) },
-        data: updateData,
-        select: { id: true, username: true, isActive: true, isContentCreator: true },
+        select: {
+          id: true, username: true, isActive: true, isContentCreator: true, isAdmin: true,
+          booster: { select: { status: true } },
+        },
       })
-      return NextResponse.json({ success: true, data: user })
+      return NextResponse.json({
+        success: true,
+        data: { ...user, isBooster: !!(user.booster && user.booster.status === 'active') },
+      })
     }
 
     if (type === 'blogPost') {
