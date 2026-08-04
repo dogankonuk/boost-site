@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
@@ -271,6 +272,16 @@ function buildMonthlySpend(orders) {
   return months
 }
 
+function PointsTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
+      <div style={{ color: 'var(--text-dim)', marginBottom: '2px' }}>{label}</div>
+      <div style={{ color: 'var(--gold)', fontWeight: '700' }}>{payload[0].value.toLocaleString('en-US')} pts</div>
+    </div>
+  )
+}
+
 function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
@@ -278,7 +289,6 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
   const completedOrders = orders.filter(o => o.status === 'completed')
   const currentOrder = activeOrders[0]
   const monthlySpend = buildMonthlySpend(orders)
-  const maxMonthly = Math.max(1, ...monthlySpend.map(m => m.total))
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '—'
@@ -370,19 +380,18 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
       }}>
         <h3 className="h4" style={{ color: '#fff', marginBottom: '16px' }}>Points Earned — Last 6 Months</h3>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '110px' }}>
-          {monthlySpend.map(m => (
-            <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
-              <div title={`${pointsFromSpend(m.total).toLocaleString('en-US')} pts`} style={{
-                width: '100%', maxWidth: '36px', borderRadius: '4px 4px 0 0',
-                height: `${Math.max(3, (m.total / maxMonthly) * 82)}px`,
-                background: m.total > 0 ? 'var(--gold)' : 'var(--bg-elevated)',
-                border: m.total > 0 ? 'none' : '1px solid var(--border)',
-                transition: 'height 0.2s',
-              }} />
-              <span style={{ fontSize: '10px', color: 'var(--text-dim)' }}>{m.label}</span>
-            </div>
-          ))}
+        <div style={{ height: '140px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={monthlySpend.map(m => ({ label: m.label, points: pointsFromSpend(m.total) }))} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: 'var(--text-dim)', fontSize: 10 }} />
+              <Tooltip content={<PointsTooltip />} cursor={{ fill: 'rgba(245,197,24,0.08)' }} />
+              <Bar dataKey="points" radius={[4, 4, 0, 0]} maxBarSize={36}>
+                {monthlySpend.map(m => (
+                  <Cell key={m.key} fill={m.total > 0 ? 'var(--gold)' : 'var(--bg-elevated)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

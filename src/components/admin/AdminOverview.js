@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
 
 const STATUS_LABELS = {
   pending: 'Bekliyor',
@@ -19,6 +20,16 @@ const STATUS_COLORS = {
 
 function money(n) {
   return `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function RevenueTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null
+  return (
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
+      <div style={{ color: 'var(--text-dim)', marginBottom: '2px' }}>{new Date(label).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</div>
+      <div style={{ color: 'var(--gold)', fontWeight: '700' }}>{money(payload[0].value)}</div>
+    </div>
+  )
 }
 
 export default function AdminOverview({ secret, onNavigate }) {
@@ -44,7 +55,6 @@ export default function AdminOverview({ secret, onNavigate }) {
 
   const totalStatusOrders = Object.values(stats.statusCounts).reduce((a, b) => a + b, 0)
   const maxGameRevenue = Math.max(1, ...stats.gameBreakdown.map(g => g.revenue))
-  const maxDailyRevenue = Math.max(1, ...stats.revenueTrend.map(d => d.revenue))
   const needsAttention = stats.pendingApplications + stats.openIssues + stats.unratedCompleted
 
   return (
@@ -82,20 +92,24 @@ export default function AdminOverview({ secret, onNavigate }) {
         <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', marginBottom: '16px' }}>
           Son 14 Gün — Gelir Trendi
         </h3>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px', height: '100px' }}>
-          {stats.revenueTrend.map(d => (
-            <div key={d.date} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
-              <div title={`${d.date}: ${money(d.revenue)}`} style={{
-                width: '100%', borderRadius: '3px 3px 0 0',
-                height: `${Math.max(3, (d.revenue / maxDailyRevenue) * 78)}px`,
-                background: d.revenue > 0 ? 'var(--gold)' : 'var(--bg-elevated)',
-                border: d.revenue > 0 ? 'none' : '1px solid var(--border)',
-              }} />
-              <span style={{ fontSize: '9px', color: 'var(--text-dim)' }}>
-                {new Date(d.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'numeric' })}
-              </span>
-            </div>
-          ))}
+        <div style={{ height: '130px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={stats.revenueTrend} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+              <XAxis
+                dataKey="date"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: 'var(--text-dim)', fontSize: 9 }}
+                tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'numeric' })}
+              />
+              <Tooltip content={<RevenueTooltip />} cursor={{ fill: 'rgba(245,197,24,0.08)' }} />
+              <Bar dataKey="revenue" radius={[3, 3, 0, 0]} maxBarSize={28}>
+                {stats.revenueTrend.map(d => (
+                  <Cell key={d.date} fill={d.revenue > 0 ? 'var(--gold)' : 'var(--bg-elevated)'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
