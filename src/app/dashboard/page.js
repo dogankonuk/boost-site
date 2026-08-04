@@ -150,12 +150,12 @@ function DashboardContent() {
               ))}
             </div>
 
-            {/* Harcama */}
+            {/* Puan */}
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Total Spent</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loyalty Points</span>
                 <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                  {format(totalSpent)}
+                  {tier.points.toLocaleString('en-US')}
                 </span>
               </div>
             </div>
@@ -244,13 +244,10 @@ function buildMonthlySpend(orders) {
 }
 
 function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
-  const { format } = useCurrency()
-
   if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
 
   const activeOrders = orders.filter(o => ['pending', 'assigned', 'in_progress'].includes(o.status))
   const completedOrders = orders.filter(o => o.status === 'completed')
-  const totalSpent = orders.filter(o => o.status !== 'cancelled').reduce((sum, o) => sum + (o.price || 0), 0)
   const currentOrder = activeOrders[0]
   const monthlySpend = buildMonthlySpend(orders)
   const maxMonthly = Math.max(1, ...monthlySpend.map(m => m.total))
@@ -271,8 +268,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         <OverviewStat icon="📦" label="Total Orders" value={orders.length} />
         <OverviewStat icon="⚡" label="Active" value={activeOrders.length} />
         <OverviewStat icon="✅" label="Completed" value={completedOrders.length} />
-        <OverviewStat icon="💰" label="Total Spent" value={format(totalSpent)} accent />
-        <OverviewStat icon="🏆" label="Loyalty Points" value={tier.points.toLocaleString('en-US')} />
+        <OverviewStat icon="🏆" label="Loyalty Points" value={tier.points.toLocaleString('en-US')} accent />
         <OverviewStat icon="🗓️" label="Member Since" value={memberSince} small />
       </div>
 
@@ -338,11 +334,11 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
       }}>
-        <h3 className="h4" style={{ color: '#fff', marginBottom: '16px' }}>Spending — Last 6 Months</h3>
+        <h3 className="h4" style={{ color: '#fff', marginBottom: '16px' }}>Points Earned — Last 6 Months</h3>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', height: '110px' }}>
           {monthlySpend.map(m => (
             <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', height: '100%', justifyContent: 'flex-end' }}>
-              <div title={format(m.total)} style={{
+              <div title={`${pointsFromSpend(m.total).toLocaleString('en-US')} pts`} style={{
                 width: '100%', maxWidth: '36px', borderRadius: '4px 4px 0 0',
                 height: `${Math.max(3, (m.total / maxMonthly) * 82)}px`,
                 background: m.total > 0 ? 'var(--gold)' : 'var(--bg-elevated)',
