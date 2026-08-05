@@ -9,6 +9,13 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import ImageUpload from '@/components/ImageUpload'
 
+const PRICING_TYPES = [
+  { key: 'fixed', label: 'Sabit', hint: 'Tek bir sabit fiyat — miktar veya seviye seçimi yok.' },
+  { key: 'quantity', label: 'Miktar', hint: 'Müşteri bir miktar girer (ör. 500 Divine Orb), birim fiyatla çarpılır. Toplu alımda indirim tanımlanabilir.' },
+  { key: 'range', label: 'Slider', hint: 'Müşteri bir aralık seçer (ör. Level 20 → 60). Her seviye adımı için ayrı fiyat girilebilir.' },
+  { key: 'options', label: 'Seçenek', hint: 'Müşteri hazır seçeneklerden birini seçer (ör. Bronze/Silver/Gold paketleri), her seçeneğin kendi fiyatı vardır.' },
+]
+
 // Parses "60:2\n70:3" style admin input into [{a:60,b:2},{a:70,b:3}], sorted by a.
 function parseTierLines(text) {
   if (!text) return []
@@ -57,7 +64,7 @@ export default function AdminGames({ secret }) {
   const [editForm, setEditForm] = useState({})
   const [gameForm, setGameForm] = useState({ name: '', slug: '', categories: [], sortOrder: 0 })
   const [serviceForm, setServiceForm] = useState({
-    name: '', slug: '', basePrice: '', priceType: 'fixed',
+    name: '', slug: '', basePrice: '',
     description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '',
     pricingType: 'fixed',
     pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
@@ -182,7 +189,7 @@ export default function AdminGames({ secret }) {
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', priceType: 'fixed', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
+      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -445,18 +452,10 @@ function SortableGameRow({
         {showAddService === game.id && (
           <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
             <h4 style={{ color: 'var(--gold)', fontSize: '13px', marginBottom: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>{game.name} — Yeni Hizmet</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
               <Field label="Hizmet Adı *" value={serviceForm.name} onChange={v => setServiceForm(f => ({ ...f, name: v }))} />
               <Field label="Slug *" value={serviceForm.slug} onChange={v => setServiceForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s/g, '-') }))} />
               <Field label="Fiyat ($) *" type="number" value={serviceForm.basePrice} onChange={v => setServiceForm(f => ({ ...f, basePrice: v }))} />
-              <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Fiyat Tipi</label>
-                <select value={serviceForm.priceType} onChange={e => setServiceForm(f => ({ ...f, priceType: e.target.value }))}
-                  style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }}>
-                  <option value="fixed">Sabit</option>
-                  <option value="variable">Değişken</option>
-                </select>
-              </div>
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Kategori</label>
                 <select value={serviceForm.serviceCategory} onChange={e => setServiceForm(f => ({ ...f, serviceCategory: e.target.value }))}
@@ -478,10 +477,13 @@ function SortableGameRow({
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Fiyatlandırma Tipi</label>
               <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
-                {[{ key: 'fixed', label: 'Sabit' }, { key: 'quantity', label: 'Miktar' }, { key: 'range', label: 'Slider' }, { key: 'options', label: 'Seçenek' }].map(t => (
+                {PRICING_TYPES.map(t => (
                   <button key={t.key} type="button" onClick={() => setServiceForm(f => ({ ...f, pricingType: t.key }))}
                     style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid', background: serviceForm.pricingType === t.key ? 'var(--gold)' : 'transparent', color: serviceForm.pricingType === t.key ? '#0a0a0a' : 'var(--text-muted)', borderColor: serviceForm.pricingType === t.key ? 'var(--gold)' : 'var(--border)' }}>{t.label}</button>
                 ))}
+              </div>
+              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '10px' }}>
+                {PRICING_TYPES.find(t => t.key === serviceForm.pricingType)?.hint}
               </div>
               {serviceForm.pricingType === 'quantity' && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', padding: '12px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -621,10 +623,13 @@ function SortableGameRow({
                             <div style={{ marginBottom: '10px' }}>
                               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Fiyatlandırma Tipi</label>
                               <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-                                {[{ key: 'fixed', label: 'Sabit' }, { key: 'quantity', label: 'Miktar' }, { key: 'range', label: 'Slider' }, { key: 'options', label: 'Seçenek' }].map(t => (
+                                {PRICING_TYPES.map(t => (
                                   <button key={t.key} type="button" onClick={() => setEditForm(f => ({ ...f, pricingType: t.key }))}
                                     style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid', background: editForm.pricingType === t.key ? 'var(--gold)' : 'transparent', color: editForm.pricingType === t.key ? '#0a0a0a' : 'var(--text-muted)', borderColor: editForm.pricingType === t.key ? 'var(--gold)' : 'var(--border)' }}>{t.label}</button>
                                 ))}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '8px' }}>
+                                {PRICING_TYPES.find(t => t.key === editForm.pricingType)?.hint}
                               </div>
                               {editForm.pricingType === 'quantity' && (
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
@@ -853,6 +858,8 @@ function PerLevelPriceEditor({ min, max, unitName, basePrice, tiers, onChange })
 
   const [prices, setPrices] = useState(() => expandTiersToPerLevel(tiers, minN, maxN, baseN))
   const [fillValue, setFillValue] = useState('')
+  const [formulaStart, setFormulaStart] = useState('')
+  const [formulaStep, setFormulaStep] = useState('')
 
   function updatePrice(i, value) {
     const next = [...prices]
@@ -869,13 +876,29 @@ function PerLevelPriceEditor({ min, max, unitName, basePrice, tiers, onChange })
     onChange(pricesToTiers(next, minN))
   }
 
+  function applyFormula() {
+    const start = parseFloat(formulaStart)
+    const step = parseFloat(formulaStep)
+    if (isNaN(start) || isNaN(step)) return
+    const next = prices.map((_, i) => Math.round((start + i * step) * 100) / 100)
+    setPrices(next)
+    onChange(pricesToTiers(next, minN))
+  }
+
   return (
     <div style={{ gridColumn: '1 / -1' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
         <label style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          Level bazında fiyat (opsiyonel — her {unitName || 'seviye'} için ayrı fiyat)
+          Level bazında fiyat (opsiyonel — her {unitName || 'seviye'} için ayrı fiyat, özel istekte tek tek değiştirilebilir)
         </label>
-        <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <input type="number" placeholder="Başlangıç $" value={formulaStart} onChange={e => setFormulaStart(e.target.value)}
+            style={{ width: '90px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', color: '#fff', fontSize: '11px', outline: 'none' }} />
+          <input type="number" placeholder="Seviye başı artış" value={formulaStep} onChange={e => setFormulaStep(e.target.value)}
+            style={{ width: '110px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', color: '#fff', fontSize: '11px', outline: 'none' }} />
+          <button type="button" onClick={applyFormula} style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)' }}>
+            Kademeli Doldur
+          </button>
           <input type="number" placeholder="Tümüne uygula" value={fillValue} onChange={e => setFillValue(e.target.value)}
             style={{ width: '110px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '5px 8px', color: '#fff', fontSize: '11px', outline: 'none' }} />
           <button type="button" onClick={fillAll} style={{ padding: '5px 10px', borderRadius: '6px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)' }}>
