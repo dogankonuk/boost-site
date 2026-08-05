@@ -1,15 +1,17 @@
 import { prisma } from '@/lib/prisma'
+import { getTrustStats } from '@/lib/trustStats'
 import Navbar from '@/components/Navbar'
 import HeroSection from '@/components/HeroSection'
 import GamesSlider from '@/components/GamesSlider'
 import PopularServicesStrip from '@/components/PopularServicesStrip'
 import FeaturesSection from '@/components/FeaturesSection'
 import TrustSection from '@/components/TrustSection'
+import TestimonialsSection from '@/components/TestimonialsSection'
 import LatestBlogSection from '@/components/LatestBlogSection'
 import Footer from '@/components/Footer'
 
 export default async function HomePage() {
-  const [latestPosts, hotServices] = await Promise.all([
+  const [latestPosts, hotServices, trustStats] = await Promise.all([
     prisma.blogPost.findMany({
       where: { isPublished: true, publishedAt: { lte: new Date() } },
       include: {
@@ -24,6 +26,7 @@ export default async function HomePage() {
       orderBy: { createdAt: 'desc' },
       take: 10,
     }),
+    getTrustStats(),
   ])
 
   return (
@@ -34,7 +37,8 @@ export default async function HomePage() {
       <PopularServicesStrip services={JSON.parse(JSON.stringify(hotServices))} />
       <FeaturesSection />
       <LatestBlogSection posts={JSON.parse(JSON.stringify(latestPosts))} />
-      <TrustSection />
+      <TestimonialsSection />
+      <TrustSection stats={trustStats} />
       <Footer />
     </main>
   )

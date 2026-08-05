@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import OrderForm from '@/components/OrderForm'
+import { getTrustStats } from '@/lib/trustStats'
 
 const getService = cache(async (serviceId) => {
   return prisma.service.findUnique({
@@ -34,7 +35,7 @@ export async function generateMetadata({ params }) {
 
 export default async function OrderPage({ params }) {
   const { serviceId } = await params
-  const service = await getService(serviceId)
+  const [service, trustStats] = await Promise.all([getService(serviceId), getTrustStats()])
 
   if (!service) return notFound()
 
@@ -236,12 +237,18 @@ export default async function OrderPage({ params }) {
               </div>
             </div>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 4px',
-            }}>
-              <span style={{ color: 'var(--gold)', fontSize: '12px', letterSpacing: '2px' }}>★★★★★</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>4.9 / 5 · Trusted by 12,000+ players worldwide</span>
-            </div>
+            {trustStats.avgRating && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 4px',
+              }}>
+                <span style={{ color: 'var(--gold)', fontSize: '12px', letterSpacing: '2px' }}>
+                  {'★'.repeat(Math.round(trustStats.avgRating))}{'☆'.repeat(5 - Math.round(trustStats.avgRating))}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                  {trustStats.avgRating} / 5 · {trustStats.completedCount}+ orders completed
+                </span>
+              </div>
+            )}
           </div>
 
           <div style={{ position: 'sticky', top: '80px' }}>
