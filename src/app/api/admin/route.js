@@ -584,13 +584,15 @@ export async function PATCH(request) {
       }
 
       try {
+        const appLabel = application.type === 'booster' ? 'Booster application' : 'Content creator application'
+        const reviewNote = data.reviewNote?.trim()
         await prisma.notification.create({
           data: {
             userId: application.userId,
             type: 'application_status',
             title: decision === 'approved' ? 'Your application was approved! 🎉' : 'Your application was not approved',
-            body: application.type === 'booster' ? 'Booster application' : 'Content creator application',
-            link: decision === 'approved' ? (application.type === 'booster' ? '/booster' : '/creator') : '/apply',
+            body: decision === 'approved' || !reviewNote ? appLabel : `${appLabel}: ${reviewNote}`,
+            link: decision === 'approved' ? (application.type === 'booster' ? '/booster' : '/creator') : `/apply/${application.type === 'booster' ? 'booster' : 'content-creator'}`,
           },
         })
       } catch (err) {
