@@ -103,7 +103,7 @@ export async function POST(request) {
         recipientUserId,
         senderUsername: message.sender.username,
         orderNumber: order.orderNumber,
-        link: isCustomer ? '/booster' : '/dashboard',
+        link: isCustomer ? `/booster?orderId=${orderId}` : `/dashboard?tab=orders&orderId=${orderId}`,
       })
     }
 

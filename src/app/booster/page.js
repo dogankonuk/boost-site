@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
@@ -35,7 +35,19 @@ function timeAgo(dateStr) {
 }
 
 export default function BoosterPage() {
+  return (
+    <Suspense fallback={null}>
+      <BoosterContent />
+    </Suspense>
+  )
+}
+
+function BoosterContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const highlightOrderId = parseInt(searchParams.get('orderId')) || null
+  const [activeHighlight, setActiveHighlight] = useState(highlightOrderId || null)
+  const scrolledRef = useRef(false)
   const { format } = useCurrency()
   const [checkedAuth, setCheckedAuth] = useState(false)
   const [booster, setBooster] = useState(undefined) // undefined = loading, null = confirmed not a booster
@@ -104,6 +116,21 @@ export default function BoosterPage() {
       fetchMine()
     }
   }, [booster])
+
+  useEffect(() => {
+    if (!highlightOrderId || scrolledRef.current) return
+    if (mine.some(o => o.id === highlightOrderId)) setTab('mine')
+  }, [highlightOrderId, mine])
+
+  useEffect(() => {
+    if (!highlightOrderId || scrolledRef.current || tab !== 'mine') return
+    const el = document.getElementById(`order-${highlightOrderId}`)
+    if (!el) return
+    scrolledRef.current = true
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = setTimeout(() => setActiveHighlight(null), 2500)
+    return () => clearTimeout(timer)
+  }, [highlightOrderId, tab, mine])
 
   async function fetchPool() {
     setLoadingOrders(true)
@@ -386,7 +413,7 @@ export default function BoosterPage() {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {activeMine.map(order => (
-                      <OrderCard key={order.id} order={order} format={format} showStatus showMessages>
+                      <OrderCard key={order.id} order={order} format={format} showStatus showMessages highlighted={activeHighlight === order.id}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           {order.status === 'assigned' && (
                             <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
@@ -559,7 +586,7 @@ function EmptyState({ icon, text, compact, children }) {
   )
 }
 
-function OrderCard({ order, format, showStatus, muted, showMessages, children }) {
+function OrderCard({ order, format, showStatus, muted, showMessages, highlighted, children }) {
   const details = order.details || {}
   const selection = details.selection || {}
   const options = order.service?.options
@@ -571,14 +598,16 @@ function OrderCard({ order, format, showStatus, muted, showMessages, children })
   else if (options?.type === 'options') selectionText = selection.choice
 
   return (
-    <div style={{
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
+    <div id={`order-${order.id}`} style={{
+      background: 'var(--bg-card)',
+      border: highlighted ? '1px solid var(--gold)' : '1px solid var(--border)',
+      boxShadow: highlighted ? '0 0 0 3px rgba(245,197,24,0.25)' : 'none',
       borderRadius: '12px', padding: '16px 20px',
       display: 'flex', flexDirection: 'column', gap: '4px',
-      opacity: muted ? 0.65 : 1, transition: 'border-color 0.15s, opacity 0.15s',
+      opacity: muted ? 0.65 : 1, transition: 'border-color 0.15s, opacity 0.15s, box-shadow 0.5s ease',
     }}
       onMouseEnter={e => { if (!muted) e.currentTarget.style.borderColor = 'var(--border-hover)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = highlighted ? 'var(--gold)' : 'var(--border)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
         {order.service?.game?.coverImage ? (

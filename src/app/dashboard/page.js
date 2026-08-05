@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -74,6 +74,7 @@ function DashboardContent() {
   const [tab, setTab] = useState(
     ['account', 'orders', 'active'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview'
   )
+  const highlightOrderId = parseInt(searchParams.get('orderId')) || null
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -244,10 +245,10 @@ function DashboardContent() {
             <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} tier={tier} profile={profile} />
           )}
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
@@ -510,9 +511,22 @@ function OverviewStat({ icon, label, value, accent, small, countTo }) {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported, highlightOrderId }) {
   const { format } = useCurrency()
   const [listRef] = useAutoAnimate()
+  const [activeHighlight, setActiveHighlight] = useState(highlightOrderId || null)
+  const scrolledRef = useRef(false)
+
+  useEffect(() => {
+    if (!highlightOrderId || loading || scrolledRef.current) return
+    const el = document.getElementById(`order-${highlightOrderId}`)
+    if (!el) return
+    scrolledRef.current = true
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const timer = setTimeout(() => setActiveHighlight(null), 2500)
+    return () => clearTimeout(timer)
+  }, [highlightOrderId, loading, orders])
+
   if (loading) return <DashboardSkeleton />
 
   return (
@@ -539,10 +553,14 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
             const details = order.details || {}
             const selection = details.selection || {}
             const options = order.service?.options
+            const isHighlighted = activeHighlight === order.id
 
             return (
-              <div key={order.id} style={{
-                background: 'var(--bg-card)', border: '1px solid var(--border)',
+              <div key={order.id} id={`order-${order.id}`} style={{
+                background: 'var(--bg-card)',
+                border: isHighlighted ? '1px solid var(--gold)' : '1px solid var(--border)',
+                boxShadow: isHighlighted ? '0 0 0 3px rgba(245,197,24,0.25)' : 'none',
+                transition: 'box-shadow 0.5s ease, border-color 0.5s ease',
                 borderRadius: '12px', padding: '16px 20px',
                 display: 'flex', flexDirection: 'column', gap: '12px',
               }}>
