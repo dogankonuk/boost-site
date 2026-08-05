@@ -1,4 +1,5 @@
 import StaticPage, { Section } from '@/components/StaticPage'
+import JsonLd from '@/components/JsonLd'
 
 export const metadata = {
   title: 'Frequently Asked Questions',
@@ -35,12 +36,23 @@ const FAQS = [
 
 export default function FAQPage() {
   return (
-    <StaticPage title="Frequently Asked Questions">
-      {FAQS.map((item, i) => (
-        <Section key={i} title={item.q}>
-          <p>{item.a}</p>
-        </Section>
-      ))}
-    </StaticPage>
+    <>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: FAQS.map(item => ({
+          '@type': 'Question',
+          name: item.q,
+          acceptedAnswer: { '@type': 'Answer', text: item.a },
+        })),
+      }} />
+      <StaticPage title="Frequently Asked Questions">
+        {FAQS.map((item, i) => (
+          <Section key={i} title={item.q}>
+            <p>{item.a}</p>
+          </Section>
+        ))}
+      </StaticPage>
+    </>
   )
 }

@@ -8,6 +8,9 @@ import Container from '@/components/Container'
 import { markdownToHtml } from '@/lib/markdown'
 import ViewTracker from '@/components/ViewTracker'
 import { BlogCard } from '../page'
+import JsonLd from '@/components/JsonLd'
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 const getPost = cache(async (slug) => {
   return prisma.blogPost.findUnique({
@@ -67,6 +70,31 @@ export default async function BlogPostPage({ params }) {
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'BlogPosting',
+            headline: post.title,
+            description: post.excerpt || post.title,
+            image: post.coverImage ? `${SITE_URL}${post.coverImage}` : undefined,
+            author: { '@type': 'Person', name: post.author.displayName || post.author.username },
+            publisher: { '@type': 'Organization', name: 'ShadowBoosting.co' },
+            datePublished: post.publishedAt,
+            dateModified: post.updatedAt,
+            url: `${SITE_URL}/blog/${post.slug}`,
+            mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/blog/${post.slug}` },
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+              { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+              { '@type': 'ListItem', position: 3, name: post.title, item: `${SITE_URL}/blog/${post.slug}` },
+            ],
+          },
+        ],
+      }} />
       <Navbar />
       <ViewTracker slug={post.slug} />
 

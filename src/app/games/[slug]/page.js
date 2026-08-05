@@ -5,6 +5,9 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import GameServices from '@/components/GameServices'
+import JsonLd from '@/components/JsonLd'
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 const getGame = cache(async (slug) => {
   return prisma.game.findUnique({
@@ -46,6 +49,15 @@ export default async function GamePage({ params }) {
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+          { '@type': 'ListItem', position: 2, name: 'Games', item: `${SITE_URL}/games` },
+          { '@type': 'ListItem', position: 3, name: game.name, item: `${SITE_URL}/games/${game.slug}` },
+        ],
+      }} />
       <Navbar />
 
       {game.bannerImage && (

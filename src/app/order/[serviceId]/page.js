@@ -6,6 +6,9 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import OrderForm from '@/components/OrderForm'
 import { getTrustStats } from '@/lib/trustStats'
+import JsonLd from '@/components/JsonLd'
+
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
 const getService = cache(async (serviceId) => {
   return prisma.service.findUnique({
@@ -42,6 +45,34 @@ export default async function OrderPage({ params }) {
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <JsonLd data={{
+        '@context': 'https://schema.org',
+        '@graph': [
+          {
+            '@type': 'Product',
+            name: service.name,
+            description: service.description || `${service.name} for ${service.game?.name}. Safe, fast, and guaranteed delivery.`,
+            image: service.imageUrl || service.game?.bannerImage || undefined,
+            brand: { '@type': 'Brand', name: 'ShadowBoosting.co' },
+            offers: {
+              '@type': 'Offer',
+              url: `${SITE_URL}/order/${service.id}`,
+              priceCurrency: 'USD',
+              price: service.basePrice,
+              availability: 'https://schema.org/InStock',
+              seller: { '@type': 'Organization', name: 'ShadowBoosting.co' },
+            },
+          },
+          {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+              { '@type': 'ListItem', position: 2, name: service.game?.name, item: `${SITE_URL}/games/${service.game?.slug}` },
+              { '@type': 'ListItem', position: 3, name: service.name, item: `${SITE_URL}/order/${service.id}` },
+            ],
+          },
+        ],
+      }} />
       <Navbar />
 
       <div style={{

@@ -8,6 +8,7 @@ import { SkeletonTheme } from 'react-loading-skeleton'
 import { CurrencyProvider } from '@/context/CurrencyContext'
 import { CartProvider } from '@/context/CartContext'
 import RouteProgress from '@/components/RouteProgress'
+import JsonLd from '@/components/JsonLd'
 
 const montserrat = Chakra_Petch({
   subsets: ['latin'],
@@ -49,6 +50,22 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        <JsonLd data={{
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'Organization',
+              name: 'ShadowBoosting.co',
+              url: SITE_URL,
+              description: 'Professional game boosting services. Safe, fast, guaranteed.',
+            },
+            {
+              '@type': 'WebSite',
+              url: SITE_URL,
+              name: 'ShadowBoosting.co',
+            },
+          ],
+        }} />
         <Suspense fallback={null}>
           <RouteProgress />
         </Suspense>
