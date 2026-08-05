@@ -693,16 +693,16 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
       }} />
       <div className="shine-border" style={{
         position: 'fixed', top: '64px', left: '50%', transform: 'translateX(-50%)', zIndex: 200,
-        width: 'min(1240px, 94vw)',
+        width: 'min(1480px, 96vw)',
         background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none',
-        borderRadius: '0 0 20px 20px',
+        borderRadius: '0 0 22px 22px',
         boxShadow: '0 24px 60px rgba(0,0,0,0.55)',
-        maxHeight: 'min(76vh, 620px)',
+        maxHeight: 'min(88vh, 780px)',
         display: 'flex', flexDirection: 'column',
       }}>
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-          padding: '10px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0,
+          padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0,
         }}>
           <button onClick={onClose} aria-label="Close" style={{
             background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)',
@@ -718,8 +718,8 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           {/* Left — Popular Games / Other Games */}
           <div className="themed-scrollbar" style={{
-            width: '270px', flexShrink: 0, borderRight: '1px solid var(--border)',
-            padding: '20px', overflowY: 'auto',
+            width: '320px', flexShrink: 0, borderRight: '1px solid var(--border)',
+            padding: '26px 24px', overflowY: 'auto',
           }}>
             <input
               value={gamesSearch}
@@ -727,8 +727,8 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
               placeholder="Search game..."
               style={{
                 width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px',
-                fontFamily: 'var(--font-inter)', outline: 'none', marginBottom: '16px',
+                borderRadius: '9px', padding: '11px 14px', color: '#fff', fontSize: '14px',
+                fontFamily: 'var(--font-inter)', outline: 'none', marginBottom: '20px',
               }}
             />
 
@@ -744,7 +744,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                 )}
                 {otherGames.length > 0 && (
                   <>
-                    <h4 style={{ ...sideLabelStyle, marginTop: popularGames.length > 0 ? '18px' : 0 }}>Other Games</h4>
+                    <h4 style={{ ...sideLabelStyle, marginTop: popularGames.length > 0 ? '22px' : 0 }}>Other Games</h4>
                     <GameListColumn games={otherGames} selectedGame={selectedGame} setSelectedGameSlug={setSelectedGameSlug} />
                   </>
                 )}
@@ -752,7 +752,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
             )}
 
             <Link href="/games" onClick={onClose} style={{
-              display: 'block', marginTop: '16px', fontSize: '12px', color: 'var(--gold)',
+              display: 'block', marginTop: '20px', fontSize: '13px', color: 'var(--gold)',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600', textDecoration: 'none',
             }}>
               View All Games →
@@ -760,38 +760,38 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
           </div>
 
           {/* Middle — service categories */}
-          <div className="themed-scrollbar" style={{ flex: 1, minWidth: 0, padding: '24px', overflowY: 'auto' }}>
+          <div className="themed-scrollbar" style={{ flex: 1, minWidth: 0, padding: '32px', overflowY: 'auto' }}>
             {selectedGame ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
                   <div style={{
-                    width: '40px', height: '40px', borderRadius: '9px', flexShrink: 0,
+                    width: '60px', height: '60px', borderRadius: '14px', flexShrink: 0,
                     background: 'var(--bg-elevated)',
                     backgroundImage: selectedGame.coverImage ? `url(${selectedGame.coverImage})` : 'none',
                     backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
                   }} />
-                  <h3 style={{ fontSize: '19px', fontFamily: 'var(--font-montserrat)', fontWeight: '700', color: '#fff', margin: 0 }}>
+                  <h3 style={{ fontSize: '26px', fontFamily: 'var(--font-montserrat)', fontWeight: '700', color: '#fff', margin: 0 }}>
                     {selectedGame.name}
                   </h3>
                 </div>
 
                 {(selectedGame.services?.length || 0) === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
                     No services listed yet for this game — check back soon.
                   </div>
                 ) : (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: '26px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '36px' }}>
                     {Object.entries(groupServices(selectedGame.services)).map(([category, services]) => (
                       <div key={category}>
                         <h4 style={{
-                          fontSize: '12px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)',
+                          fontSize: '13px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)',
                           fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em',
-                          margin: '0 0 12px',
+                          margin: '0 0 14px',
                         }}>{category}</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
                           {services.map(s => (
                             <Link key={s.id} href={`/order/${s.id}`} onClick={onClose} style={{
-                              fontSize: '14px', color: 'var(--text-muted)', textDecoration: 'none',
+                              fontSize: '15px', color: 'var(--text-muted)', textDecoration: 'none',
                               transition: 'color 0.15s',
                             }}
                               onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
@@ -813,18 +813,18 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
 
           {/* Right — Products of the Day for the selected game */}
           <div className="themed-scrollbar" style={{
-            width: '320px', flexShrink: 0, borderLeft: '1px solid var(--border)',
-            padding: '20px', overflowY: 'auto',
+            width: '380px', flexShrink: 0, borderLeft: '1px solid var(--border)',
+            padding: '26px 24px', overflowY: 'auto',
           }}>
             <h4 style={sideLabelStyle}>🔥 Products of the Day</h4>
             {productsOfTheDay.length === 0 ? (
               <div style={{ color: 'var(--text-dim)', fontSize: '12px' }}>No services listed yet for this game.</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
                 {productsOfTheDay.map(s => (
                   <Link key={s.id} href={`/order/${s.id}`} onClick={onClose} style={{ textDecoration: 'none' }}>
                     <div style={{
-                      borderRadius: '12px', overflow: 'hidden',
+                      borderRadius: '14px', overflow: 'hidden',
                       background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                       transition: 'border-color 0.15s',
                     }}
@@ -832,28 +832,28 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
                     >
                       <div style={{
-                        height: '70px', position: 'relative',
+                        height: '110px', position: 'relative',
                         background: (s.imageUrl || selectedGame.coverImage)
                           ? `url(${s.imageUrl || selectedGame.coverImage}) center/cover`
                           : 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(147,51,234,0.15))',
                       }}>
                         {s.isHot && (
                           <span style={{
-                            position: 'absolute', top: '6px', left: '6px',
-                            fontSize: '8px', fontWeight: '800', padding: '2px 7px', borderRadius: '20px',
+                            position: 'absolute', top: '8px', left: '8px',
+                            fontSize: '9px', fontWeight: '800', padding: '3px 9px', borderRadius: '20px',
                             background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
                             fontFamily: 'var(--font-montserrat)',
                           }}>HIT</span>
                         )}
                       </div>
-                      <div style={{ padding: '8px 10px' }}>
+                      <div style={{ padding: '12px 14px' }}>
                         <div style={{
-                          fontSize: '11px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)',
-                          lineHeight: '1.3', marginBottom: '4px',
+                          fontSize: '13px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)',
+                          lineHeight: '1.3', marginBottom: '6px',
                           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                         }}>{s.name}</div>
-                        <div style={{ fontSize: '9px', color: 'var(--text-dim)' }}>from</div>
-                        <div style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>
+                        <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>from</div>
+                        <div style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>
                           {format(s.basePrice)}
                         </div>
                       </div>
@@ -870,20 +870,20 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
 }
 
 const sideLabelStyle = {
-  fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-montserrat)',
+  fontSize: '12px', color: 'var(--text-dim)', fontFamily: 'var(--font-montserrat)',
   fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.06em',
-  margin: '0 0 8px',
+  margin: '0 0 12px',
 }
 
 function GameListColumn({ games, selectedGame, setSelectedGameSlug }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '4px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginBottom: '6px' }}>
       {games.map(g => {
         const active = selectedGame?.slug === g.slug
         return (
           <button key={g.id} onClick={() => setSelectedGameSlug(g.slug)} style={{
-            display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left',
-            padding: '8px 10px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
+            padding: '9px 10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
             background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
             transition: 'background 0.15s',
           }}
@@ -891,18 +891,18 @@ function GameListColumn({ games, selectedGame, setSelectedGameSlug }) {
             onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
           >
             <div style={{
-              width: '32px', height: '32px', borderRadius: '7px', flexShrink: 0,
+              width: '44px', height: '44px', borderRadius: '10px', flexShrink: 0,
               background: 'var(--bg-elevated)',
               backgroundImage: g.coverImage ? `url(${g.coverImage})` : 'none',
               backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
             }} />
             <span style={{
-              flex: 1, minWidth: 0, fontSize: '13px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+              flex: 1, minWidth: 0, fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
               color: active ? 'var(--gold)' : '#fff',
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
             }}>{g.name}</span>
             {active && (
-              <svg width="12" height="12" fill="none" stroke="var(--gold)" strokeWidth="2.5" viewBox="0 0 24 24">
+              <svg width="14" height="14" fill="none" stroke="var(--gold)" strokeWidth="2.5" viewBox="0 0 24 24">
                 <path d="M9 6l6 6-6 6" />
               </svg>
             )}
