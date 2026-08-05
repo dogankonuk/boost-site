@@ -52,7 +52,7 @@ export async function POST(request) {
       include: { booster: true },
     })
 
-    if (type === 'booster' && user.booster) {
+    if (type === 'booster' && user.booster?.status === 'active') {
       return NextResponse.json({ success: false, error: 'You are already a booster' }, { status: 400 })
     }
     if (type === 'content_creator' && user.isContentCreator) {

@@ -54,7 +54,7 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
         const boosterRes = await authFetch('/api/booster?type=me')
         if (boosterRes) {
           const bd = await boosterRes.json()
-          if (bd.success && bd.data) setAlreadyHasRole(true)
+          if (bd.success && bd.data?.status === 'active') setAlreadyHasRole(true)
         }
       }
     } catch {}
