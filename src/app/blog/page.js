@@ -9,6 +9,7 @@ export const metadata = {
   title: 'Blog',
   description: 'Guides, updates, and playthroughs from the ShadowBoosting team and content creators.',
   alternates: {
+    canonical: '/blog',
     types: { 'application/rss+xml': '/blog/rss.xml' },
   },
 }

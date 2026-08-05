@@ -21,12 +21,28 @@ const inter = Plus_Jakarta_Sans({
   weight: ['400', '500', '600', '700'],
 })
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+
 export const metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'ShadowBoosting.co — Forge Your Power in the Shadows',
     template: '%s | ShadowBoosting.co',
   },
   description: 'Professional game boosting services. Safe, fast, guaranteed.',
+  alternates: { canonical: '/' },
+  openGraph: {
+    title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
+    description: 'Professional game boosting services. Safe, fast, guaranteed.',
+    url: SITE_URL,
+    siteName: 'ShadowBoosting.co',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
+    description: 'Professional game boosting services. Safe, fast, guaranteed.',
+  },
 }
 
 export default function RootLayout({ children }) {

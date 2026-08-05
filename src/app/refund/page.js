@@ -3,6 +3,7 @@ import StaticPage, { Section } from '@/components/StaticPage'
 export const metadata = {
   title: 'Refund Policy',
   description: 'Learn when and how you can request a refund for an order on ShadowBoosting.',
+  alternates: { canonical: '/refund' },
 }
 
 export default function RefundPolicyPage() {

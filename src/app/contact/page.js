@@ -3,6 +3,7 @@ import StaticPage, { Section } from '@/components/StaticPage'
 export const metadata = {
   title: 'Contact Us',
   description: 'Have a question about an order or your account? Get in touch with our support team.',
+  alternates: { canonical: '/contact' },
 }
 
 export default function ContactPage() {

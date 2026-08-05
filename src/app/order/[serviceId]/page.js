@@ -25,6 +25,7 @@ export async function generateMetadata({ params }) {
   return {
     title: `${service.name} — ${service.game?.name}`,
     description,
+    alternates: { canonical: `/order/${service.id}` },
     openGraph: {
       title: `${service.name} — ${service.game?.name} | ShadowBoosting.co`,
       description,

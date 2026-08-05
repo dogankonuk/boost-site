@@ -3,6 +3,7 @@ import StaticPage, { Section } from '@/components/StaticPage'
 export const metadata = {
   title: 'Privacy Policy',
   description: 'How ShadowBoosting collects, uses, and protects your personal information.',
+  alternates: { canonical: '/privacy' },
 }
 
 export default function PrivacyPage() {

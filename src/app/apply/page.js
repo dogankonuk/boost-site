@@ -7,6 +7,7 @@ import PageHeader from '@/components/PageHeader'
 export const metadata = {
   title: 'Work with us',
   description: 'Apply to become a booster or content creator at ShadowBoosting.',
+  alternates: { canonical: '/apply' },
 }
 
 const ROLES = [

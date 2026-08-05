@@ -8,6 +8,7 @@ import PageHeader from '@/components/PageHeader'
 export const metadata = {
   title: 'All Games',
   description: 'Browse all supported games and find professional boosting services. Safe, fast, and guaranteed delivery.',
+  alternates: { canonical: '/games' },
 }
 
 export default async function GamesPage() {
