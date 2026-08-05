@@ -693,11 +693,11 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
       }} />
       <div className="shine-border" style={{
         position: 'fixed', top: '64px', left: '50%', transform: 'translateX(-50%)', zIndex: 200,
-        width: 'min(1480px, 96vw)',
+        width: 'min(1720px, 92vw)',
         background: 'var(--bg-card)', border: '1px solid var(--border)', borderTop: 'none',
         borderRadius: '0 0 22px 22px',
         boxShadow: '0 24px 60px rgba(0,0,0,0.55)',
-        maxHeight: 'min(88vh, 780px)',
+        maxHeight: 'min(85vh, 840px)',
         display: 'flex', flexDirection: 'column',
       }}>
         <div style={{
