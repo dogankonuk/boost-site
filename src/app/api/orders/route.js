@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderConfirmation } from '@/lib/email'
+import { calculatePrice, resolveBestDiscount, isCampaignEligible, isCouponEligible } from '@/lib/pricing'
+import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 
 const CANCELLABLE_STATUSES = ['pending', 'assigned']
 
@@ -97,7 +99,7 @@ export async function POST(request) {
     }
 
     const body = await request.json()
-    const { serviceId, details } = body
+    const { serviceId, details, couponCode } = body
 
     if (!serviceId) {
       return NextResponse.json(
@@ -118,25 +120,69 @@ export async function POST(request) {
       )
     }
 
-    const finalPrice = details?.calculatedPrice || service.basePrice
+    // Price is always recomputed here from the service's own pricing rules —
+    // details.calculatedPrice (client-sent) is never trusted for the charge.
+    const selection = details?.selection || {}
+    const basePrice = calculatePrice(service.options, service.basePrice, selection)
 
-    const order = await prisma.order.create({
-      data: {
-        orderNumber: generateOrderNumber(),
-        userId: user.userId,
-        serviceId,
-        price: finalPrice,
-        currency: 'USD',
-        details: details || {},
-      },
-      include: {
-        service: {
-          include: { game: true }
-        },
-        user: {
-          select: { username: true, email: true }
-        }
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { bonusPoints: true, orders: { where: { status: { not: 'cancelled' } }, select: { price: true } } },
+    })
+    const totalSpent = dbUser.orders.reduce((sum, o) => sum + o.price, 0)
+    const points = pointsFromSpend(totalSpent) + (dbUser.bonusPoints || 0)
+    const loyaltyPct = getLoyaltyTier(points).discount
+
+    const now = new Date()
+    const activeCampaigns = await prisma.campaign.findMany({
+      where: { isActive: true, startsAt: { lte: now }, endsAt: { gte: now } },
+    })
+    const campaign = activeCampaigns.find(c => isCampaignEligible(c, service.gameId))
+    const campaignPct = campaign?.discountPct || 0
+
+    let coupon = null
+    if (couponCode) {
+      const found = await prisma.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } })
+      const userRedemptionCount = found
+        ? await prisma.order.count({ where: { userId: user.userId, couponId: found.id } })
+        : 0
+      const check = isCouponEligible(found, { gameId: service.gameId, subtotal: basePrice, userRedemptionCount })
+      if (!check.ok) {
+        return NextResponse.json({ success: false, error: check.error }, { status: 400 })
       }
+      coupon = found
+    }
+
+    const { finalPrice, discountAmount, source } = resolveBestDiscount({ basePrice, loyaltyPct, campaignPct, coupon })
+
+    const order = await prisma.$transaction(async (tx) => {
+      const created = await tx.order.create({
+        data: {
+          orderNumber: generateOrderNumber(),
+          userId: user.userId,
+          serviceId,
+          price: finalPrice,
+          originalPrice: basePrice,
+          discountAmount,
+          discountSource: source,
+          couponId: source === 'coupon' ? coupon.id : null,
+          couponCode: source === 'coupon' ? coupon.code : null,
+          currency: 'USD',
+          details: details || {},
+        },
+        include: {
+          service: {
+            include: { game: true }
+          },
+          user: {
+            select: { username: true, email: true }
+          }
+        }
+      })
+      if (source === 'coupon') {
+        await tx.coupon.update({ where: { id: coupon.id }, data: { usedCount: { increment: 1 } } })
+      }
+      return created
     })
 
     await sendDiscordNotification(order)
