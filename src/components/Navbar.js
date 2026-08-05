@@ -764,17 +764,26 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
           <div className="themed-scrollbar" style={{ flex: 1, minWidth: 0, padding: '32px', overflowY: 'auto' }}>
             {selectedGame ? (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
+                <Link href={`/games/${selectedGame.slug}`} onClick={onClose} style={{
+                  display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px',
+                  textDecoration: 'none', width: 'fit-content',
+                }}
+                  onMouseEnter={e => e.currentTarget.querySelector('h3').style.color = 'var(--gold)'}
+                  onMouseLeave={e => e.currentTarget.querySelector('h3').style.color = '#fff'}
+                >
                   <div style={{
                     width: '60px', height: '60px', borderRadius: '14px', flexShrink: 0,
                     background: 'var(--bg-elevated)',
                     backgroundImage: selectedGame.coverImage ? `url(${selectedGame.coverImage})` : 'none',
                     backgroundSize: 'cover', backgroundPosition: 'center', border: '1px solid var(--border)',
                   }} />
-                  <h3 style={{ fontSize: '26px', fontFamily: 'var(--font-montserrat)', fontWeight: '700', color: '#fff', margin: 0 }}>
+                  <h3 style={{
+                    fontSize: '26px', fontFamily: 'var(--font-montserrat)', fontWeight: '700',
+                    color: '#fff', margin: 0, transition: 'color 0.15s',
+                  }}>
                     {selectedGame.name}
                   </h3>
-                </div>
+                </Link>
 
                 {(selectedGame.services?.length || 0) === 0 ? (
                   <div style={{ color: 'var(--text-muted)', fontSize: '14px' }}>
