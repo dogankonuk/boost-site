@@ -1,0 +1,275 @@
+'use client'
+import { useState, useEffect } from 'react'
+
+const emptyCoupon = { code: '', type: 'percent', value: '', minSpend: '', maxUses: '', perUserLimit: '1', gameId: '', expiresAt: '' }
+const emptyCampaign = { name: '', discountPct: '', gameId: '', startsAt: '', endsAt: '' }
+
+export default function AdminPromotions({ secret }) {
+  const [coupons, setCoupons] = useState([])
+  const [campaigns, setCampaigns] = useState([])
+  const [games, setGames] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showCouponForm, setShowCouponForm] = useState(false)
+  const [showCampaignForm, setShowCampaignForm] = useState(false)
+  const [couponForm, setCouponForm] = useState(emptyCoupon)
+  const [campaignForm, setCampaignForm] = useState(emptyCampaign)
+  const [msg, setMsg] = useState('')
+
+  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+
+  useEffect(() => {
+    fetchAll()
+    fetch('/api/games').then(r => r.json()).then(d => { if (d.success) setGames(d.data) }).catch(() => {})
+  }, [])
+
+  async function fetchAll() {
+    setLoading(true)
+    try {
+      const [cRes, kRes] = await Promise.all([
+        fetch('/api/coupons', { headers }),
+        fetch('/api/campaigns', { headers }),
+      ])
+      const cd = await cRes.json()
+      if (cd.success) setCoupons(cd.data)
+      const kd = await kRes.json()
+      if (kd.success) setCampaigns(kd.data)
+    } catch {}
+    setLoading(false)
+  }
+
+  function flash(text) {
+    setMsg(text)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  async function createCoupon() {
+    if (!couponForm.code.trim() || !couponForm.value) {
+      flash('Kod ve değer zorunlu')
+      return
+    }
+    const res = await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...couponForm }) })
+    const d = await res.json()
+    if (d.success) {
+      setShowCouponForm(false)
+      setCouponForm(emptyCoupon)
+      flash(`${d.data.code} oluşturuldu`)
+      fetchAll()
+    } else {
+      flash(d.error || 'Bir hata oluştu')
+    }
+  }
+
+  async function toggleCoupon(c) {
+    await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
+    fetchAll()
+  }
+
+  async function deleteCoupon(c) {
+    if (!confirm(`"${c.code}" kuponunu silmek istediğine emin misin?`)) return
+    await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
+    flash(`${c.code} silindi`)
+    fetchAll()
+  }
+
+  async function createCampaign() {
+    if (!campaignForm.name.trim() || !campaignForm.discountPct || !campaignForm.startsAt || !campaignForm.endsAt) {
+      flash('Ad, indirim yüzdesi, başlangıç ve bitiş tarihi zorunlu')
+      return
+    }
+    const res = await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...campaignForm }) })
+    const d = await res.json()
+    if (d.success) {
+      setShowCampaignForm(false)
+      setCampaignForm(emptyCampaign)
+      flash(`${d.data.name} oluşturuldu`)
+      fetchAll()
+    } else {
+      flash(d.error || 'Bir hata oluştu')
+    }
+  }
+
+  async function toggleCampaign(c) {
+    await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
+    fetchAll()
+  }
+
+  async function deleteCampaign(c) {
+    if (!confirm(`"${c.name}" kampanyasını silmek istediğine emin misin?`)) return
+    await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
+    flash(`${c.name} silindi`)
+    fetchAll()
+  }
+
+  function isCampaignLive(c) {
+    const now = new Date()
+    return c.isActive && new Date(c.startsAt) <= now && now <= new Date(c.endsAt)
+  }
+
+  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+
+  return (
+    <div>
+      {msg && (
+        <div onClick={() => setMsg('')} style={{
+          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg} ✕</div>
+      )}
+
+      {/* Kuponlar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 className="h3" style={{ color: '#fff' }}>Kupon Kodları ({coupons.length})</h2>
+        <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCouponForm(v => !v)}>
+          {showCouponForm ? 'Vazgeç' : '+ Yeni Kupon'}
+        </button>
+      </div>
+
+      {showCouponForm && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '10px' }}>
+            <Field label="Kod *" placeholder="WELCOME10" value={couponForm.code} onChange={v => setCouponForm(f => ({ ...f, code: v.toUpperCase() }))} />
+            <div>
+              <label style={labelStyle}>Tür</label>
+              <select value={couponForm.type} onChange={e => setCouponForm(f => ({ ...f, type: e.target.value }))} style={selectStyle}>
+                <option value="percent">Yüzde (%)</option>
+                <option value="fixed">Sabit tutar ($)</option>
+              </select>
+            </div>
+            <Field label={couponForm.type === 'percent' ? 'Değer (%) *' : 'Değer ($) *'} type="number" value={couponForm.value} onChange={v => setCouponForm(f => ({ ...f, value: v }))} />
+            <Field label="Min. Harcama ($)" type="number" placeholder="opsiyonel" value={couponForm.minSpend} onChange={v => setCouponForm(f => ({ ...f, minSpend: v }))} />
+            <Field label="Maks. Kullanım" type="number" placeholder="sınırsız" value={couponForm.maxUses} onChange={v => setCouponForm(f => ({ ...f, maxUses: v }))} />
+            <Field label="Kullanıcı Başına Limit" type="number" placeholder="1" value={couponForm.perUserLimit} onChange={v => setCouponForm(f => ({ ...f, perUserLimit: v }))} />
+            <div>
+              <label style={labelStyle}>Oyun</label>
+              <select value={couponForm.gameId} onChange={e => setCouponForm(f => ({ ...f, gameId: e.target.value }))} style={selectStyle}>
+                <option value="">Tüm oyunlar</option>
+                {games.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+            <Field label="Son Kullanma Tarihi" type="date" value={couponForm.expiresAt} onChange={v => setCouponForm(f => ({ ...f, expiresAt: v }))} />
+          </div>
+          <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCoupon}>Oluştur</button>
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto', marginBottom: '32px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['KOD', 'İNDİRİM', 'KULLANIM', 'OYUN', 'DURUM', ''].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: '8px', fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-montserrat)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {coupons.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '16px 8px', color: 'var(--text-dim)', fontSize: '13px' }}>Henüz kupon yok.</td></tr>
+            ) : coupons.map(c => (
+              <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '700' }}>{c.code}</td>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--gold)' }}>
+                  {c.type === 'percent' ? `%${c.value}` : `$${c.value}`}
+                  {c.expiresAt && <span style={{ color: 'var(--text-dim)', fontSize: '11px' }}> · {new Date(c.expiresAt).toLocaleDateString('tr-TR')} son</span>}
+                </td>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-muted)' }}>{c.usedCount} / {c.maxUses ?? '∞'}</td>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-muted)' }}>{c.game?.name || 'Tüm oyunlar'}</td>
+                <td style={{ padding: '10px 8px' }}>
+                  <span style={{
+                    fontSize: '11px', padding: '3px 9px', borderRadius: '20px', fontWeight: '600',
+                    background: c.isActive ? 'rgba(76,175,80,0.15)' : 'rgba(255,100,100,0.1)',
+                    color: c.isActive ? '#4caf50' : '#ff6666',
+                  }}>{c.isActive ? 'Aktif' : 'Pasif'}</span>
+                </td>
+                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => toggleCoupon(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
+                  <button onClick={() => deleteCoupon(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Kampanyalar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h2 className="h3" style={{ color: '#fff' }}>Kampanyalar ({campaigns.length})</h2>
+        <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCampaignForm(v => !v)}>
+          {showCampaignForm ? 'Vazgeç' : '+ Yeni Kampanya'}
+        </button>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-dim)', marginBottom: '16px' }}>
+        Aktif bir kampanya, o kapsamdaki siparişlerde otomatik olarak (kod girmeden) uygulanır — sadakat indirimiyle çakışırsa daha avantajlı olan tek indirim geçerli olur.
+      </p>
+
+      {showCampaignForm && (
+        <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px', marginBottom: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '10px' }}>
+            <Field label="Kampanya Adı *" placeholder="Yaz İndirimi" value={campaignForm.name} onChange={v => setCampaignForm(f => ({ ...f, name: v }))} />
+            <Field label="İndirim (%) *" type="number" value={campaignForm.discountPct} onChange={v => setCampaignForm(f => ({ ...f, discountPct: v }))} />
+            <div>
+              <label style={labelStyle}>Oyun</label>
+              <select value={campaignForm.gameId} onChange={e => setCampaignForm(f => ({ ...f, gameId: e.target.value }))} style={selectStyle}>
+                <option value="">Tüm oyunlar (site geneli)</option>
+                {games.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+            </div>
+            <Field label="Başlangıç *" type="date" value={campaignForm.startsAt} onChange={v => setCampaignForm(f => ({ ...f, startsAt: v }))} />
+            <Field label="Bitiş *" type="date" value={campaignForm.endsAt} onChange={v => setCampaignForm(f => ({ ...f, endsAt: v }))} />
+          </div>
+          <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCampaign}>Oluştur</button>
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['AD', 'İNDİRİM', 'OYUN', 'TARİH ARALIĞI', 'DURUM', ''].map(h => (
+                <th key={h} style={{ textAlign: 'left', padding: '8px', fontSize: '11px', color: 'var(--text-dim)', fontFamily: 'var(--font-montserrat)' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {campaigns.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '16px 8px', color: 'var(--text-dim)', fontSize: '13px' }}>Henüz kampanya yok.</td></tr>
+            ) : campaigns.map(c => (
+              <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '700' }}>{c.name}</td>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--gold)' }}>%{c.discountPct}</td>
+                <td style={{ padding: '10px 8px', fontSize: '13px', color: 'var(--text-muted)' }}>{c.game?.name || 'Site geneli'}</td>
+                <td style={{ padding: '10px 8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                  {new Date(c.startsAt).toLocaleDateString('tr-TR')} → {new Date(c.endsAt).toLocaleDateString('tr-TR')}
+                </td>
+                <td style={{ padding: '10px 8px' }}>
+                  <span style={{
+                    fontSize: '11px', padding: '3px 9px', borderRadius: '20px', fontWeight: '600',
+                    background: isCampaignLive(c) ? 'rgba(76,175,80,0.15)' : 'rgba(255,100,100,0.1)',
+                    color: isCampaignLive(c) ? '#4caf50' : '#ff6666',
+                  }}>{isCampaignLive(c) ? 'Yayında' : c.isActive ? 'Pasif tarih dışı' : 'Pasif'}</span>
+                </td>
+                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => toggleCampaign(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
+                  <button onClick={() => deleteCampaign(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+const labelStyle = { fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }
+const selectStyle = { width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }
+const smallBtnStyle = { background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }
+
+function Field({ label, value, onChange, type = 'text', placeholder }) {
+  return (
+    <div>
+      <label style={labelStyle}>{label}</label>
+      <input type={type} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
+    </div>
+  )
+}
