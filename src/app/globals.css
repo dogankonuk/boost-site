@@ -194,8 +194,8 @@ body, p, span, a, input, textarea {
   --border: #222222;
   --border-hover: #333333;
   --text: #ffffff;
-  --text-muted: #777777;
-  --text-dim: #555555;
+  --text-muted: #8a8a8a;
+  --text-dim: #7a7a7a;
 }
 
 #nprogress .bar {
