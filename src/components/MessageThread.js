@@ -33,6 +33,10 @@ export default function MessageThread({ orderId }) {
     if (!silent) setLoading(false)
   }, [orderId])
 
+  // Fetches once on mount (silently) so the message count badge is accurate
+  // even before the thread is ever expanded.
+  useEffect(() => { load(true) }, [load])
+
   useEffect(() => {
     if (!open) return
     load()
@@ -73,14 +77,25 @@ export default function MessageThread({ orderId }) {
       <button
         onClick={() => setOpen(v => !v)}
         style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--text-muted)', fontSize: '12px', padding: 0,
-          display: 'flex', alignItems: 'center', gap: '5px',
+          display: 'inline-flex', alignItems: 'center', gap: '7px',
+          background: open ? 'rgba(245,197,24,0.1)' : 'var(--bg-elevated)',
+          border: `1px solid ${open ? 'rgba(245,197,24,0.3)' : 'var(--border)'}`,
+          borderRadius: '20px', padding: '6px 14px', cursor: 'pointer',
+          color: open ? 'var(--gold)' : 'var(--text-muted)',
+          fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+          transition: 'border-color 0.15s, color 0.15s',
         }}
-        onMouseEnter={e => e.currentTarget.style.color = 'var(--gold)'}
-        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+        onMouseEnter={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = '#fff' } }}
+        onMouseLeave={e => { if (!open) { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)' } }}
       >
-        💬 {open ? 'Hide messages' : 'Messages'}{messages.length > 0 && ` (${messages.length})`}
+        <ChatIcon />
+        {open ? 'Hide Messages' : 'Messages'}
+        {messages.length > 0 && (
+          <span style={{
+            background: 'var(--gold)', color: '#0a0a0a', borderRadius: '10px',
+            fontSize: '10px', fontWeight: '700', padding: '1px 6px', minWidth: '16px', textAlign: 'center',
+          }}>{messages.length}</span>
+        )}
       </button>
 
       {open && (
@@ -103,12 +118,12 @@ export default function MessageThread({ orderId }) {
                 <div key={m.id} style={{ display: 'flex', justifyContent: m.isMine ? 'flex-end' : 'flex-start' }}>
                   <div style={{
                     maxWidth: '80%', padding: '7px 12px', borderRadius: '12px',
-                    background: m.isMine ? 'rgba(245,197,24,0.14)' : 'rgba(68,170,255,0.12)',
-                    border: `1px solid ${m.isMine ? 'rgba(245,197,24,0.35)' : 'rgba(68,170,255,0.35)'}`,
+                    background: m.isMine ? 'rgba(245,197,24,0.14)' : 'rgba(147,51,234,0.14)',
+                    border: `1px solid ${m.isMine ? 'rgba(245,197,24,0.35)' : 'rgba(147,51,234,0.4)'}`,
                   }}>
                     <div style={{
                       fontSize: '10px', fontWeight: '700', marginBottom: '2px',
-                      color: m.isMine ? 'var(--gold)' : '#44aaff',
+                      color: m.isMine ? 'var(--gold)' : '#c084fc',
                     }}>
                       {m.isMine ? 'You' : m.sender?.username}
                     </div>
@@ -141,4 +156,8 @@ export default function MessageThread({ orderId }) {
       )}
     </div>
   )
+}
+
+function ChatIcon() {
+  return <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12a8 8 0 1 0-8 8h6l2 2v-4a8 8 0 0 0 0-6z" strokeLinejoin="round" /></svg>
 }
