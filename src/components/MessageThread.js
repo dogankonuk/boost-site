@@ -13,7 +13,7 @@ function timeAgo(dateStr) {
   return `${days}d ago`
 }
 
-export default function MessageThread({ orderId }) {
+export default function MessageThread({ orderId, onOpen }) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(false)
@@ -43,6 +43,17 @@ export default function MessageThread({ orderId }) {
     const interval = setInterval(() => load(true), 8000)
     return () => clearInterval(interval)
   }, [open, load])
+
+  // Opening the thread counts as having seen it — clears the order-level
+  // "new message" indicator both locally and via the unread notification(s).
+  useEffect(() => {
+    if (!open) return
+    onOpen?.()
+    authFetch('/api/notifications', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'markReadForOrder', orderId }),
+    }).catch(() => {})
+  }, [open, orderId])
 
   useEffect(() => {
     if (open && listRef.current) {

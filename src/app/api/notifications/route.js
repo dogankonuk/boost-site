@@ -69,6 +69,21 @@ export async function PATCH(request) {
       return NextResponse.json({ success: true })
     }
 
+    if (body.action === 'markReadForOrder' && body.orderId) {
+      // Message notification links always end with orderId=<id>, so endsWith
+      // pins the match exactly (avoids e.g. orderId=6 matching orderId=60).
+      await prisma.notification.updateMany({
+        where: {
+          userId: user.userId,
+          type: 'message',
+          isRead: false,
+          link: { endsWith: `orderId=${parseInt(body.orderId)}` },
+        },
+        data: { isRead: true },
+      })
+      return NextResponse.json({ success: true })
+    }
+
     return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 })
   } catch (error) {
     console.error('Notifications PATCH error:', error)

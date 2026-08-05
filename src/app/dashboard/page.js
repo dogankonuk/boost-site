@@ -75,6 +75,7 @@ function DashboardContent() {
     ['account', 'orders', 'active'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview'
   )
   const highlightOrderId = parseInt(searchParams.get('orderId')) || null
+  const [unreadMessageOrderIds, setUnreadMessageOrderIds] = useState(new Set())
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -83,7 +84,32 @@ function DashboardContent() {
     setUsername(uname || '')
     fetchOrders()
     fetchProfile()
+    fetchUnreadMessageOrders()
   }, [])
+
+  async function fetchUnreadMessageOrders() {
+    try {
+      const res = await authFetch('/api/notifications')
+      if (!res) return
+      const d = await res.json()
+      if (d.success) {
+        const ids = d.data
+          .filter(n => n.type === 'message' && !n.isRead)
+          .map(n => parseInt(n.link?.match(/orderId=(\d+)/)?.[1]))
+          .filter(Boolean)
+        setUnreadMessageOrderIds(new Set(ids))
+      }
+    } catch {}
+  }
+
+  function clearUnreadMessages(orderId) {
+    setUnreadMessageOrderIds(prev => {
+      if (!prev.has(orderId)) return prev
+      const next = new Set(prev)
+      next.delete(orderId)
+      return next
+    })
+  }
 
   async function fetchOrders() {
     try {
@@ -245,10 +271,10 @@ function DashboardContent() {
             <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} tier={tier} profile={profile} />
           )}
           {tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
           {tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
@@ -511,7 +537,7 @@ function OverviewStat({ icon, label, value, accent, small, countTo }) {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported, highlightOrderId }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported, highlightOrderId, unreadMessageOrderIds, onMessagesSeen }) {
   const { format } = useCurrency()
   const [listRef] = useAutoAnimate()
   const [activeHighlight, setActiveHighlight] = useState(highlightOrderId || null)
@@ -553,7 +579,8 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
             const details = order.details || {}
             const selection = details.selection || {}
             const options = order.service?.options
-            const isHighlighted = activeHighlight === order.id
+            const hasNewMessage = unreadMessageOrderIds?.has(order.id)
+            const isHighlighted = activeHighlight === order.id || hasNewMessage
 
             return (
               <div key={order.id} id={`order-${order.id}`} style={{
@@ -590,6 +617,16 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                         fontSize: '10px', padding: '2px 7px', borderRadius: '20px',
                         background: sc.bg, border: `1px solid ${sc.border}`, color: sc.color,
                       }}>{STATUS_LABELS[order.status]}</span>
+                      {hasNewMessage && (
+                        <span style={{
+                          fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '20px',
+                          background: 'rgba(245,197,24,0.15)', border: '1px solid rgba(245,197,24,0.4)',
+                          color: 'var(--gold)', display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                          <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--gold)' }} />
+                          New message
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {order.service?.game?.name}
@@ -612,7 +649,7 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                 <OrderTimeline order={order} />
 
                 {!['completed', 'cancelled'].includes(order.status) && (
-                  <MessageThread orderId={order.id} />
+                  <MessageThread orderId={order.id} onOpen={() => onMessagesSeen?.(order.id)} />
                 )}
 
                 {order.status === 'completed' && (
