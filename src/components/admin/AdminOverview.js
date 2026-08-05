@@ -22,12 +22,33 @@ function money(n) {
   return `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
-function RevenueTooltip({ active, payload, label }) {
+const PERIODS = [
+  { key: '14d', label: 'Günlük', heading: 'Son 14 Gün' },
+  { key: '12w', label: 'Haftalık', heading: 'Son 12 Hafta' },
+  { key: '12m', label: 'Aylık', heading: 'Son 12 Ay' },
+]
+
+function formatBucketLabel(dateStr, period) {
+  const d = new Date(dateStr)
+  if (period === '12m') return d.toLocaleDateString('tr-TR', { month: 'short', year: '2-digit' })
+  if (period === '12w') return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'numeric' })
+}
+
+function RevenueTooltip({ active, payload, label, period }) {
   if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  const d = new Date(label)
+  const dateLabel = period === '12m'
+    ? d.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+    : period === '12w'
+      ? `${d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} haftası`
+      : d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
   return (
     <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
-      <div style={{ color: 'var(--text-dim)', marginBottom: '2px' }}>{new Date(label).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}</div>
+      <div style={{ color: 'var(--text-dim)', marginBottom: '2px' }}>{dateLabel}</div>
       <div style={{ color: 'var(--gold)', fontWeight: '700' }}>{money(payload[0].value)}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>{point.orders} sipariş</div>
     </div>
   )
 }
@@ -35,15 +56,16 @@ function RevenueTooltip({ active, payload, label }) {
 export default function AdminOverview({ secret, onNavigate }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [period, setPeriod] = useState('14d')
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
-  useEffect(() => { fetchStats() }, [])
+  useEffect(() => { fetchStats(period) }, [period])
 
-  async function fetchStats() {
+  async function fetchStats(p) {
     setLoading(true)
     try {
-      const res = await fetch('/api/admin?type=stats', { headers })
+      const res = await fetch(`/api/admin?type=stats&period=${p}`, { headers })
       const d = await res.json()
       if (d.success) setStats(d.data)
     } catch {}
@@ -67,6 +89,7 @@ export default function AdminOverview({ secret, onNavigate }) {
         <StatCard icon="📦" label="Toplam Sipariş" value={stats.totalOrders} />
         <StatCard icon="👥" label="Toplam Kullanıcı" value={stats.totalUsers} growth={stats.userGrowthPct} growthLabel="30g" />
         <StatCard icon="🛠️" label="Booster" value={`${stats.activeBoosters} / ${stats.totalBoosters}`} />
+        <StatCard icon="🏷️" label="Verilen İndirim (toplam)" value={money(stats.totalDiscountGiven)} />
       </div>
 
       {needsAttention > 0 && (
@@ -89,9 +112,21 @@ export default function AdminOverview({ secret, onNavigate }) {
       )}
 
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
-        <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', marginBottom: '16px' }}>
-          Son 14 Gün — Gelir Trendi
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+          <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: 0 }}>
+            {PERIODS.find(p => p.key === period)?.heading} — Gelir Trendi
+          </h3>
+          <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
+            {PERIODS.map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)} style={{
+                padding: '5px 12px', borderRadius: '6px', fontSize: '12px',
+                fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: 'none',
+                background: period === p.key ? 'var(--gold)' : 'transparent',
+                color: period === p.key ? '#0a0a0a' : 'var(--text-muted)',
+              }}>{p.label}</button>
+            ))}
+          </div>
+        </div>
         <div style={{ height: '130px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={stats.revenueTrend} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
@@ -100,9 +135,9 @@ export default function AdminOverview({ secret, onNavigate }) {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: 'var(--text-dim)', fontSize: 9 }}
-                tickFormatter={d => new Date(d).toLocaleDateString('tr-TR', { day: 'numeric', month: 'numeric' })}
+                tickFormatter={d => formatBucketLabel(d, period)}
               />
-              <Tooltip content={<RevenueTooltip />} cursor={{ fill: 'rgba(245,197,24,0.08)' }} />
+              <Tooltip content={<RevenueTooltip period={period} />} cursor={{ fill: 'rgba(245,197,24,0.08)' }} />
               <Bar dataKey="revenue" radius={[3, 3, 0, 0]} maxBarSize={28}>
                 {stats.revenueTrend.map(d => (
                   <Cell key={d.date} fill={d.revenue > 0 ? 'var(--gold)' : 'var(--bg-elevated)'} />

@@ -122,6 +122,7 @@ export async function GET(request) {
     }
 
     if (type === 'stats') {
+      const period = searchParams.get('period') || '14d'
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
 
@@ -132,7 +133,7 @@ export async function GET(request) {
         prisma.order.findMany({
           select: {
             status: true, price: true, createdAt: true, rating: true,
-            issueReport: true, issueResolved: true,
+            issueReport: true, issueResolved: true, discountAmount: true,
             service: { select: { game: { select: { id: true, name: true } } } },
           },
         }),
@@ -143,17 +144,48 @@ export async function GET(request) {
       ])
 
       const statusCounts = { pending: 0, assigned: 0, in_progress: 0, completed: 0, cancelled: 0 }
-      let totalRevenue = 0, last30Revenue = 0, prev30Revenue = 0
+      let totalRevenue = 0, last30Revenue = 0, prev30Revenue = 0, totalDiscountGiven = 0
       let openIssues = 0, unratedCompleted = 0
       const gameStats = {}
 
       const now = new Date()
-      const dailyRevenue = []
-      for (let i = 13; i >= 0; i--) {
-        const d = new Date(now); d.setDate(d.getDate() - i)
-        dailyRevenue.push({ date: d.toISOString().slice(0, 10), revenue: 0 })
+
+      function startOfWeek(d) {
+        const date = new Date(d)
+        date.setHours(0, 0, 0, 0)
+        const day = date.getDay()
+        const diff = (day === 0 ? -6 : 1) - day
+        date.setDate(date.getDate() + diff)
+        return date
       }
-      const dailyIndex = Object.fromEntries(dailyRevenue.map((d, idx) => [d.date, idx]))
+      function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
+
+      const buckets = []
+      if (period === '12w') {
+        const thisWeekStart = startOfWeek(now)
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(thisWeekStart); d.setDate(d.getDate() - i * 7)
+          const key = d.toISOString().slice(0, 10)
+          buckets.push({ key, date: key, revenue: 0, orders: 0 })
+        }
+      } else if (period === '12m') {
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+          buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0 })
+        }
+      } else {
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(now); d.setDate(d.getDate() - i)
+          const key = d.toISOString().slice(0, 10)
+          buckets.push({ key, date: key, revenue: 0, orders: 0 })
+        }
+      }
+      const bucketIndex = Object.fromEntries(buckets.map((b, idx) => [b.key, idx]))
+      function bucketKeyFor(date) {
+        if (period === '12w') return startOfWeek(date).toISOString().slice(0, 10)
+        if (period === '12m') return monthKey(date)
+        return date.toISOString().slice(0, 10)
+      }
 
       for (const o of orders) {
         if (statusCounts[o.status] !== undefined) statusCounts[o.status]++
@@ -170,11 +202,15 @@ export async function GET(request) {
 
         if (o.status === 'completed') {
           totalRevenue += o.price
+          totalDiscountGiven += (o.discountAmount || 0)
           if (o.createdAt >= thirtyDaysAgo) last30Revenue += o.price
           else if (o.createdAt >= sixtyDaysAgo) prev30Revenue += o.price
           if (gameId) gameStats[gameId].revenue += o.price
-          const key = o.createdAt.toISOString().slice(0, 10)
-          if (dailyIndex[key] !== undefined) dailyRevenue[dailyIndex[key]].revenue += o.price
+          const bk = bucketKeyFor(o.createdAt)
+          if (bucketIndex[bk] !== undefined) {
+            buckets[bucketIndex[bk]].revenue += o.price
+            buckets[bucketIndex[bk]].orders += 1
+          }
         }
       }
 
@@ -195,9 +231,9 @@ export async function GET(request) {
         data: {
           totalUsers, totalBoosters, activeBoosters,
           totalOrders: orders.length,
-          totalRevenue, last30Revenue, revenueGrowthPct,
+          totalRevenue, last30Revenue, revenueGrowthPct, totalDiscountGiven,
           usersLast30, userGrowthPct,
-          statusCounts, gameBreakdown, revenueTrend: dailyRevenue,
+          statusCounts, gameBreakdown, revenueTrend: buckets, period,
           pendingApplications, openIssues, unratedCompleted,
         },
       })
