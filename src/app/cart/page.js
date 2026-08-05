@@ -18,6 +18,7 @@ export default function CartPage() {
   const [loggedIn, setLoggedIn] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState('')
+  const [couponCode, setCouponCode] = useState('')
 
   useEffect(() => {
     setLoggedIn(!!localStorage.getItem('token'))
@@ -38,6 +39,7 @@ export default function CartPage() {
           body: JSON.stringify({
             serviceId: item.serviceId,
             details: { note: item.note, selection: item.selection, calculatedPrice: item.price },
+            couponCode: couponCode.trim() || undefined,
           }),
         })
         if (!res) return
@@ -166,6 +168,21 @@ export default function CartPage() {
               </div>
 
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                    Coupon code (optional)
+                  </label>
+                  <input
+                    value={couponCode}
+                    onChange={e => setCouponCode(e.target.value)}
+                    placeholder="e.g. WELCOME10"
+                    style={{
+                      width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                      borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px',
+                      fontFamily: 'var(--font-inter)', outline: 'none', textTransform: 'uppercase',
+                    }}
+                  />
+                </div>
                 {error && (
                   <div style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px', color: '#ff6666', fontSize: '12px', lineHeight: '1.5' }}>
                     {error}
