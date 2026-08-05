@@ -110,11 +110,11 @@ export default async function OrderPage({ params }) {
               display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '18px',
             }}>
               <div>
-                <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>15–30 min</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>15–30 min</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '3px' }}>Estimated Start Time</div>
               </div>
               <div>
-                <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>Flexible</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>Flexible</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '3px' }}>Completion Time</div>
               </div>
             </div>
@@ -126,18 +126,22 @@ export default async function OrderPage({ params }) {
           display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px',
         }}>
           {[
-            { icon: '↩️', label: 'Easy Refunds' },
-            { icon: '💬', label: '24/7 Support' },
-            { icon: '🛡️', label: 'Guaranteed Safety' },
-            { icon: '✅', label: 'Complete Satisfaction' },
+            { icon: <RefundIcon />, label: 'Easy Refunds' },
+            { icon: <SupportIcon />, label: '24/7 Support' },
+            { icon: <SafetyIcon />, label: 'Guaranteed Safety' },
+            { icon: <SatisfactionIcon />, label: 'Complete Satisfaction' },
           ].map(b => (
             <div key={b.label} style={{
-              display: 'flex', alignItems: 'center', gap: '7px',
-              padding: '8px 14px', borderRadius: '20px',
+              display: 'flex', alignItems: 'center', gap: '9px',
+              padding: '10px 16px 10px 10px', borderRadius: '10px',
               background: 'var(--bg-card)', border: '1px solid var(--border)',
-              fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600',
             }}>
-              <span>{b.icon}</span>{b.label}
+              <span style={{
+                width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                background: 'rgba(245,197,24,0.1)', color: 'var(--gold)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>{b.icon}</span>
+              <span style={{ fontSize: '12.5px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)' }}>{b.label}</span>
             </div>
           ))}
         </div>
@@ -249,4 +253,17 @@ export default async function OrderPage({ params }) {
       <Footer />
     </main>
   )
+}
+
+function RefundIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7" strokeLinecap="round" /><path d="M3 4v5h5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+}
+function SupportIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12a8 8 0 1 0-8 8h6l2 2v-4a8 8 0 0 0 0-6z" strokeLinejoin="round" /></svg>
+}
+function SafetyIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9 8 11 4.6-2 8-6 8-11V5l-8-3z" strokeLinejoin="round" /></svg>
+}
+function SatisfactionIcon() {
+  return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="m8 12 3 3 5-6" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }

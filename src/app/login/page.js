@@ -121,13 +121,13 @@ function LoginForm() {
         {/* huge faint watermark */}
         <div style={{
           position: 'absolute', bottom: '-80px', right: '-40px',
-          fontSize: '420px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
+          fontSize: '420px', fontWeight: '700', fontFamily: 'var(--font-montserrat)',
           color: 'rgba(245, 197, 24, 0.04)', lineHeight: 1, pointerEvents: 'none',
         }}>S</div>
 
         <div style={{ position: 'relative', maxWidth: '440px' }}>
           <h1 style={{
-            fontFamily: 'var(--font-montserrat)', fontWeight: '800', fontSize: '46px',
+            fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '46px',
             lineHeight: '1.15', color: '#fff', margin: '0 0 20px',
           }}>
             Forge Your<br />Power in the <span style={{ color: 'var(--gold)' }}>Shadows</span>
@@ -161,7 +161,7 @@ function LoginForm() {
             <div style={{
               width: '40px', height: '40px', background: 'var(--gold)',
               borderRadius: '10px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', fontSize: '20px', fontWeight: '800',
+              justifyContent: 'center', fontSize: '20px', fontWeight: '700',
               color: '#0a0a0a', fontFamily: 'var(--font-montserrat)',
             }}>S</div>
             <span style={{
@@ -311,7 +311,7 @@ function LoginForm() {
           </form>
 
           <p style={{ color: 'var(--text-dim)', fontSize: '12px', marginTop: '28px', textAlign: 'center' }}>
-            © 2024 ShadowBoosting.co — All rights reserved.
+            © {new Date().getFullYear()} ShadowBoosting.co — All rights reserved.
           </p>
         </div>
       </div>
