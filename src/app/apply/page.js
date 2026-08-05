@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
+import PageHeader from '@/components/PageHeader'
 
 export const metadata = {
   title: 'Work with us',
@@ -17,7 +18,7 @@ const ROLES = [
   },
   {
     href: '/apply/content-creator',
-    icon: '✍️',
+    icon: '📝',
     title: 'Content Creator',
     desc: 'Write guides, updates, and playthroughs for our blog. Share your knowledge and reach thousands of players.',
   },
@@ -28,14 +29,12 @@ export default function ApplyPage() {
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
-      <div style={{ background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', padding: '48px 0 36px' }}>
-        <Container>
-          <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>Work with us</h1>
-          <p className="body-default" style={{ color: 'var(--text-muted)' }}>
-            Are you good at what you do? Turn it into an opportunity.
-          </p>
-        </Container>
-      </div>
+      <PageHeader
+        eyebrow="Join the Roster"
+        title="Work with us"
+        subtitle="Are you good at what you do? Turn it into an opportunity."
+        accent="gold"
+      />
 
       <Container style={{ paddingTop: '36px', paddingBottom: '64px', flex: 1 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px', maxWidth: '640px' }}>

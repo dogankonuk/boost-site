@@ -10,6 +10,8 @@ const TYPE_ICONS = {
   order_assigned: '🛠️',
   order_status: '📦',
   message: '💬',
+  application_status: '📋',
+  blog_unpublished: '📄',
 }
 
 export default function NotificationsPage() {
