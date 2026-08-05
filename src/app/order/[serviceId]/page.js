@@ -192,16 +192,20 @@ export default async function OrderPage({ params }) {
               <h2 className="h3" style={{ color: '#fff', marginBottom: '16px' }}>Delivery Method</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
-                  { icon: '🎮', title: 'Piloted', desc: 'A booster will log into your account to complete the service.' },
-                  { icon: '🤝', title: 'Self-play (Carry)', desc: 'You play alongside our booster team. No account sharing required.' },
-                  { icon: '🛡', title: 'VPN Protection', desc: 'Every operation is performed with region-specific VPN protection.' },
+                  { icon: <PilotedIcon />, title: 'Piloted', desc: 'A booster will log into your account to complete the service.' },
+                  { icon: <TeamIcon />, title: 'Self-play (Carry)', desc: 'You play alongside our booster team. No account sharing required.' },
+                  { icon: <SafetyIcon />, title: 'VPN Protection', desc: 'Every operation is performed with region-specific VPN protection.' },
                 ].map(item => (
                   <div key={item.title} style={{
                     display: 'flex', gap: '14px', alignItems: 'flex-start',
                     padding: '14px', background: 'var(--bg-elevated)',
                     borderRadius: '10px', border: '1px solid var(--border)',
                   }}>
-                    <span style={{ fontSize: '20px', flexShrink: 0 }}>{item.icon}</span>
+                    <span style={{
+                      width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+                      background: 'rgba(245,197,24,0.1)', color: 'var(--gold)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>{item.icon}</span>
                     <div>
                       <div style={{
                         fontSize: '14px', fontWeight: '600', color: '#fff',
@@ -262,6 +266,12 @@ export default async function OrderPage({ params }) {
   )
 }
 
+function PilotedIcon() {
+  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="10" rx="5" strokeLinejoin="round" /><path d="M8 11v4M6 13h4" strokeLinecap="round" /><circle cx="16" cy="12" r="0.8" fill="currentColor" /><circle cx="18.2" cy="14.2" r="0.8" fill="currentColor" /></svg>
+}
+function TeamIcon() {
+  return <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3" /><path d="M4 20c0-3 2-5 5-5s5 2 5 5" strokeLinecap="round" /><circle cx="17" cy="9" r="2.3" /><path d="M15.2 20c0-2.5 1-4.2 3.3-4.6" strokeLinecap="round" /></svg>
+}
 function RefundIcon() {
   return <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7" strokeLinecap="round" /><path d="M3 4v5h5" strokeLinecap="round" strokeLinejoin="round" /></svg>
 }
