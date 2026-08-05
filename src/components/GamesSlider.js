@@ -103,7 +103,7 @@ export default function GamesSlider() {
                     {game.services?.some(s => s.isHot) && (
                       <span style={{
                         position: 'absolute', top: '10px', left: '10px', zIndex: 2,
-                        fontSize: '10px', fontWeight: '800', padding: '3px 9px', borderRadius: '20px',
+                        fontSize: '10px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
                         background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
                         fontFamily: 'var(--font-montserrat)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
                       }}>🔥 HOT</span>

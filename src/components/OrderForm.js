@@ -157,7 +157,7 @@ export default function OrderForm({ service }) {
               {format(price)}
             </div>
           )}
-          <div style={{ fontSize: '38px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
+          <div style={{ fontSize: '38px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
             {format(finalPrice)}
           </div>
           {couponWins && (
@@ -306,7 +306,7 @@ export default function OrderForm({ service }) {
                       {selected && <span style={{ width: '9px', height: '9px', borderRadius: '50%', background: 'var(--gold)' }} />}
                     </span>
                     <span style={{ fontSize: '14px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '600', flex: 1, textAlign: 'left' }}>{c.label}</span>
-                    <span style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>{format(c.price)}</span>
+                    <span style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '700', fontFamily: 'var(--font-montserrat)' }}>{format(c.price)}</span>
                   </button>
                 )
               })}

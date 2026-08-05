@@ -131,7 +131,7 @@ export default function CartPage() {
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                    <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                       {format(item.price)}
                     </div>
                     <button onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{
@@ -165,7 +165,7 @@ export default function CartPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                   <span>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
                 </div>
-                <div style={{ fontSize: '30px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
+                <div style={{ fontSize: '30px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
                   {format(totalUSD)}
                 </div>
               </div>

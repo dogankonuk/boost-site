@@ -185,7 +185,7 @@ function AdminBlogAuthors({ headers }) {
             width: '36px', height: '36px', borderRadius: '50%',
             background: 'var(--bg-elevated)', border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '14px', fontWeight: '800', color: 'var(--violet)',
+            fontSize: '14px', fontWeight: '700', color: 'var(--violet)',
             fontFamily: 'var(--font-montserrat)', flexShrink: 0,
           }}>{c.username[0]?.toUpperCase()}</div>
 

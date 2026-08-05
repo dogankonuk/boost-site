@@ -103,8 +103,8 @@ html {
 }
 
 :root {
-  --font-montserrat: 'Montserrat', sans-serif;
-  --font-inter: 'Inter', sans-serif;
+  --font-montserrat: 'Chakra Petch', sans-serif;
+  --font-inter: 'Plus Jakarta Sans', sans-serif;
 }
 
 h1, h2, h3, h4, h5, h6, button {
@@ -118,7 +118,7 @@ body, p, span, a, input, textarea {
 .hero-title {
   font-size: clamp(32px, 5vw, 60px);
   line-height: 1.15;
-  font-weight: 800;
+  font-weight: 700;
   font-family: var(--font-montserrat);
 }
 

@@ -268,7 +268,7 @@ function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, de
         )}
       </div>
       <div style={{
-        fontSize: '20px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
+        fontSize: '20px', fontWeight: '700', fontFamily: 'var(--font-montserrat)',
         color: accent ? 'var(--gold)' : '#fff',
       }}>
         {countTo !== undefined ? (

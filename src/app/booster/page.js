@@ -566,7 +566,7 @@ function StatCard({ icon, label, value, accent }) {
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px',
       }}>{icon}</div>
       <div>
-        <div style={{ fontSize: '17px', fontWeight: '800', color: accent ? 'var(--gold)' : '#fff', fontFamily: 'var(--font-montserrat)', lineHeight: 1.1 }}>{value}</div>
+        <div style={{ fontSize: '17px', fontWeight: '700', color: accent ? 'var(--gold)' : '#fff', fontFamily: 'var(--font-montserrat)', lineHeight: 1.1 }}>{value}</div>
         <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
       </div>
     </div>
@@ -660,7 +660,7 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
           )}
         </div>
 
-        <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', flexShrink: 0 }}>
+        <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', flexShrink: 0 }}>
           {format(order.price)}
         </div>
 

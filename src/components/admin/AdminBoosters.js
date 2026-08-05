@@ -114,7 +114,7 @@ export default function AdminBoosters({ secret }) {
                     width: '36px', height: '36px', borderRadius: '50%',
                     background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '14px', fontWeight: '800', color: 'var(--gold)',
+                    fontSize: '14px', fontWeight: '700', color: 'var(--gold)',
                     fontFamily: 'var(--font-montserrat)', flexShrink: 0,
                   }}>{b.user?.username?.[0]?.toUpperCase()}</div>
 

@@ -2,23 +2,23 @@ import './globals.css'
 import 'nprogress/nprogress.css'
 import 'react-loading-skeleton/dist/skeleton.css'
 import { Suspense } from 'react'
-import { Montserrat, Inter } from 'next/font/google'
+import { Chakra_Petch, Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
 import { CurrencyProvider } from '@/context/CurrencyContext'
 import { CartProvider } from '@/context/CartContext'
 import RouteProgress from '@/components/RouteProgress'
 
-const montserrat = Montserrat({
+const montserrat = Chakra_Petch({
   subsets: ['latin'],
   variable: '--font-montserrat',
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['500', '600', '700'],
 })
 
-const inter = Inter({
+const inter = Plus_Jakarta_Sans({
   subsets: ['latin'],
   variable: '--font-inter',
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
 })
 
 export const metadata = {

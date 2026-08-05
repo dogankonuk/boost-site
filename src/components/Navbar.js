@@ -167,7 +167,7 @@ export default function Navbar() {
             background: 'var(--gold)',
             borderRadius: '8px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '18px', fontWeight: '800', color: '#0a0a0a',
+            fontSize: '18px', fontWeight: '700', color: '#0a0a0a',
             fontFamily: 'var(--font-montserrat)',
           }}>S</div>
           <span style={{
@@ -387,7 +387,7 @@ export default function Navbar() {
                 <span style={{
                   position: 'absolute', top: '-6px', right: '-8px',
                   background: 'var(--gold)', color: '#0a0a0a',
-                  fontSize: '10px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
+                  fontSize: '10px', fontWeight: '700', fontFamily: 'var(--font-montserrat)',
                   borderRadius: '20px', minWidth: '16px', height: '16px',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   padding: '0 4px', lineHeight: 1,
@@ -479,7 +479,7 @@ export default function Navbar() {
                   width: '24px', height: '24px',
                   background: 'var(--gold)', borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '11px', fontWeight: '800', color: '#0a0a0a',
+                  fontSize: '11px', fontWeight: '700', color: '#0a0a0a',
                   fontFamily: 'var(--font-montserrat)',
                 }}>
                   {user.username[0].toUpperCase()}
@@ -840,7 +840,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                         {s.isHot && (
                           <span style={{
                             position: 'absolute', top: '8px', left: '8px',
-                            fontSize: '9px', fontWeight: '800', padding: '3px 9px', borderRadius: '20px',
+                            fontSize: '9px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
                             background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
                             fontFamily: 'var(--font-montserrat)',
                           }}>HIT</span>
@@ -853,7 +853,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                         }}>{s.name}</div>
                         <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>from</div>
-                        <div style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '800', fontFamily: 'var(--font-montserrat)' }}>
+                        <div style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '700', fontFamily: 'var(--font-montserrat)' }}>
                           {format(s.basePrice)}
                         </div>
                       </div>
@@ -957,7 +957,7 @@ function NavIcon({ href, label, children, badge }) {
         <span style={{
           position: 'absolute', top: '-6px', right: '-8px',
           background: 'var(--gold)', color: '#0a0a0a',
-          fontSize: '10px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
+          fontSize: '10px', fontWeight: '700', fontFamily: 'var(--font-montserrat)',
           borderRadius: '20px', minWidth: '16px', height: '16px',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: '0 4px', lineHeight: 1,

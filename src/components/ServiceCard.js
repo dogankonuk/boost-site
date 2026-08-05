@@ -42,7 +42,7 @@ export default function ServiceCard({ service }) {
 
       <div style={{
         fontSize: '28px',
-        fontWeight: '800',
+        fontWeight: '700',
         fontFamily: 'var(--font-montserrat)',
         color: 'var(--gold)',
       }}>

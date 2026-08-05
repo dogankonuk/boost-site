@@ -45,7 +45,7 @@ function VerifyEmailContent() {
           <div style={{
             width: '40px', height: '40px', background: 'var(--gold)',
             borderRadius: '10px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', fontSize: '20px', fontWeight: '800',
+            justifyContent: 'center', fontSize: '20px', fontWeight: '700',
             color: '#0a0a0a', fontFamily: 'var(--font-montserrat)',
           }}>S</div>
           <span style={{

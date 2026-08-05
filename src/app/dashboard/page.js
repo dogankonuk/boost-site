@@ -155,7 +155,7 @@ function DashboardContent() {
                 width: '48px', height: '48px', borderRadius: '50%',
                 background: '#0a0a0a', border: '2px solid rgba(0,0,0,0.2)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '20px', fontWeight: '800', color: 'var(--gold)',
+                fontSize: '20px', fontWeight: '700', color: 'var(--gold)',
                 fontFamily: 'var(--font-montserrat)', flexShrink: 0,
               }}>
                 {username[0]?.toUpperCase()}
@@ -178,7 +178,7 @@ function DashboardContent() {
                 { label: 'Completed', value: completedOrders.length },
               ].map(stat => (
                 <div key={stat.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '18px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>{stat.value}</div>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>{stat.value}</div>
                   <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '1px' }}>{stat.label}</div>
                 </div>
               ))}
@@ -345,7 +345,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
 
         <div style={{ flex: 1, minWidth: '220px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-            <span style={{ fontSize: '15px', fontWeight: '800', color: tier.color, fontFamily: 'var(--font-montserrat)' }}>
+            <span style={{ fontSize: '15px', fontWeight: '700', color: tier.color, fontFamily: 'var(--font-montserrat)' }}>
               {tier.name} Member
             </span>
             {tier.discount > 0 && (
@@ -501,7 +501,7 @@ function OverviewStat({ icon, label, value, accent, small, countTo }) {
     }}>
       <div style={{ fontSize: '16px', marginBottom: '6px' }}>{icon}</div>
       <div style={{
-        fontSize: small ? '13px' : '18px', fontWeight: '800', color: accent ? 'var(--gold)' : '#fff',
+        fontSize: small ? '13px' : '18px', fontWeight: '700', color: accent ? 'var(--gold)' : '#fff',
         fontFamily: 'var(--font-montserrat)', lineHeight: 1.2,
       }}>
         {countTo !== undefined ? <AnimatedNumber end={countTo} /> : value}
@@ -600,7 +600,7 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                   </div>
 
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                       {order.price !== undefined && order.price !== null ? format(order.price) : ''}
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
@@ -778,7 +778,7 @@ function AccountTab({ username, orders, onRated }) {
                       {new Date(order.createdAt).toLocaleDateString('en-US')}
                     </div>
                   </div>
-                  <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                  <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                     {format(order.price)}
                   </div>
                 </div>

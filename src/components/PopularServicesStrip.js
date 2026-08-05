@@ -45,7 +45,7 @@ export default function PopularServicesStrip({ services }) {
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.75) 100%)' }} />
                   <span style={{
                     position: 'absolute', top: '8px', left: '8px',
-                    fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '20px',
+                    fontSize: '9px', fontWeight: '700', padding: '3px 8px', borderRadius: '20px',
                     background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
                     fontFamily: 'var(--font-montserrat)',
                   }}>🔥 HOT</span>
@@ -61,7 +61,7 @@ export default function PopularServicesStrip({ services }) {
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   }}>{service.name}</div>
                   <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>from</div>
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                  <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                     {format(service.basePrice)}
                   </div>
                 </div>
