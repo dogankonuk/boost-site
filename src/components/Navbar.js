@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCurrency, CURRENCY_SYMBOLS } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
+import { getServiceIcon } from '@/components/GameServices'
 
 export default function Navbar() {
   const [search, setSearch] = useState('')
@@ -346,7 +347,7 @@ export default function Navbar() {
             </button>
 
             {currencyOpen && (
-              <div style={{
+              <div className="shine-border" style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: '12px', padding: '6px',
@@ -396,7 +397,7 @@ export default function Navbar() {
             </button>
 
             {notifOpen && (
-              <div style={{
+              <div className="shine-border" style={{
                 position: 'absolute', top: 'calc(100% + 10px)', right: 0,
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: '12px', width: '340px', zIndex: 200,
@@ -493,7 +494,7 @@ export default function Navbar() {
               </button>
 
               {dropdownOpen && (
-                <div style={{
+                <div className="shine-border" style={{
                   position: 'absolute', top: 'calc(100% + 8px)', right: 0,
                   background: 'var(--bg-card)', border: '1px solid var(--border)',
                   borderRadius: '12px', padding: '8px',
@@ -836,7 +837,12 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                         background: (s.imageUrl || selectedGame.coverImage)
                           ? `url(${s.imageUrl || selectedGame.coverImage}) center/cover`
                           : 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(147,51,234,0.15))',
+                        display: (s.imageUrl || selectedGame.coverImage) ? undefined : 'flex',
+                        alignItems: 'center', justifyContent: 'center',
                       }}>
+                        {!(s.imageUrl || selectedGame.coverImage) && (
+                          <span style={{ fontSize: '28px', opacity: 0.4 }}>{getServiceIcon(s)}</span>
+                        )}
                         {s.isHot && (
                           <span style={{
                             position: 'absolute', top: '8px', left: '8px',

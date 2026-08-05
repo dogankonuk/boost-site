@@ -16,7 +16,7 @@ const ICON_RULES = [
   { keywords: ['account', 'unlock', 'placement'], icon: '🎮' },
 ]
 
-function getServiceIcon(service) {
+export function getServiceIcon(service) {
   const haystack = `${service.name || ''} ${service.serviceCategory || ''}`.toLowerCase()
   const rule = ICON_RULES.find(r => r.keywords.some(k => haystack.includes(k)))
   return rule?.icon || '⚡'
