@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import { celebrate } from '@/lib/celebrate'
+import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 
 export default function CartPage() {
   const router = useRouter()
@@ -81,7 +82,7 @@ export default function CartPage() {
             background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: '16px', padding: '60px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}>🛒</div>
+            <AnimatedEmptyIcon icon="🛒" />
             <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
               Your cart is empty.
             </p>

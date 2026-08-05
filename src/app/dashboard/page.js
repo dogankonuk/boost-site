@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
 import Skeleton from 'react-loading-skeleton'
 import AnimatedNumber from '@/components/AnimatedNumber'
+import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
@@ -523,6 +524,7 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
           background: 'var(--bg-card)', border: '1px solid var(--border)',
           borderRadius: '16px', padding: '60px', textAlign: 'center',
         }}>
+          <AnimatedEmptyIcon icon="📦" />
           <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
             {emptyText || 'You have not placed any orders yet.'}
           </p>
