@@ -3,6 +3,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useCurrency } from '@/context/CurrencyContext'
 
+const ICON_RULES = [
+  { keywords: ['level', 'leveling', 'xp', 'prestige'], icon: '📈' },
+  { keywords: ['win', 'wins', 'rank', 'ranked', 'rating', 'elo', 'mmr', 'league', 'division'], icon: '🏆' },
+  { keywords: ['point', 'hype', 'currency', 'gold', 'coin', 'farm', 'farming', 'kill'], icon: '💰' },
+  { keywords: ['pass', 'battlepass', 'season'], icon: '👑' },
+  { keywords: ['gear', 'item', 'weapon', 'loot', 'build'], icon: '💎' },
+  { keywords: ['quest', 'mission', 'dungeon', 'raid', 'campaign', 'story'], icon: '🏰' },
+  { keywords: ['pvp', 'arena', 'duel', 'wipe'], icon: '🥷' },
+  { keywords: ['achievement', 'trophy', 'title'], icon: '🏅' },
+  { keywords: ['coach', 'coaching', 'lesson', 'training', 'review'], icon: '🎯' },
+  { keywords: ['account', 'unlock', 'placement'], icon: '🎮' },
+]
+
+function getServiceIcon(service) {
+  const haystack = `${service.name || ''} ${service.serviceCategory || ''}`.toLowerCase()
+  const rule = ICON_RULES.find(r => r.keywords.some(k => haystack.includes(k)))
+  return rule?.icon || '⚡'
+}
+
 export default function GameServices({ services, game }) {
   const manualCategories = Array.isArray(game?.serviceCategories) ? game.serviceCategories : []
   const derivedCategories = [...new Set(services.map(s => s.serviceCategory || 'Genel'))]
@@ -154,7 +173,7 @@ function ServiceCard({ service }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderBottom: '1px solid var(--border)', position: 'relative',
           }}>
-            <span style={{ fontSize: '28px', opacity: 0.3 }}>⚡</span>
+            <span style={{ fontSize: '28px', opacity: 0.3 }}>{getServiceIcon(service)}</span>
             {service.isHot && (
               <span style={{
                 position: 'absolute', top: '8px', left: '8px',
@@ -193,7 +212,7 @@ function ServiceCard({ service }) {
               }}>From</div>
             )}
             <div style={{
-              fontSize: '20px', fontWeight: '800',
+              fontSize: '20px', fontWeight: '700',
               fontFamily: 'var(--font-montserrat)', color: 'var(--gold)',
             }}>
               {format(price.amount)}
