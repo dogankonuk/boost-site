@@ -106,24 +106,16 @@ export default async function OrderPage({ params }) {
           }}>
             <div style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '14px', padding: '18px 20px', flex: 1,
-              display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            }}>
-              <div style={{ color: 'var(--gold)', fontSize: '15px', letterSpacing: '2px', marginBottom: '6px' }}>★★★★★</div>
-              <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', marginBottom: '2px' }}>4.9 / 5 Trust Score</div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Trusted by 12,000+ players worldwide</div>
-            </div>
-            <div style={{
-              background: 'var(--bg-card)', border: '1px solid var(--border)',
-              borderRadius: '14px', padding: '16px 20px', display: 'flex', gap: '20px',
+              borderRadius: '14px', padding: '20px', flex: 1,
+              display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '18px',
             }}>
               <div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>15–30 min</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>Estimated Start Time</div>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>15–30 min</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '3px' }}>Estimated Start Time</div>
               </div>
               <div>
-                <div style={{ fontSize: '15px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>Flexible</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>Completion Time</div>
+                <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>Flexible</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '3px' }}>Completion Time</div>
               </div>
             </div>
           </div>
@@ -238,6 +230,13 @@ export default async function OrderPage({ params }) {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 4px',
+            }}>
+              <span style={{ color: 'var(--gold)', fontSize: '12px', letterSpacing: '2px' }}>★★★★★</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>4.9 / 5 · Trusted by 12,000+ players worldwide</span>
             </div>
           </div>
 

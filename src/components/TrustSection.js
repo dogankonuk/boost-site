@@ -7,17 +7,17 @@ export default function TrustSection() {
         <div style={{
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
-          borderRadius: '16px',
-          padding: '32px 20px',
+          borderRadius: '14px',
+          padding: '20px',
           textAlign: 'center',
         }}>
-          <div style={{ fontSize: '28px', color: 'var(--gold)', letterSpacing: '4px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '16px', color: 'var(--gold)', letterSpacing: '3px', marginBottom: '6px' }}>
             ★★★★★
           </div>
-          <div className="h3" style={{ color: 'var(--gold)', marginBottom: '6px' }}>
+          <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', marginBottom: '4px' }}>
             4.9 / 5 Trust Score
           </div>
-          <div className="body-default" style={{ color: 'var(--text-muted)' }}>
+          <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
             Trusted by 12,000+ players worldwide
           </div>
         </div>

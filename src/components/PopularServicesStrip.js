@@ -15,9 +15,8 @@ export default function PopularServicesStrip({ services }) {
           <h2 className="h3" style={{ color: '#fff' }}>Popular This Week</h2>
         </div>
 
-        <div style={{
+        <div className="themed-scrollbar" style={{
           display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px',
-          scrollbarWidth: 'thin',
         }}>
           {services.map((service, i) => (
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>

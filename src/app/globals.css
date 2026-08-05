@@ -210,6 +210,46 @@ body, p, span, a, input, textarea {
   display: none;
 }
 
+.shine-border {
+  position: relative;
+  overflow: hidden;
+}
+.shine-border::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 60%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  animation: shine-sweep 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes shine-sweep {
+  0% { left: -60%; }
+  55% { left: 100%; }
+  100% { left: 100%; }
+}
+
+.themed-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+.themed-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.themed-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.themed-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 20px;
+}
+.themed-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
 html, body {
   background:
     radial-gradient(ellipse 900px 700px at 8% -8%, rgba(245, 197, 24, 0.12), transparent 60%),

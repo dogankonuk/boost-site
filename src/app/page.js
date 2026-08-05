@@ -33,8 +33,8 @@ export default async function HomePage() {
       <GamesSlider />
       <PopularServicesStrip services={JSON.parse(JSON.stringify(hotServices))} />
       <FeaturesSection />
-      <TrustSection />
       <LatestBlogSection posts={JSON.parse(JSON.stringify(latestPosts))} />
+      <TrustSection />
       <Footer />
     </main>
   )

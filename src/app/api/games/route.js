@@ -8,7 +8,8 @@ export async function GET() {
       orderBy: { sortOrder: 'asc' },
       include: {
         services: {
-          where: { isActive: true }
+          where: { isActive: true },
+          include: { _count: { select: { orders: true } } },
         }
       }
     })
