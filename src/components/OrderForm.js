@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useCurrency } from '@/context/CurrencyContext'
@@ -7,56 +7,8 @@ import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
-
-// Sums marginal cost across price bands (options.tiers, sorted ascending by upTo).
-// Any span beyond the last defined band falls back to the flat options.pricePerUnit.
-function calculateTieredRangeCost(options, from, to) {
-  if (to <= from) return 0
-  if (!options.tiers || options.tiers.length === 0) {
-    return (to - from) * options.pricePerUnit
-  }
-  let cost = 0
-  let prevBound = options.min
-  for (const band of options.tiers) {
-    const segStart = Math.max(from, prevBound)
-    const segEnd = Math.min(to, band.upTo)
-    if (segEnd > segStart) cost += (segEnd - segStart) * band.pricePerUnit
-    prevBound = band.upTo
-    if (prevBound >= to) return cost
-  }
-  if (prevBound < to) cost += (to - prevBound) * options.pricePerUnit
-  return cost
-}
-
-// Highest-qualifying threshold wins (options.volumeDiscounts, sorted ascending by minQty).
-function calculateVolumeDiscountPct(options, quantity) {
-  if (!options.volumeDiscounts || options.volumeDiscounts.length === 0) return 0
-  let pct = 0
-  for (const tier of options.volumeDiscounts) {
-    if (quantity >= tier.minQty) pct = tier.discountPct
-  }
-  return pct
-}
-
-function calculatePrice(options, basePrice, selection) {
-  if (!options || options.type === 'fixed') return basePrice
-  if (options.type === 'quantity') {
-    const qty = Math.max(options.minQty, selection.quantity || options.minQty)
-    const base = qty * options.unitPrice
-    const discountPct = calculateVolumeDiscountPct(options, qty)
-    return discountPct > 0 ? Math.round(base * (1 - discountPct / 100) * 100) / 100 : base
-  }
-  if (options.type === 'range') {
-    const from = parseInt(selection.from || options.min)
-    const to = parseInt(selection.to || options.min + 1)
-    return calculateTieredRangeCost(options, from, to)
-  }
-  if (options.type === 'options') {
-    const choice = options.choices?.find(c => c.label === selection.choice)
-    return choice ? choice.price : basePrice
-  }
-  return basePrice
-}
+import { calculatePrice, round2 } from '@/lib/pricing'
+import CouponInput from './CouponInput'
 
 const TRUST_ITEMS = [
   { icon: <BoltIcon />, text: 'Delivered in 1–3 days' },
@@ -76,6 +28,7 @@ export default function OrderForm({ service }) {
   const [mounted, setMounted] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const [tier, setTier] = useState(null)
+  const [couponPreview, setCouponPreview] = useState(null)
   const [selection, setSelection] = useState({
     quantity: service.options?.minQty || 1,
     from: service.options?.min || 1,
@@ -85,8 +38,19 @@ export default function OrderForm({ service }) {
 
   const options = service.options
   const price = calculatePrice(options, service.basePrice, selection)
-  const discountPct = tier?.discount || 0
-  const finalPrice = discountPct > 0 ? Math.round(price * (1 - discountPct / 100) * 100) / 100 : price
+  const loyaltyDiscountAmount = tier?.discount ? round2(price * (tier.discount / 100)) : 0
+  const couponDiscountAmount = couponPreview ? couponPreview.discountAmount : 0
+  const couponWins = couponDiscountAmount > loyaltyDiscountAmount
+  const bestDiscountAmount = Math.max(loyaltyDiscountAmount, couponDiscountAmount)
+  const finalPrice = round2(Math.max(0, price - bestDiscountAmount))
+  const discountPct = bestDiscountAmount > 0 && !couponWins ? tier?.discount || 0 : 0
+
+  const selectionKey = JSON.stringify(selection)
+  const skipCouponClear = useRef(true)
+  useEffect(() => {
+    if (skipCouponClear.current) { skipCouponClear.current = false; return }
+    setCouponPreview(null)
+  }, [selectionKey])
 
   useEffect(() => {
     const hasToken = !!localStorage.getItem('token')
@@ -115,6 +79,7 @@ export default function OrderForm({ service }) {
         body: JSON.stringify({
           serviceId: service.id,
           details: { note, selection, calculatedPrice: finalPrice },
+          couponCode: couponWins ? couponPreview.code : undefined,
         }),
       })
       if (!res) return
@@ -187,7 +152,7 @@ export default function OrderForm({ service }) {
           {options?.type === 'fixed' || !options ? 'Price' : 'Total price'}
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
-          {discountPct > 0 && (
+          {bestDiscountAmount > 0 && (
             <div style={{ fontSize: '18px', color: 'var(--text-dim)', textDecoration: 'line-through', lineHeight: 1 }}>
               {format(price)}
             </div>
@@ -195,6 +160,12 @@ export default function OrderForm({ service }) {
           <div style={{ fontSize: '38px', fontWeight: '800', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
             {format(finalPrice)}
           </div>
+          {couponWins && (
+            <span style={{
+              fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
+              background: 'rgba(245,197,24,0.15)', color: 'var(--gold)',
+            }}>🏷️ {couponPreview.code}</span>
+          )}
           {discountPct > 0 && (
             <span style={{
               fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
@@ -218,6 +189,16 @@ export default function OrderForm({ service }) {
             Level {selection.from} → Level {selection.to}
           </div>
         )}
+      </div>
+
+      <div style={{ padding: '16px 24px 0' }}>
+        <CouponInput
+          serviceId={service.id}
+          selection={selection}
+          applied={couponPreview}
+          onApplied={data => setCouponPreview(data)}
+          onRemoved={() => setCouponPreview(null)}
+        />
       </div>
 
       <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>

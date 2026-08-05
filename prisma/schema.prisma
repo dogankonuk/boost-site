@@ -22,6 +22,8 @@ model Game {
   services    Service[]
   serviceCategories Json?
   blogPosts   BlogPost[]
+  coupons     Coupon[]
+  campaigns   Campaign[]
 }
 
 model Service {
@@ -125,6 +127,43 @@ model Order {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   messages    Message[]
+
+  originalPrice  Float?
+  discountAmount Float   @default(0)
+  discountSource String?
+  couponId       Int?
+  coupon         Coupon? @relation(fields: [couponId], references: [id])
+  couponCode     String?
+}
+
+model Coupon {
+  id           Int       @id @default(autoincrement())
+  code         String    @unique
+  type         String    // 'percent' | 'fixed'
+  value        Float
+  minSpend     Float?
+  maxUses      Int?
+  usedCount    Int       @default(0)
+  perUserLimit Int?      @default(1)
+  gameId       Int?
+  game         Game?     @relation(fields: [gameId], references: [id])
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  orders       Order[]
+}
+
+model Campaign {
+  id          Int       @id @default(autoincrement())
+  name        String
+  discountPct Float
+  gameId      Int?
+  game        Game?     @relation(fields: [gameId], references: [id])
+  startsAt    DateTime
+  endsAt      DateTime
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
 }
 
 model Setting {
