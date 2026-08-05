@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
+import PageHeader from '@/components/PageHeader'
 
 export const metadata = {
   title: 'Blog',
@@ -37,28 +38,20 @@ export default async function BlogPage({ searchParams }) {
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
 
-      <div style={{
-        background: 'var(--bg-elevated)',
-        borderBottom: '1px solid var(--border)',
-        padding: '40px 0 32px',
-      }}>
-        <Container>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
-            <div>
-              <h1 className="h1" style={{ color: '#fff', marginBottom: '8px' }}>Blog</h1>
-              <p className="body-default" style={{ color: 'var(--text-muted)' }}>
-                Guides, updates, and playthroughs from our team and content creators.
-              </p>
-            </div>
-            <a href="/blog/rss.xml" style={{
-              display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-dim)',
-              textDecoration: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '6px 12px',
-            }}>
-              📡 RSS
-            </a>
-          </div>
-        </Container>
-      </div>
+      <PageHeader
+        eyebrow="Notes From the Shadows"
+        title="Blog"
+        subtitle="Guides, updates, and playthroughs from our team and content creators."
+        accent="violet"
+        right={
+          <a href="/blog/rss.xml" style={{
+            display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-dim)',
+            textDecoration: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '6px 12px',
+          }}>
+            📡 RSS
+          </a>
+        }
+      />
 
       <Container style={{ paddingTop: '28px', paddingBottom: '48px', flex: 1 }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '28px' }}>
