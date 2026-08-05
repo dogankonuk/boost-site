@@ -1,3 +1,5 @@
+'use client'
+import AnimatedNumber from './AnimatedNumber'
 import Reveal from './motion/Reveal'
 
 export default function TrustSection() {
@@ -15,10 +17,10 @@ export default function TrustSection() {
             ★★★★★
           </div>
           <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)', marginBottom: '4px' }}>
-            4.9 / 5 Trust Score
+            <AnimatedNumber end={4.9} decimals={1} duration={1.5} /> / 5 Trust Score
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
-            Trusted by 12,000+ players worldwide
+            Trusted by <AnimatedNumber end={12000} suffix="+" duration={1.8} /> players worldwide
           </div>
         </div>
       </Reveal>

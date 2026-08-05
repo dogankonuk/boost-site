@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import AdminSkeleton from './AdminSkeleton'
 
 function money(n) {
   return `$${(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -83,7 +84,7 @@ export default function AdminUsers({ secret }) {
     return list
   }, [users, query, filter])
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={8} />
 
   return (
     <div>

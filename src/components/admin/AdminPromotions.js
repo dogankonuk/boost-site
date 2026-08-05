@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
+import AdminSkeleton from './AdminSkeleton'
 
 const emptyCoupon = { code: '', type: 'percent', value: '', minSpend: '', maxUses: '', perUserLimit: '1', gameId: '', expiresAt: '' }
 const emptyCampaign = { name: '', discountPct: '', gameId: '', startsAt: '', endsAt: '' }
@@ -14,6 +16,8 @@ export default function AdminPromotions({ secret }) {
   const [couponForm, setCouponForm] = useState(emptyCoupon)
   const [campaignForm, setCampaignForm] = useState(emptyCampaign)
   const [msg, setMsg] = useState('')
+  const [couponListRef] = useAutoAnimate()
+  const [campaignListRef] = useAutoAnimate()
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
@@ -105,7 +109,7 @@ export default function AdminPromotions({ secret }) {
     return c.isActive && new Date(c.startsAt) <= now && now <= new Date(c.endsAt)
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={5} />
 
   return (
     <div>
@@ -161,7 +165,7 @@ export default function AdminPromotions({ secret }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody ref={couponListRef}>
             {coupons.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: '16px 8px', color: 'var(--text-dim)', fontSize: '13px' }}>Henüz kupon yok.</td></tr>
             ) : coupons.map(c => (
@@ -229,7 +233,7 @@ export default function AdminPromotions({ secret }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody ref={campaignListRef}>
             {campaigns.length === 0 ? (
               <tr><td colSpan={6} style={{ padding: '16px 8px', color: 'var(--text-dim)', fontSize: '13px' }}>Henüz kampanya yok.</td></tr>
             ) : campaigns.map(c => (

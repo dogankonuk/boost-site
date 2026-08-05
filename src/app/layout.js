@@ -1,8 +1,10 @@
 import './globals.css'
 import 'nprogress/nprogress.css'
+import 'react-loading-skeleton/dist/skeleton.css'
 import { Suspense } from 'react'
 import { Montserrat, Inter } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { SkeletonTheme } from 'react-loading-skeleton'
 import { CurrencyProvider } from '@/context/CurrencyContext'
 import { CartProvider } from '@/context/CartContext'
 import RouteProgress from '@/components/RouteProgress'
@@ -36,9 +38,11 @@ export default function RootLayout({ children }) {
         </Suspense>
         <CurrencyProvider>
           <CartProvider>
-            <div style={{ flex: 1 }}>
-              {children}
-            </div>
+            <SkeletonTheme baseColor="#1a1a1a" highlightColor="#2a2a2a">
+              <div style={{ flex: 1 }}>
+                {children}
+              </div>
+            </SkeletonTheme>
             <Toaster
               position="top-right"
               toastOptions={{

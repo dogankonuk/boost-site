@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
@@ -19,6 +20,7 @@ export default function CartPage() {
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState('')
   const [couponCode, setCouponCode] = useState('')
+  const [listRef] = useAutoAnimate()
 
   useEffect(() => {
     setLoggedIn(!!localStorage.getItem('token'))
@@ -89,7 +91,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="content-sidebar-grid" style={{ '--sidebar-width': '340px', '--sidebar-gap': '24px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {items.map(item => (
                 <div key={item.cartId} style={{
                   background: 'var(--bg-card)', border: '1px solid var(--border)',

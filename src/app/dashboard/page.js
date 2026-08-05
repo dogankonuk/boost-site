@@ -1,9 +1,12 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
+import Skeleton from 'react-loading-skeleton'
+import AnimatedNumber from '@/components/AnimatedNumber'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import { useCurrency } from '@/context/CurrencyContext'
@@ -272,6 +275,16 @@ function buildMonthlySpend(orders) {
   return months
 }
 
+function DashboardSkeleton() {
+  return (
+    <div>
+      <Skeleton height={80} borderRadius={14} style={{ marginBottom: 12 }} />
+      <Skeleton height={80} borderRadius={14} style={{ marginBottom: 12 }} />
+      <Skeleton height={80} borderRadius={14} style={{ marginBottom: 12 }} />
+    </div>
+  )
+}
+
 function PointsTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
@@ -283,7 +296,7 @@ function PointsTooltip({ active, payload, label }) {
 }
 
 function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+  if (loading) return <DashboardSkeleton />
 
   const activeOrders = orders.filter(o => ['pending', 'assigned', 'in_progress'].includes(o.status))
   const completedOrders = orders.filter(o => o.status === 'completed')
@@ -310,10 +323,10 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', marginBottom: '24px' }}>
-        <OverviewStat icon="📦" label="Total Orders" value={orders.length} />
-        <OverviewStat icon="⚡" label="Active" value={activeOrders.length} />
-        <OverviewStat icon="✅" label="Completed" value={completedOrders.length} />
-        <OverviewStat icon="🏆" label="Loyalty Points" value={tier.points.toLocaleString('en-US')} accent />
+        <OverviewStat icon="📦" label="Total Orders" countTo={orders.length} />
+        <OverviewStat icon="⚡" label="Active" countTo={activeOrders.length} />
+        <OverviewStat icon="✅" label="Completed" countTo={completedOrders.length} />
+        <OverviewStat icon="🏆" label="Loyalty Points" countTo={tier.points} accent />
         <OverviewStat icon="🗓️" label="Member Since" value={memberSince} small />
       </div>
 
@@ -478,7 +491,7 @@ function PanelShortcut({ href, icon, title, subtitle }) {
   )
 }
 
-function OverviewStat({ icon, label, value, accent, small }) {
+function OverviewStat({ icon, label, value, accent, small, countTo }) {
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -488,7 +501,9 @@ function OverviewStat({ icon, label, value, accent, small }) {
       <div style={{
         fontSize: small ? '13px' : '18px', fontWeight: '800', color: accent ? 'var(--gold)' : '#fff',
         fontFamily: 'var(--font-montserrat)', lineHeight: 1.2,
-      }}>{value}</div>
+      }}>
+        {countTo !== undefined ? <AnimatedNumber end={countTo} /> : value}
+      </div>
       <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
     </div>
   )
@@ -496,7 +511,8 @@ function OverviewStat({ icon, label, value, accent, small }) {
 
 function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported }) {
   const { format } = useCurrency()
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+  const [listRef] = useAutoAnimate()
+  if (loading) return <DashboardSkeleton />
 
   return (
     <div>
@@ -515,7 +531,7 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
           </Link>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {orders.map(order => {
             const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending
             const details = order.details || {}
@@ -699,7 +715,7 @@ function AccountTab({ username, orders, onRated }) {
     setResending(false)
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+  if (loading) return <DashboardSkeleton />
 
   const completedOrders = (orders || []).filter(o => o.status === 'completed')
   const unratedCount = completedOrders.filter(o => !o.rating).length

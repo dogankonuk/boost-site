@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useAutoAnimate } from '@formkit/auto-animate/react'
+import AdminSkeleton from './AdminSkeleton'
 import OrderTimeline from '@/components/OrderTimeline'
 
 const STATUS_COLORS = {
@@ -24,6 +26,7 @@ export default function AdminOrders({ secret }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [listRef] = useAutoAnimate()
 
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
 
@@ -72,7 +75,7 @@ export default function AdminOrders({ secret }) {
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={8} />
 
   return (
     <div>
@@ -99,7 +102,7 @@ export default function AdminOrders({ secret }) {
           <p className="body-large">Sipariş bulunamadı.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map(order => {
             const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending
             const isExpanded = expanded === order.id

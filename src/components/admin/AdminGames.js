@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import ImageUpload from '@/components/ImageUpload'
+import AdminSkeleton from './AdminSkeleton'
 
 const PRICING_TYPES = [
   { key: 'fixed', label: 'Sabit', hint: 'Tek bir sabit fiyat — miktar veya seviye seçimi yok.' },
@@ -254,7 +255,7 @@ export default function AdminGames({ secret }) {
     else setMsg(d.error || 'Hata')
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={6} />
 
   return (
     <div>

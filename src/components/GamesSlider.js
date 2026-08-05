@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
+import Tilt from 'react-parallax-tilt'
 
 export default function GamesSlider() {
   const [games, setGames] = useState([])
@@ -68,6 +69,12 @@ export default function GamesSlider() {
             }}>
               {games.map(game => (
                 <Link key={game.id} href={`/games/${game.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                  <Tilt
+                    tiltMaxAngleX={8} tiltMaxAngleY={8} scale={1.03} transitionSpeed={1200}
+                    glareEnable glareMaxOpacity={0.18} glareColor="#f5c518" glarePosition="all"
+                    glareBorderRadius="16px" tiltReverse
+                    style={{ width: `${cardW}px` }}
+                  >
                   <div style={{
                     width: `${cardW}px`,
                     height: '280px',
@@ -83,13 +90,9 @@ export default function GamesSlider() {
                     justifyContent: 'flex-end',
                     padding: '16px',
                     cursor: 'pointer',
-                    transition: 'transform 0.15s',
                     position: 'relative',
                     overflow: 'hidden',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-6px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                  >
+                  }}>
                     {game.coverImage && (
                       <div style={{
                         position: 'absolute', inset: 0,
@@ -129,6 +132,7 @@ export default function GamesSlider() {
                       )}
                     </div>
                   </div>
+                  </Tilt>
                 </Link>
               ))}
             </div>

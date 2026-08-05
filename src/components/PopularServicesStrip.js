@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Tilt from 'react-parallax-tilt'
 import { useCurrency } from '@/context/CurrencyContext'
 import Reveal from './motion/Reveal'
 
@@ -21,13 +22,19 @@ export default function PopularServicesStrip({ services }) {
           {services.map((service, i) => (
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>
             <Link href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+              <Tilt
+                tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.04} transitionSpeed={1200}
+                glareEnable glareMaxOpacity={0.2} glareColor="#f5c518" glarePosition="all"
+                glareBorderRadius="14px" tiltReverse
+                style={{ width: '220px' }}
+              >
               <div style={{
                 width: '220px', borderRadius: '14px', overflow: 'hidden',
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
-                transition: 'border-color 0.15s, transform 0.15s',
+                transition: 'border-color 0.15s',
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)'; e.currentTarget.style.transform = 'translateY(-4px)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--gold)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 <div style={{
                   height: '110px', position: 'relative',
@@ -59,6 +66,7 @@ export default function PopularServicesStrip({ services }) {
                   </div>
                 </div>
               </div>
+              </Tilt>
             </Link>
             </Reveal>
           ))}

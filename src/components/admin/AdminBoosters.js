@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import AdminSkeleton from './AdminSkeleton'
 
 const STATUS_LABELS = { active: 'Aktif', inactive: 'Pasif' }
 const STATUS_COLORS = {
@@ -70,7 +71,7 @@ export default function AdminBoosters({ secret }) {
     return ids.map(id => games.find(g => g.id === id)?.name).filter(Boolean).join(', ') || 'Tüm oyunlar'
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={5} />
 
   return (
     <div>

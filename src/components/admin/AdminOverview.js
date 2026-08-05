@@ -1,6 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell } from 'recharts'
+import Skeleton from 'react-loading-skeleton'
+import AnimatedNumber from '@/components/AnimatedNumber'
 
 const STATUS_LABELS = {
   pending: 'Bekliyor',
@@ -72,7 +74,7 @@ export default function AdminOverview({ secret, onNavigate }) {
     setLoading(false)
   }
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <OverviewSkeleton />
   if (!stats) return <p style={{ color: 'var(--text-muted)' }}>Veri yüklenemedi.</p>
 
   const totalStatusOrders = Object.values(stats.statusCounts).reduce((a, b) => a + b, 0)
@@ -84,12 +86,12 @@ export default function AdminOverview({ secret, onNavigate }) {
       <h2 className="h3" style={{ color: '#fff', marginBottom: '20px' }}>Genel Bakış</h2>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-        <StatCard icon="💰" label="Toplam Gelir" value={money(stats.totalRevenue)} accent />
-        <StatCard icon="📈" label="Son 30 Gün" value={money(stats.last30Revenue)} growth={stats.revenueGrowthPct} />
-        <StatCard icon="📦" label="Toplam Sipariş" value={stats.totalOrders} />
-        <StatCard icon="👥" label="Toplam Kullanıcı" value={stats.totalUsers} growth={stats.userGrowthPct} growthLabel="30g" />
+        <StatCard icon="💰" label="Toplam Gelir" countTo={stats.totalRevenue} decimals={2} prefix="$" accent />
+        <StatCard icon="📈" label="Son 30 Gün" countTo={stats.last30Revenue} decimals={2} prefix="$" growth={stats.revenueGrowthPct} />
+        <StatCard icon="📦" label="Toplam Sipariş" countTo={stats.totalOrders} />
+        <StatCard icon="👥" label="Toplam Kullanıcı" countTo={stats.totalUsers} growth={stats.userGrowthPct} growthLabel="30g" />
         <StatCard icon="🛠️" label="Booster" value={`${stats.activeBoosters} / ${stats.totalBoosters}`} />
-        <StatCard icon="🏷️" label="Verilen İndirim (toplam)" value={money(stats.totalDiscountGiven)} />
+        <StatCard icon="🏷️" label="Verilen İndirim (toplam)" countTo={stats.totalDiscountGiven} decimals={2} prefix="$" />
       </div>
 
       {needsAttention > 0 && (
@@ -229,7 +231,25 @@ export default function AdminOverview({ secret, onNavigate }) {
   )
 }
 
-function StatCard({ icon, label, value, accent, growth, growthLabel }) {
+function OverviewSkeleton() {
+  return (
+    <div>
+      <Skeleton height={26} width={160} style={{ marginBottom: 20 }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '16px' }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} height={84} borderRadius={12} />
+        ))}
+      </div>
+      <Skeleton height={200} borderRadius={12} style={{ marginBottom: '16px' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <Skeleton height={180} borderRadius={12} />
+        <Skeleton height={180} borderRadius={12} />
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, decimals = 0, prefix = '' }) {
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -250,7 +270,11 @@ function StatCard({ icon, label, value, accent, growth, growthLabel }) {
       <div style={{
         fontSize: '20px', fontWeight: '800', fontFamily: 'var(--font-montserrat)',
         color: accent ? 'var(--gold)' : '#fff',
-      }}>{value}</div>
+      }}>
+        {countTo !== undefined ? (
+          <AnimatedNumber end={countTo} decimals={decimals} prefix={prefix} />
+        ) : value}
+      </div>
       <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
     </div>
   )

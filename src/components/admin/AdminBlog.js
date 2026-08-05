@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import AdminSkeleton from './AdminSkeleton'
 
 export default function AdminBlog({ secret }) {
   const [view, setView] = useState('posts')
@@ -69,7 +70,7 @@ export default function AdminBlog({ secret }) {
       {view === 'authors' ? (
         <AdminBlogAuthors headers={headers} />
       ) : loading ? (
-        <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+        <AdminSkeleton rows={5} />
       ) : (
         <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -161,7 +162,7 @@ function AdminBlogAuthors({ headers }) {
       .finally(() => setLoading(false))
   }, [])
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={5} />
 
   if (creators.length === 0) {
     return (

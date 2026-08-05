@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import AdminSkeleton from './AdminSkeleton'
 
 const STATUS_LABELS = { pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi' }
 const STATUS_COLORS = {
@@ -56,7 +57,7 @@ export default function AdminApplications({ secret }) {
     return applications.filter(a => a.status === filter)
   }, [applications, filter])
 
-  if (loading) return <p style={{ color: 'var(--text-muted)' }}>Yükleniyor...</p>
+  if (loading) return <AdminSkeleton rows={4} />
 
   return (
     <div>
