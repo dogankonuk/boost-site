@@ -277,6 +277,19 @@ input, textarea, select {
   font-family: inherit;
 }
 
+/* Visible keyboard focus ring — most controls in this codebase are custom
+   divs/buttons with hand-rolled hover states and no focus styling at all. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

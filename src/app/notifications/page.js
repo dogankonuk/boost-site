@@ -87,14 +87,17 @@ export default function NotificationsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {notifications.map(n => (
-              <div key={n.id} onClick={() => handleClick(n)} style={{
-                background: n.isRead ? 'var(--bg-card)' : 'rgba(245,197,24,0.05)',
-                border: `1px solid ${n.isRead ? 'var(--border)' : 'rgba(245,197,24,0.3)'}`,
-                borderRadius: '12px', padding: '14px 18px',
-                display: 'flex', alignItems: 'flex-start', gap: '14px',
-                cursor: n.link ? 'pointer' : 'default',
-                transition: 'border-color 0.15s',
-              }}>
+              <div key={n.id} role="button" tabIndex={0}
+                onClick={() => handleClick(n)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(n) } }}
+                style={{
+                  background: n.isRead ? 'var(--bg-card)' : 'rgba(245,197,24,0.05)',
+                  border: `1px solid ${n.isRead ? 'var(--border)' : 'rgba(245,197,24,0.3)'}`,
+                  borderRadius: '12px', padding: '14px 18px',
+                  display: 'flex', alignItems: 'flex-start', gap: '14px',
+                  cursor: n.link ? 'pointer' : 'default',
+                  transition: 'border-color 0.15s',
+                }}>
                 <div style={{
                   width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
                   background: 'var(--bg-elevated)', border: '1px solid var(--border)',

@@ -425,13 +425,16 @@ export default function Navbar() {
                     </div>
                   ) : (
                     notifications.slice(0, 8).map(n => (
-                      <div key={n.id} onClick={() => markNotifRead(n)} style={{
-                        display: 'flex', alignItems: 'flex-start', gap: '10px',
-                        padding: '12px 16px', cursor: n.link ? 'pointer' : 'default',
-                        background: n.isRead ? 'transparent' : 'rgba(245,197,24,0.05)',
-                        borderBottom: '1px solid var(--border)',
-                        transition: 'background 0.15s',
-                      }}
+                      <div key={n.id} role="button" tabIndex={0}
+                        onClick={() => markNotifRead(n)}
+                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); markNotifRead(n) } }}
+                        style={{
+                          display: 'flex', alignItems: 'flex-start', gap: '10px',
+                          padding: '12px 16px', cursor: n.link ? 'pointer' : 'default',
+                          background: n.isRead ? 'transparent' : 'rgba(245,197,24,0.05)',
+                          borderBottom: '1px solid var(--border)',
+                          transition: 'background 0.15s',
+                        }}
                         onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-elevated)'}
                         onMouseLeave={e => e.currentTarget.style.background = n.isRead ? 'transparent' : 'rgba(245,197,24,0.05)'}
                       >
