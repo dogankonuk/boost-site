@@ -28,8 +28,12 @@ Players who want a specific in-game outcome (rank, level, item, achievement) wit
 | `--text` | `#ffffff` | Primary text |
 | `--text-muted` | `#8a8a8a` | Secondary text |
 | `--text-dim` | `#7a7a7a` | Tertiary/caption text |
-| success | `#4caf50` | Confirmations, positive states (100+ uses across the app — established de facto standard) |
-| error | `#ff6666` | Errors, destructive actions, required-field indicators (same — established standard) |
+| `--success` | `#4caf50` | Confirmations, positive states |
+| `--error` | `#ff6666` | Errors, destructive actions, required-field indicators |
+| `--error-strong` | `#ff4444` | Solid-fill error badges (needs more contrast against white text than `--error`) |
+| `--warning` | `#ffcc44` | Pending states, unverified-email banner |
+
+Formalized as CSS variables in `globals.css` — but most existing usages (~150, mostly in the admin panel) still hardcode the hex directly rather than referencing the token. Not urgent to migrate (same visual output either way, low customer-facing impact since it's concentrated in admin), but new code should use the variables.
 
 Dark-mode-only site. No light theme exists. Gold/violet is the full accent vocabulary — don't introduce a third accent color without a real reason.
 

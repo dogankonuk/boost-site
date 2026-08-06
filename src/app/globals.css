@@ -196,6 +196,10 @@ body, p, span, a, input, textarea {
   --text: #ffffff;
   --text-muted: #8a8a8a;
   --text-dim: #7a7a7a;
+  --success: #4caf50;
+  --error: #ff6666;
+  --error-strong: #ff4444;
+  --warning: #ffcc44;
 }
 
 #nprogress .bar {
