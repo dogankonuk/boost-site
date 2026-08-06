@@ -39,8 +39,8 @@ export default async function HomePage() {
       <FeaturesSection />
       <LatestBlogSection posts={JSON.parse(JSON.stringify(latestPosts))} />
       <TestimonialsSection />
-      <TrustSection stats={trustStats} />
       <HomeFAQSection />
+      <TrustSection stats={trustStats} />
       <Footer />
     </main>
   )
