@@ -335,6 +335,38 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
     : '—'
 
+  // Brand-new accounts have nothing to show in the usual stat grid/chart —
+  // a wall of zeros between signup and the "browse games" CTA just adds
+  // scrolling before the one action that matters. Skip straight to it.
+  if (orders.length === 0) {
+    return (
+      <div>
+        <h2 className="h3" style={{ color: '#fff', marginBottom: '4px' }}>
+          Welcome, {profile?.displayName || username} 👋
+        </h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '24px' }}>
+          Let's get your first order started.
+        </p>
+
+        <div style={{
+          background: 'var(--bg-card)', border: '1px solid var(--border)',
+          borderRadius: '16px', padding: '28px 24px', marginBottom: '20px', textAlign: 'center',
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '10px' }}>🎮</div>
+          <h3 className="h4" style={{ color: '#fff', marginBottom: '8px' }}>Ready when you are</h3>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '440px', margin: '0 auto 18px', lineHeight: '1.6' }}>
+            Browse boosting services for your game and place your first order — a professional booster is typically ready within 15–30 minutes.
+          </p>
+          <Link href="/games" style={{ textDecoration: 'none' }}>
+            <button className="btn-primary" style={{ padding: '11px 28px' }}>Browse Games</button>
+          </Link>
+        </div>
+
+        <ReferralCard profile={profile} hasCompletedOrder={false} />
+      </div>
+    )
+  }
+
   return (
     <div>
       <h2 className="h3" style={{ color: '#fff', marginBottom: '4px' }}>
