@@ -39,7 +39,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const { register, handleSubmit, clearErrors, formState: { errors } } = useForm({
+  const { register, handleSubmit, clearErrors, setError: setFieldError, formState: { errors } } = useForm({
     resolver: zodResolver(tab === 'login' ? loginSchema : registerSchema),
     defaultValues: { email: '', username: '', password: '', agreedToTerms: false },
   })
@@ -84,7 +84,11 @@ function LoginForm() {
         }
         router.push('/dashboard')
       } else {
-        setError(d.error || 'An error occurred')
+        if (d.field === 'email' || d.field === 'username') {
+          setFieldError(d.field, { type: 'server', message: d.error })
+        } else {
+          setError(d.error || 'An error occurred')
+        }
         toast.error(d.error || 'An error occurred')
       }
     } catch {
@@ -274,7 +278,11 @@ function LoginForm() {
                 autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                 {...register('password')}
               />
-              {errors.password && <FieldError>{errors.password.message}</FieldError>}
+              {errors.password ? (
+                <FieldError>{errors.password.message}</FieldError>
+              ) : tab === 'register' && (
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '5px' }}>At least 6 characters.</p>
+              )}
             </div>
 
             {tab === 'register' && (

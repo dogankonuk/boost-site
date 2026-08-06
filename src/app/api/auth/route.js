@@ -79,13 +79,20 @@ export async function POST(request) {
         )
       }
 
-      const existing = await prisma.user.findFirst({
-        where: { OR: [{ email }, { username }] }
-      })
+      const [existingEmail, existingUsername] = await Promise.all([
+        prisma.user.findUnique({ where: { email } }),
+        prisma.user.findUnique({ where: { username } }),
+      ])
 
-      if (existing) {
+      if (existingEmail) {
         return NextResponse.json(
-          { success: false, error: 'This email or username is already in use' },
+          { success: false, error: 'This email is already registered', field: 'email' },
+          { status: 400 }
+        )
+      }
+      if (existingUsername) {
+        return NextResponse.json(
+          { success: false, error: 'This username is already taken', field: 'username' },
           { status: 400 }
         )
       }
