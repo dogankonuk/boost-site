@@ -197,7 +197,7 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* İstatistikler */}
+            {/* Stats */}
             <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               {[
                 { label: 'Total', value: orders.length },
@@ -211,7 +211,7 @@ function DashboardContent() {
               ))}
             </div>
 
-            {/* Puan */}
+            {/* Points */}
             <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loyalty Points</span>
@@ -221,7 +221,7 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Menü */}
+            {/* Menu */}
             <div style={{ padding: '8px' }}>
               {[
                 { key: 'overview', icon: '🏠', label: 'Overview' },
@@ -266,7 +266,7 @@ function DashboardContent() {
           </Link>
         </div>
 
-        {/* Sağ içerik */}
+        {/* Right content */}
         <div>
           {tab === 'overview' && (
             <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} tier={tier} profile={profile} />
@@ -898,7 +898,6 @@ function AccountTab({ username, orders, onRated }) {
         }}>{msg.text}</div>
       )}
 
-      {/* Sekme butonları */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         {[{ key: 'profile', label: 'Profile' }, { key: 'billing', label: 'Billing' }, { key: 'password', label: 'Password' }].map(s => (
           <button key={s.key} onClick={() => setActiveSection(s.key)} style={{
@@ -917,15 +916,15 @@ function AccountTab({ username, orders, onRated }) {
         {activeSection === 'profile' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <ProfileField label="Username" value={username} disabled />
-              <ProfileField label="Email" value={profile?.email || ''} disabled />
+              <ProfileField label="Username" value={username} disabled autoComplete="username" />
+              <ProfileField label="Email" value={profile?.email || ''} disabled autoComplete="email" />
             </div>
             <ProfileField label="Display Name" value={form.displayName}
               onChange={v => setForm(f => ({ ...f, displayName: v }))}
-              placeholder="Give a nickname" />
+              placeholder="Give a nickname" autoComplete="nickname" />
             <ProfileField label="Discord ID" value={form.discordId}
               onChange={v => setForm(f => ({ ...f, discordId: v }))}
-              placeholder="e.g., username#1234" />
+              placeholder="e.g., username#1234" autoComplete="off" />
             <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
               Contact support to change your email address.
             </div>
@@ -940,25 +939,25 @@ function AccountTab({ username, orders, onRated }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <ProfileField label="Name & Surname" value={form.billingName}
               onChange={v => setForm(f => ({ ...f, billingName: v }))}
-              placeholder="Name and surname to appear on the invoice" />
+              placeholder="Name and surname to appear on the invoice" autoComplete="name" />
             <ProfileField label="Address" value={form.billingAddress}
               onChange={v => setForm(f => ({ ...f, billingAddress: v }))}
-              placeholder="Street, building number..." />
+              placeholder="Street, building number..." autoComplete="street-address" />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <ProfileField label="City" value={form.billingCity}
                 onChange={v => setForm(f => ({ ...f, billingCity: v }))}
-                placeholder="London" />
+                placeholder="London" autoComplete="address-level2" />
               <ProfileField label="Postal Code" value={form.billingPostalCode}
                 onChange={v => setForm(f => ({ ...f, billingPostalCode: v }))}
-                placeholder="SW1A 1AA" />
+                placeholder="SW1A 1AA" autoComplete="postal-code" />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <ProfileField label="Country" value={form.billingCountry}
                 onChange={v => setForm(f => ({ ...f, billingCountry: v }))}
-                placeholder="Turkey" />
+                placeholder="United Kingdom" autoComplete="country-name" />
               <ProfileField label="Phone" value={form.billingPhone}
                 onChange={v => setForm(f => ({ ...f, billingPhone: v }))}
-                placeholder="+90 555 000 00 00" />
+                placeholder="+1 555 000 0000" autoComplete="tel" />
             </div>
             <button className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
               onClick={saveProfile} disabled={saving}>
@@ -970,11 +969,11 @@ function AccountTab({ username, orders, onRated }) {
         {activeSection === 'password' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
             <ProfileField label="Current Password" value={pwForm.currentPassword} type="password"
-              onChange={v => setPwForm(f => ({ ...f, currentPassword: v }))} />
+              onChange={v => setPwForm(f => ({ ...f, currentPassword: v }))} autoComplete="current-password" />
             <ProfileField label="New Password" value={pwForm.newPassword} type="password"
-              onChange={v => setPwForm(f => ({ ...f, newPassword: v }))} />
+              onChange={v => setPwForm(f => ({ ...f, newPassword: v }))} autoComplete="new-password" />
             <ProfileField label="Confirm New Password" value={pwForm.confirmPassword} type="password"
-              onChange={v => setPwForm(f => ({ ...f, confirmPassword: v }))} />
+              onChange={v => setPwForm(f => ({ ...f, confirmPassword: v }))} autoComplete="new-password" />
             <button className="btn-primary" style={{ alignSelf: 'flex-start', padding: '10px 24px' }}
               onClick={changePassword} disabled={saving}>
               {saving ? 'Updating...' : 'Update Password'}
@@ -986,14 +985,14 @@ function AccountTab({ username, orders, onRated }) {
   )
 }
 
-function ProfileField({ label, value, onChange, type = 'text', placeholder, disabled }) {
+function ProfileField({ label, value, onChange, type = 'text', placeholder, disabled, autoComplete }) {
   return (
     <div>
       <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
         {label}
       </label>
       <input type={type} value={value} onChange={e => onChange?.(e.target.value)}
-        placeholder={placeholder} disabled={disabled}
+        placeholder={placeholder} disabled={disabled} autoComplete={autoComplete}
         style={{
           width: '100%', background: disabled ? 'var(--bg)' : 'var(--bg-elevated)',
           border: '1px solid var(--border)', borderRadius: '8px',

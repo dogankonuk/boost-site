@@ -100,6 +100,7 @@ function ResetPasswordForm() {
                 placeholder="••••••••"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
+                autoComplete="new-password"
                 style={inputStyle}
               />
             </div>
@@ -111,6 +112,7 @@ function ResetPasswordForm() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && submit()}
+                autoComplete="new-password"
                 style={inputStyle}
               />
             </div>

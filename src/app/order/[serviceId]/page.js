@@ -110,7 +110,7 @@ export default async function OrderPage({ params }) {
 
       <Container style={{ paddingTop: '40px', paddingBottom: '60px' }}>
 
-        {/* Ürün görseli + rozetler + güven/süre kartı */}
+        {/* Product image + badges + trust/timing card */}
         <div className="order-hero-row" style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'stretch', flexWrap: 'wrap' }}>
           <div style={{
             position: 'relative', flex: '1.4 1 320px', minHeight: '220px', borderRadius: '18px',
@@ -154,7 +154,7 @@ export default async function OrderPage({ params }) {
           </div>
         </div>
 
-        {/* Güven rozeti şeridi */}
+        {/* Trust badge strip */}
         <div style={{
           display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px',
         }}>

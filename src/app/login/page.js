@@ -235,9 +235,10 @@ function LoginForm() {
                 {tab === 'login' ? 'Email or Username' : 'Email'}
               </label>
               <input
-                type="email"
+                type={tab === 'login' ? 'text' : 'email'}
                 placeholder="example@mail.com"
                 style={inputStyle}
+                autoComplete={tab === 'login' ? 'username' : 'email'}
                 {...register('email')}
               />
               {errors.email && <FieldError>{errors.email.message}</FieldError>}
@@ -250,6 +251,7 @@ function LoginForm() {
                   type="text"
                   placeholder="shadowplayer"
                   style={inputStyle}
+                  autoComplete="username"
                   {...register('username')}
                 />
                 {errors.username && <FieldError>{errors.username.message}</FieldError>}
@@ -269,6 +271,7 @@ function LoginForm() {
                 type="password"
                 placeholder="••••••••"
                 style={inputStyle}
+                autoComplete={tab === 'login' ? 'current-password' : 'new-password'}
                 {...register('password')}
               />
               {errors.password && <FieldError>{errors.password.message}</FieldError>}

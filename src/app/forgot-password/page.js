@@ -76,6 +76,7 @@ export default function ForgotPasswordPage() {
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && submit()}
+                  autoComplete="email"
                   style={inputStyle}
                 />
               </div>
