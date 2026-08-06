@@ -66,6 +66,12 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'You already have a pending application for this role' }, { status: 400 })
     }
 
+    if (!body.discord?.trim()) {
+      return NextResponse.json({ success: false, error: 'Discord tag is required' }, { status: 400 })
+    }
+    if (!Array.isArray(body.games) || body.games.length === 0) {
+      return NextResponse.json({ success: false, error: 'Select at least one game' }, { status: 400 })
+    }
     if (!body.experience?.trim()) {
       return NextResponse.json({ success: false, error: 'Please describe your experience' }, { status: 400 })
     }

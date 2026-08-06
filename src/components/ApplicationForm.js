@@ -24,6 +24,7 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
   const [form, setForm] = useState({ discord: '', telegram: '', games: [], experience: '', screenshots: [], extra: {} })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState({})
   const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
@@ -73,11 +74,19 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
     setForm(f => ({ ...f, extra: { ...f.extra, [key]: value } }))
   }
 
+  function validate() {
+    const errors = {}
+    if (!form.discord.trim()) errors.discord = 'Discord tag is required'
+    if (form.games.length === 0) errors.games = 'Select at least one game'
+    if (!form.experience.trim()) errors.experience = 'Please describe your experience'
+    return errors
+  }
+
   async function submit() {
-    if (!form.experience.trim()) {
-      setError('Please describe your experience')
-      return
-    }
+    const errors = validate()
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
+
     setSubmitting(true)
     setError('')
     try {
@@ -145,24 +154,29 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <Field label="Discord tag">
-                <input value={form.discord} onChange={e => setForm(f => ({ ...f, discord: e.target.value }))} style={inputStyle} placeholder="username#0000" />
+              <Field label="Discord tag" required error={fieldErrors.discord}>
+                <input
+                  value={form.discord}
+                  onChange={e => { setForm(f => ({ ...f, discord: e.target.value })); setFieldErrors(fe => ({ ...fe, discord: undefined })) }}
+                  style={{ ...inputStyle, ...(fieldErrors.discord ? errorInputStyle : {}) }}
+                  placeholder="username#0000"
+                />
               </Field>
               <Field label="Telegram (optional)">
                 <input value={form.telegram} onChange={e => setForm(f => ({ ...f, telegram: e.target.value }))} style={inputStyle} placeholder="@username" />
               </Field>
 
-              <Field label="Which games do you want to work with?">
+              <Field label="Which games do you want to work with?" required error={fieldErrors.games}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {games.map(g => {
                     const selected = form.games.includes(g.id)
                     return (
-                      <button key={g.id} type="button" onClick={() => toggleGame(g.id)} style={{
+                      <button key={g.id} type="button" onClick={() => { toggleGame(g.id); setFieldErrors(fe => ({ ...fe, games: undefined })) }} style={{
                         padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
                         fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer',
-                        border: '1px solid', background: selected ? 'var(--gold)' : 'transparent',
+                        background: selected ? 'var(--gold)' : 'transparent',
                         color: selected ? '#0a0a0a' : 'var(--text-muted)',
-                        borderColor: selected ? 'var(--gold)' : 'var(--border)',
+                        border: `1px solid ${selected ? 'var(--gold)' : (fieldErrors.games ? '#ff6666' : 'var(--border)')}`,
                       }}>{g.name}</button>
                     )
                   })}
@@ -200,12 +214,12 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
                 </Field>
               ))}
 
-              <Field label="Tell us about your experience">
+              <Field label="Tell us about your experience" required error={fieldErrors.experience}>
                 <textarea
                   value={form.experience}
-                  onChange={e => setForm(f => ({ ...f, experience: e.target.value }))}
+                  onChange={e => { setForm(f => ({ ...f, experience: e.target.value })); setFieldErrors(fe => ({ ...fe, experience: undefined })) }}
                   rows={5}
-                  style={{ ...inputStyle, resize: 'vertical' }}
+                  style={{ ...inputStyle, resize: 'vertical', ...(fieldErrors.experience ? errorInputStyle : {}) }}
                   placeholder="Your background, past experience, achievements..."
                 />
               </Field>
@@ -235,15 +249,20 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
   )
 }
 
-function Field({ label, children }) {
+function Field({ label, required, error, children }) {
   return (
     <div>
       <label style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)', fontWeight: '600', display: 'block', marginBottom: '6px' }}>
-        {label}
+        {label}{required && <span style={{ color: '#ff6666' }}> *</span>}
       </label>
       {children}
+      {error && <p style={{ fontSize: '11px', color: '#ff6666', marginTop: '5px' }}>{error}</p>}
     </div>
   )
+}
+
+const errorInputStyle = {
+  border: '1px solid #ff6666',
 }
 
 const inputStyle = {
