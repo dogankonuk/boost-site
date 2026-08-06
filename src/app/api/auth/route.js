@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
-import { sendVerificationEmail, sendPasswordResetEmail } from '@/lib/email'
+import { sendVerificationEmail, sendPasswordResetEmail, sendPasswordChangedEmail } from '@/lib/email'
 import { rateLimit, getClientIp } from '@/lib/rateLimit'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 import { generateReferralCode, ensureReferralCode } from '@/lib/referral'
@@ -359,6 +359,9 @@ export async function PUT(request) {
       }
       const passwordHash = await bcrypt.hash(newPassword, 10)
       await prisma.user.update({ where: { id: decoded.userId }, data: { passwordHash } })
+      // Best-effort — the only signal the account owner gets that this happened,
+      // since changing the password doesn't invalidate any other active session token.
+      sendPasswordChangedEmail({ to: user.email, username: user.username }).catch(() => {})
       return NextResponse.json({ success: true })
     }
 
