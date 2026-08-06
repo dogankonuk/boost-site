@@ -46,6 +46,27 @@ export async function notifyOrderReleased(prisma, order) {
   }
 }
 
+// Notifies a user (referrer or referred) that a referral bonus was credited to
+// their account — without this, the only way to notice is stumbling onto the
+// updated points balance, which breaks the reward-delivery half of the loop.
+export async function notifyReferralBonus(prisma, { userId, points, role }) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'referral_bonus',
+        title: `You earned +${points} loyalty points!`,
+        body: role === 'referrer'
+          ? 'A friend you invited just completed their first order.'
+          : "Welcome bonus for joining via a friend's referral link.",
+        link: '/dashboard?tab=account',
+      },
+    })
+  } catch (err) {
+    console.error('notifyReferralBonus error:', err)
+  }
+}
+
 // Notifies a user that they've received a new message on an order's chat thread.
 export async function notifyNewMessage(prisma, { recipientUserId, senderUsername, orderNumber, link }) {
   try {

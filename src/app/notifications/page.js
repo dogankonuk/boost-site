@@ -12,6 +12,7 @@ const TYPE_ICONS = {
   message: '💬',
   application_status: '📋',
   blog_unpublished: '📄',
+  referral_bonus: '🎁',
 }
 
 export default function NotificationsPage() {

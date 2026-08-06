@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { notifyReferralBonus } from './notify'
 
 const REFERRAL_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no ambiguous 0/O/1/I
 export const REFERRER_BONUS_POINTS = 100
@@ -39,5 +40,11 @@ export async function maybeAwardReferralBonus(userId) {
       where: { id: user.referredById },
       data: { bonusPoints: { increment: REFERRER_BONUS_POINTS } },
     }),
+  ])
+
+  // Best-effort — a notification hiccup shouldn't undo the points already awarded.
+  await Promise.all([
+    notifyReferralBonus(prisma, { userId: user.id, points: REFERRED_BONUS_POINTS, role: 'referred' }),
+    notifyReferralBonus(prisma, { userId: user.referredById, points: REFERRER_BONUS_POINTS, role: 'referrer' }),
   ])
 }

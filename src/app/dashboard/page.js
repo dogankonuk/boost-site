@@ -396,7 +396,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         </div>
       </div>
 
-      <ReferralCard profile={profile} />
+      <ReferralCard profile={profile} hasCompletedOrder={completedOrders.length > 0} />
 
       {currentOrder && (
         <div style={{
@@ -451,7 +451,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
   )
 }
 
-function ReferralCard({ profile }) {
+function ReferralCard({ profile, hasCompletedOrder }) {
   const [copied, setCopied] = useState(false)
   if (!profile?.referralCode) return null
 
@@ -464,6 +464,22 @@ function ReferralCard({ profile }) {
       toast.success('Referral link copied!')
       setTimeout(() => setCopied(false), 2000)
     })
+  }
+
+  // Ask for referrals after the customer has actually experienced the
+  // service, not before — a brand-new account has nothing to vouch for yet.
+  if (!hasCompletedOrder) {
+    return (
+      <div style={{
+        background: 'var(--bg-card)', border: '1px solid var(--border)',
+        borderRadius: '16px', padding: '20px 24px', marginBottom: '20px',
+      }}>
+        <h3 className="h4" style={{ color: '#fff', marginBottom: '6px' }}>🎁 Invite Friends, Earn Points</h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
+          Your referral link unlocks after your first order is delivered — come back then to start earning points for every friend you bring in.
+        </p>
+      </div>
+    )
   }
 
   return (
