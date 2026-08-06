@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function TermsPage() {
   return (
-    <StaticPage title="Terms of Service" subtitle="Last updated: 2026">
+    <StaticPage title="Terms of Service" path="/terms" subtitle="Last updated: 2026">
       <Section title="1. The Service">
         <p>
           ShadowBoosting connects customers with independent boosters who provide game account boosting and

@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <StaticPage title="Privacy Policy" subtitle="Last updated: 2026">
+    <StaticPage title="Privacy Policy" path="/privacy" subtitle="Last updated: 2026">
       <Section title="1. Information We Collect">
         <p>
           When you create an account or place an order, we collect the information you provide directly —

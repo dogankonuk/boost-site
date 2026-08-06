@@ -46,7 +46,7 @@ export default function FAQPage() {
           acceptedAnswer: { '@type': 'Answer', text: item.a },
         })),
       }} />
-      <StaticPage title="Frequently Asked Questions">
+      <StaticPage title="Frequently Asked Questions" path="/faq">
         {FAQS.map((item, i) => (
           <Section key={i} title={item.q}>
             <p>{item.a}</p>

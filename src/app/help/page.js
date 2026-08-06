@@ -9,7 +9,7 @@ export const metadata = {
 
 export default function HelpPage() {
   return (
-    <StaticPage title="Help Center" subtitle="Find answers or reach out — we're here to help.">
+    <StaticPage title="Help Center" path="/help" subtitle="Find answers or reach out — we're here to help.">
       <Section title="Getting Started">
         <p>
           Browse <Link href="/games" style={{ color: 'var(--gold)' }}>Games</Link> to find the service you need,

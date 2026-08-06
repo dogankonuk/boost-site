@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function RefundPolicyPage() {
   return (
-    <StaticPage title="Refund Policy" subtitle="Last updated: 2026">
+    <StaticPage title="Refund Policy" path="/refund" subtitle="Last updated: 2026">
       <Section title="Money-Back Guarantee">
         <p>
           If your order has not yet been started by a booster (status: "Pending"), you're eligible for a full
