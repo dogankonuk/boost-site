@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev'
+const ADMIN_EMAIL = process.env.ADMIN_NOTIFICATION_EMAIL
 
 export async function sendVerificationEmail({ to, username, link }) {
   try {
@@ -316,6 +317,113 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
             <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
               <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Track Your Order →</a>
             </div>`}
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}
+
+// Alerts the team inbox the moment someone applies via "Work with us" — before
+// this, an application only showed up if someone happened to check the admin
+// panel. Silently no-ops if ADMIN_NOTIFICATION_EMAIL isn't configured.
+export async function sendNewApplicationAdminEmail({ type, username, userEmail, discord, gameNames }) {
+  if (!ADMIN_EMAIL) return
+  const roleLabel = type === 'booster' ? 'Booster' : 'Content Creator'
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: ADMIN_EMAIL,
+      subject: `New ${roleLabel} application — ${username}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;">
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#fff;">New ${roleLabel} Application</h1>
+              <p style="color:#777;margin:0 0 20px;font-size:14px;">${username} just applied. Review it in the admin panel.</p>
+
+              <table style="width:100%;border-collapse:collapse;background:#0a0a0a;border-radius:10px;padding:16px;">
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">User</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${username} (${userEmail})</td></tr>
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Discord</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${discord || '—'}</td></tr>
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Games</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${gameNames || '—'}</td></tr>
+              </table>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
+              <a href="https://shadowboosting.co/admin" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Review Application →</a>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}
+
+// Fires when an admin approves or rejects an application — the applicant's
+// only signal besides logging back in to check (the in-app notification
+// alone requires an active session to be seen).
+export async function sendApplicationDecisionEmail({ to, username, type, decision, reviewNote }) {
+  const roleLabel = type === 'booster' ? 'Booster' : 'Content Creator'
+  const approved = decision === 'approved'
+  const color = approved ? '#4caf50' : '#ff6666'
+  const label = approved ? 'Approved' : 'Not Approved'
+
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Your ${roleLabel} application — ${label}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;text-align:center;">
+              <div style="display:inline-block;background:${color}22;border:1px solid ${color}44;border-radius:8px;padding:6px 14px;margin-bottom:16px;">
+                <span style="color:${color};font-size:13px;font-weight:700;">${label}</span>
+              </div>
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 8px;color:#fff;">${roleLabel} Application ${label}</h1>
+              <p style="color:#777;margin:0 0 8px;font-size:14px;">
+                ${approved
+                  ? `Hi ${username}, congrats — your ${roleLabel.toLowerCase()} application was approved!`
+                  : `Hi ${username}, your ${roleLabel.toLowerCase()} application wasn't approved this time.`}
+              </p>
+              ${reviewNote ? `<p style="color:#555;font-size:13px;margin:12px 0 0;">${reviewNote}</p>` : ''}
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;text-align:center;">
+              <a href="https://shadowboosting.co/dashboard" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">${approved ? 'Go to Dashboard →' : 'View Application →'}</a>
+            </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
               © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!

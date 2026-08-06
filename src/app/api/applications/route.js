@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { sendNewApplicationAdminEmail } from '@/lib/email'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 const VALID_TYPES = ['booster', 'content_creator']
@@ -88,6 +89,21 @@ export async function POST(request) {
         extra: body.extra || null,
       },
     })
+
+    try {
+      const gameRows = application.games?.length > 0
+        ? await prisma.game.findMany({ where: { id: { in: application.games } }, select: { name: true } })
+        : []
+      await sendNewApplicationAdminEmail({
+        type,
+        username: user.username,
+        userEmail: user.email,
+        discord: application.discord,
+        gameNames: gameRows.map(g => g.name).join(', '),
+      })
+    } catch (err) {
+      console.error('New application admin email error:', err)
+    }
 
     return NextResponse.json({ success: true, data: application }, { status: 201 })
   } catch (err) {

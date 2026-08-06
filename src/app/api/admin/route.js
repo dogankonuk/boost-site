@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { sendOrderStatusUpdate, sendBlogUnpublishedEmail } from '@/lib/email'
+import { sendOrderStatusUpdate, sendBlogUnpublishedEmail, sendApplicationDecisionEmail } from '@/lib/email'
 import { notifyOrderStatus } from '@/lib/notify'
 import { maybeAwardReferralBonus } from '@/lib/referral'
 
@@ -37,14 +37,14 @@ async function pingBoosterOnDiscord(order, booster) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        content: `<@${booster.discordId}> yeni bir sipariş sana atandı!`,
+        content: `<@${booster.discordId}> a new order was assigned to you!`,
         embeds: [{
-          title: '🛠️ Sipariş Atandı',
+          title: '🛠️ Order Assigned',
           color: 0xF5C518,
           fields: [
-            { name: '📋 Sipariş No', value: order.orderNumber, inline: true },
-            { name: '🎯 Oyun', value: order.service?.game?.name || '-', inline: true },
-            { name: '⚡ Hizmet', value: order.service?.name || '-', inline: true },
+            { name: '📋 Order #', value: order.orderNumber, inline: true },
+            { name: '🎯 Game', value: order.service?.game?.name || '-', inline: true },
+            { name: '⚡ Service', value: order.service?.name || '-', inline: true },
           ],
           footer: { text: 'ShadowBoosting.co' },
           timestamp: new Date().toISOString(),
@@ -59,7 +59,7 @@ async function pingBoosterOnDiscord(order, booster) {
 export async function GET(request) {
   const adminUser = await requireAdmin(request)
   if (!adminUser) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -332,7 +332,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   if (!(await requireAdmin(request))) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -355,7 +355,7 @@ export async function POST(request) {
       return NextResponse.json({ success: true, data: booster }, { status: 201 })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid type' }, { status: 400 })
   } catch (error) {
     console.error('Admin POST error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -365,7 +365,7 @@ export async function POST(request) {
 export async function PATCH(request) {
   const admin = await requireAdmin(request)
   if (!admin) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -412,7 +412,7 @@ export async function PATCH(request) {
           data: {
             userId: order.booster.user.id,
             type: 'order_assigned',
-            title: 'Yeni sipariş atandı',
+            title: 'New order assigned',
             body: `${order.service?.game?.name} — ${order.service?.name}`,
             link: '/booster',
           },
@@ -557,7 +557,10 @@ export async function PATCH(request) {
     }
 
     if (type === 'application') {
-      const application = await prisma.application.findUnique({ where: { id: parseInt(id) } })
+      const application = await prisma.application.findUnique({
+        where: { id: parseInt(id) },
+        include: { user: { select: { email: true, username: true } } },
+      })
       if (!application) {
         return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 })
       }
@@ -601,10 +604,20 @@ export async function PATCH(request) {
         console.error('application notification error:', err)
       }
 
+      if (application.user?.email) {
+        sendApplicationDecisionEmail({
+          to: application.user.email,
+          username: application.user.username,
+          type: application.type,
+          decision,
+          reviewNote: data.reviewNote?.trim(),
+        }).catch(err => console.error('application decision email error:', err))
+      }
+
       return NextResponse.json({ success: true, data: updated })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid type' }, { status: 400 })
   } catch (error) {
     console.error('Admin PATCH error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })
@@ -613,7 +626,7 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   if (!(await requireAdmin(request))) {
-    return NextResponse.json({ success: false, error: 'Yetkisiz' }, { status: 401 })
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
@@ -651,7 +664,7 @@ export async function DELETE(request) {
       return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ success: false, error: 'Geçersiz type' }, { status: 400 })
+    return NextResponse.json({ success: false, error: 'Invalid type' }, { status: 400 })
   } catch (error) {
     console.error('Admin DELETE error:', error)
     return NextResponse.json({ success: false, error: error.message }, { status: 500 })

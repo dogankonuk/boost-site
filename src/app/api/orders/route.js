@@ -37,21 +37,21 @@ async function sendDiscordNotification(order) {
   } else if (options?.type === 'quantity') {
     detailText = `${selection.quantity} × ${options.unitName}`
   } else if (options?.type === 'options') {
-    detailText = `Seçenek: ${selection.choice}`
+    detailText = `Option: ${selection.choice}`
   }
 
 
   const embed = {
-    title: '🎮 Yeni Sipariş!',
+    title: '🎮 New Order!',
     color: 0xF5C518,
     fields: [
-      { name: '📋 Sipariş No', value: order.orderNumber, inline: true },
-      { name: '👤 Kullanıcı', value: order.user?.username || 'Bilinmiyor', inline: true },
-      { name: '🎯 Oyun', value: order.service?.game?.name || '-', inline: true },
-      { name: '⚡ Hizmet', value: order.service?.name || '-', inline: true },
-      { name: '💰 Fiyat', value: `$${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, inline: true },
-      { name: '📊 Detay', value: detailText || 'Sabit hizmet', inline: true },
-      ...(details.note ? [{ name: '📝 Not', value: details.note, inline: false }] : []),
+      { name: '📋 Order #', value: order.orderNumber, inline: true },
+      { name: '👤 User', value: order.user?.username || 'Unknown', inline: true },
+      { name: '🎯 Game', value: order.service?.game?.name || '-', inline: true },
+      { name: '⚡ Service', value: order.service?.name || '-', inline: true },
+      { name: '💰 Price', value: `$${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, inline: true },
+      { name: '📊 Details', value: detailText || 'Fixed service', inline: true },
+      ...(details.note ? [{ name: '📝 Note', value: details.note, inline: false }] : []),
     ],
     footer: { text: 'ShadowBoosting.co' },
     timestamp: new Date().toISOString(),
@@ -64,7 +64,7 @@ async function sendDiscordNotification(order) {
       body: JSON.stringify({ embeds: [embed] }),
     })
   } catch (err) {
-    console.error('Discord webhook hatası:', err)
+    console.error('Discord webhook error:', err)
   }
 }
 
