@@ -34,11 +34,11 @@ export default function HeroSection() {
           maxWidth: '480px',
           margin: '20px auto 0',
         }}>
-          Level up your game with our professional boost team. Safe, fast, and guaranteed.
+          Vetted boosters, VPN-protected sessions, and live order tracking — so your account stays exactly as safe as it should.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
           <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary">Get Started</button>
+            <button className="btn-primary">Browse Boosts</button>
           </Link>
           <button className="btn-secondary" onClick={openGamesMenu}>View Services</button>
         </div>
