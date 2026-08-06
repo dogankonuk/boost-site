@@ -437,3 +437,56 @@ export async function sendApplicationDecisionEmail({ to, username, type, decisio
     console.error('Failed to send email:', err)
   }
 }
+
+// Fires on every new order-thread message — previously in-app only, so the
+// recipient only found out if they happened to be logged in and looking.
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+export async function sendNewMessageEmail({ to, username, senderUsername, orderNumber, messagePreview, link }) {
+  const preview = escapeHtml(messagePreview).slice(0, 200)
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `New message from ${senderUsername} — ${orderNumber}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;">
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#fff;">New message from ${senderUsername}</h1>
+              <p style="color:#777;margin:0 0 16px;font-size:14px;">Hi ${username}, you have a new message on order ${orderNumber}.</p>
+              <div style="background:#0a0a0a;border-left:3px solid #f5c518;border-radius:6px;padding:12px 16px;">
+                <p style="color:#ccc;font-size:13px;margin:0;white-space:pre-wrap;">${preview}</p>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
+              <a href="https://shadowboosting.co${link}" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Reply →</a>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}

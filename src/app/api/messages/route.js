@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { notifyNewMessage } from '@/lib/notify'
+import { sendNewMessageEmail } from '@/lib/email'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -23,7 +24,10 @@ function getUserFromToken(request) {
 async function getAuthorizedOrder(orderId, userId) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { booster: { include: { user: true } } },
+    include: {
+      booster: { include: { user: true } },
+      user: { select: { id: true, username: true, email: true } },
+    },
   })
   if (!order) return null
   const isCustomer = order.userId === userId
@@ -94,17 +98,28 @@ export async function POST(request) {
     })
 
     const isCustomer = order.userId === user.userId
-    const recipientUserId = isCustomer ? order.booster?.user?.id : order.userId
+    const recipient = isCustomer ? order.booster?.user : order.user
 
     // No booster assigned yet means there's no one to notify — the message
     // is just recorded and will be visible once someone claims the order.
-    if (recipientUserId) {
+    if (recipient) {
+      const link = isCustomer ? `/booster?orderId=${orderId}` : `/dashboard?tab=orders&orderId=${orderId}`
       await notifyNewMessage(prisma, {
-        recipientUserId,
+        recipientUserId: recipient.id,
         senderUsername: message.sender.username,
         orderNumber: order.orderNumber,
-        link: isCustomer ? `/booster?orderId=${orderId}` : `/dashboard?tab=orders&orderId=${orderId}`,
+        link,
       })
+      if (recipient.email) {
+        sendNewMessageEmail({
+          to: recipient.email,
+          username: recipient.username,
+          senderUsername: message.sender.username,
+          orderNumber: order.orderNumber,
+          messagePreview: text,
+          link,
+        }).catch(err => console.error('new message email error:', err))
+      }
     }
 
     return NextResponse.json({ success: true, data: { ...message, isMine: true } }, { status: 201 })
