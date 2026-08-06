@@ -40,7 +40,7 @@ export default function HeroSection() {
           <Link href="/games" style={{ textDecoration: 'none' }}>
             <button className="btn-primary">Browse Boosts</button>
           </Link>
-          <button className="btn-secondary" onClick={openGamesMenu}>View Services</button>
+          <button className="btn-secondary" onClick={openGamesMenu}>Browse Games</button>
         </div>
       </motion.div>
     </section>
