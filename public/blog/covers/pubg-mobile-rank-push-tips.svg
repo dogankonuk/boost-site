@@ -1,0 +1,45 @@
+<svg width="700" height="400" viewBox="0 0 700 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#161616"/>
+      <stop offset="1" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f5c518" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#f5c518" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="clip"><rect width="700" height="400" rx="0"/></clipPath>
+  </defs>
+  <g clip-path="url(#clip)">
+    <rect width="700" height="400" fill="url(#bg)"/>
+    <circle cx="560" cy="40" r="240" fill="url(#glow)"/>
+    <g stroke="#f5c518" stroke-opacity="0.09" stroke-width="1.5">
+      <line x1="-150" y1="450" x2="110" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="-40" y1="450" x2="220" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="70" y1="450" x2="330" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="180" y1="450" x2="440" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="290" y1="450" x2="550" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="400" y1="450" x2="660" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="510" y1="450" x2="770" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="620" y1="450" x2="880" y2="-50" transform="rotate(19 350 200)"/>
+      <line x1="730" y1="450" x2="990" y2="-50" transform="rotate(19 350 200)"/>
+    </g>
+    <rect width="700" height="400" fill="none" stroke="#f5c518" stroke-opacity="0.25" stroke-width="1"/>
+  </g>
+
+  <g transform="translate(40,40)">
+    <rect width="90" height="90" rx="20" fill="#0a0a0a" stroke="#f5c518" stroke-opacity="0.5" stroke-width="1.5"/>
+    <g transform="translate(21,21)">
+    <circle cx="24" cy="24" r="17" fill="none" stroke="#f5c518" stroke-width="1.6"/>
+    <path d="M31 17 L21 21 L17 31 L27 27 Z" fill="#f5c518" opacity="0.85"/>
+    <circle cx="24" cy="24" r="2.2" fill="#161616" stroke="#f5c518" stroke-width="1.2"/>
+  </g>
+  </g>
+
+  <g transform="translate(40,340)">
+    <rect width="124" height="26" rx="13" fill="#0a0a0a" stroke="#f5c518" stroke-opacity="0.6" stroke-width="1"/>
+    <text x="14" y="17.5" font-family="Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="0.5" fill="#f5c518">PUBG MOBILE</text>
+  </g>
+
+  <text x="660" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="800" fill="#ffffff" fill-opacity="0.14" text-anchor="end">SHADOWBOOSTING</text>
+</svg>
