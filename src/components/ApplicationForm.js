@@ -6,6 +6,7 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import FileUpload from '@/components/FileUpload'
 import { authFetch } from '@/lib/authFetch'
+import { trackEvent } from '@/lib/analytics'
 
 const STATUS_LABELS = { pending: 'Under Review', approved: 'Approved', rejected: 'Not Approved' }
 const STATUS_COLORS = {
@@ -86,7 +87,10 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
       })
       if (res) {
         const d = await res.json()
-        if (d.success) setSubmitted(true)
+        if (d.success) {
+          setSubmitted(true)
+          trackEvent('application_submitted', { application_type: type, games_selected: form.games.length })
+        }
         else setError(d.error || 'Could not submit your application')
       }
     } catch {

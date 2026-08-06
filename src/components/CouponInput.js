@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { authFetch } from '@/lib/authFetch'
+import { trackEvent } from '@/lib/analytics'
 
 export default function CouponInput({ serviceId, selection, applied, onApplied, onRemoved }) {
   const [code, setCode] = useState('')
@@ -23,6 +24,7 @@ export default function CouponInput({ serviceId, selection, applied, onApplied, 
       if (d.success) {
         onApplied?.(d.data)
         toast.success(`Coupon applied: ${d.data.code}`)
+        trackEvent('coupon_applied', { coupon: d.data.code, value: d.data.discountAmount })
       } else {
         setError(d.error || 'Invalid coupon code')
       }

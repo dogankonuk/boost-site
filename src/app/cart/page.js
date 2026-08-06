@@ -11,6 +11,7 @@ import { useCart } from '@/context/CartContext'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import { celebrate } from '@/lib/celebrate'
+import { trackEvent } from '@/lib/analytics'
 import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 
 export default function CartPage() {
@@ -31,6 +32,12 @@ export default function CartPage() {
     if (!loggedIn) { router.push('/login'); return }
     setCheckingOut(true)
     setError('')
+    trackEvent('begin_checkout', {
+      value: totalUSD,
+      currency: 'USD',
+      items: items.map(i => ({ item_id: i.serviceId, item_name: i.serviceName, item_category: i.gameName })),
+      coupon: couponCode.trim() || undefined,
+    })
 
     const failed = []
 
@@ -48,6 +55,13 @@ export default function CartPage() {
         if (!res) return
         const d = await res.json()
         if (d.success) {
+          trackEvent('purchase', {
+            transaction_id: d.data.orderNumber,
+            value: d.data.price,
+            currency: 'USD',
+            items: [{ item_id: item.serviceId, item_name: item.serviceName, item_category: item.gameName }],
+            coupon: couponCode.trim() || undefined,
+          })
           removeItem(item.cartId)
         } else {
           failed.push(item.serviceName)

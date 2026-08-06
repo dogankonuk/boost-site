@@ -8,6 +8,7 @@ import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
 import { calculatePrice, round2 } from '@/lib/pricing'
+import { trackEvent } from '@/lib/analytics'
 import CouponInput from './CouponInput'
 
 const TRUST_ITEMS = [
@@ -87,6 +88,13 @@ export default function OrderForm({ service }) {
       if (d.success) {
         celebrate()
         toast.success('Order placed!')
+        trackEvent('purchase', {
+          transaction_id: d.data.orderNumber,
+          value: finalPrice,
+          currency: 'USD',
+          items: [{ item_id: service.id, item_name: service.name, item_category: service.game?.name }],
+          coupon: couponWins ? couponPreview.code : undefined,
+        })
         router.push('/dashboard')
       } else {
         setError(d.error || 'An error occurred')

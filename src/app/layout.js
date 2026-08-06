@@ -2,6 +2,7 @@ import './globals.css'
 import 'nprogress/nprogress.css'
 import 'react-loading-skeleton/dist/skeleton.css'
 import { Suspense } from 'react'
+import Script from 'next/script'
 import { Chakra_Petch, Plus_Jakarta_Sans } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
@@ -23,6 +24,7 @@ const inter = Plus_Jakarta_Sans({
 })
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
@@ -50,6 +52,19 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${montserrat.variable} ${inter.variable}`}>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="afterInteractive" />
+            <Script id="ga4-init" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}');
+              `}
+            </Script>
+          </>
+        )}
         <JsonLd data={{
           '@context': 'https://schema.org',
           '@graph': [

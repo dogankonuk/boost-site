@@ -16,6 +16,7 @@ import MessageThread from '@/components/MessageThread'
 import OrderTimeline from '@/components/OrderTimeline'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
+import { trackEvent } from '@/lib/analytics'
 
 // Compares against the last-seen tier/referral count in localStorage so a
 // reward toast + confetti only fires the moment a milestone is newly crossed.
@@ -462,6 +463,7 @@ function ReferralCard({ profile, hasCompletedOrder }) {
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true)
       toast.success('Referral link copied!')
+      trackEvent('referral_link_copied', { referral_count: profile.referralCount || 0 })
       setTimeout(() => setCopied(false), 2000)
     })
   }

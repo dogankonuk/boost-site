@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { trackEvent } from '@/lib/analytics'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email or username is required'),
@@ -78,6 +79,9 @@ function LoginForm() {
         localStorage.setItem('token', d.data.token)
         localStorage.setItem('username', d.data.username)
         toast.success(tab === 'login' ? `Welcome back, ${d.data.username}!` : 'Account created!')
+        if (tab === 'register') {
+          trackEvent('sign_up', { method: 'email', referred: !!searchParams.get('ref') })
+        }
         router.push('/dashboard')
       } else {
         setError(d.error || 'An error occurred')
