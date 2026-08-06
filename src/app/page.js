@@ -8,6 +8,7 @@ import FeaturesSection from '@/components/FeaturesSection'
 import TrustSection from '@/components/TrustSection'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import LatestBlogSection from '@/components/LatestBlogSection'
+import HomeFAQSection from '@/components/HomeFAQSection'
 import Footer from '@/components/Footer'
 
 export default async function HomePage() {
@@ -39,6 +40,7 @@ export default async function HomePage() {
       <LatestBlogSection posts={JSON.parse(JSON.stringify(latestPosts))} />
       <TestimonialsSection />
       <TrustSection stats={trustStats} />
+      <HomeFAQSection />
       <Footer />
     </main>
   )
