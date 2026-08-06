@@ -10,6 +10,7 @@ import TrustSection from '@/components/TrustSection'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import LatestBlogSection from '@/components/LatestBlogSection'
 import HomeFAQSection from '@/components/HomeFAQSection'
+import ClosingCTASection from '@/components/ClosingCTASection'
 import Footer from '@/components/Footer'
 
 export default async function HomePage() {
@@ -43,6 +44,7 @@ export default async function HomePage() {
       <TestimonialsSection testimonials={JSON.parse(JSON.stringify(testimonials))} />
       <HomeFAQSection />
       <TrustSection stats={trustStats} />
+      <ClosingCTASection />
       <Footer />
     </main>
   )
