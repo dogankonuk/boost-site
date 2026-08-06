@@ -1,4 +1,3 @@
-'use client'
 import Link from 'next/link'
 
 const links = [
@@ -56,14 +55,10 @@ export default function Footer() {
 
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
           {links.map(l => (
-            <Link key={l.label} href={l.href} className="caption" style={{
+            <Link key={l.label} href={l.href} className="caption hover-gold-text" style={{
               color: 'var(--text-dim)',
-              transition: 'color 0.2s',
               textDecoration: 'none',
-            }}
-              onMouseEnter={e => e.target.style.color = 'var(--gold)'}
-              onMouseLeave={e => e.target.style.color = 'var(--text-dim)'}
-            >{l.label}</Link>
+            }}>{l.label}</Link>
           ))}
         </div>
       </div>

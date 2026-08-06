@@ -108,10 +108,20 @@ export async function POST(request) {
       )
     }
 
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-      include: { game: true }
-    })
+    const now = new Date()
+    const [service, dbUser, activeCampaigns] = await Promise.all([
+      prisma.service.findUnique({
+        where: { id: serviceId },
+        include: { game: true }
+      }),
+      prisma.user.findUnique({
+        where: { id: user.userId },
+        select: { bonusPoints: true, orders: { where: { status: { not: 'cancelled' } }, select: { price: true } } },
+      }),
+      prisma.campaign.findMany({
+        where: { isActive: true, startsAt: { lte: now }, endsAt: { gte: now } },
+      }),
+    ])
 
     if (!service) {
       return NextResponse.json(
@@ -125,18 +135,10 @@ export async function POST(request) {
     const selection = details?.selection || {}
     const basePrice = calculatePrice(service.options, service.basePrice, selection)
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { bonusPoints: true, orders: { where: { status: { not: 'cancelled' } }, select: { price: true } } },
-    })
     const totalSpent = dbUser.orders.reduce((sum, o) => sum + o.price, 0)
     const points = pointsFromSpend(totalSpent) + (dbUser.bonusPoints || 0)
     const loyaltyPct = getLoyaltyTier(points).discount
 
-    const now = new Date()
-    const activeCampaigns = await prisma.campaign.findMany({
-      where: { isActive: true, startsAt: { lte: now }, endsAt: { gte: now } },
-    })
     const campaign = activeCampaigns.find(c => isCampaignEligible(c, service.gameId))
     const campaignPct = campaign?.discountPct || 0
 

@@ -16,19 +16,20 @@ const STATIC_ROUTES = [
 ]
 
 export default async function sitemap() {
-  const games = await prisma.game.findMany({
-    where: { isActive: true },
-    select: {
-      slug: true,
-      createdAt: true,
-      services: { where: { isActive: true }, select: { id: true, createdAt: true } },
-    },
-  })
-
-  const blogPosts = await prisma.blogPost.findMany({
-    where: { isPublished: true, publishedAt: { lte: new Date() } },
-    select: { slug: true, updatedAt: true },
-  })
+  const [games, blogPosts] = await Promise.all([
+    prisma.game.findMany({
+      where: { isActive: true },
+      select: {
+        slug: true,
+        createdAt: true,
+        services: { where: { isActive: true }, select: { id: true, createdAt: true } },
+      },
+    }),
+    prisma.blogPost.findMany({
+      where: { isPublished: true, publishedAt: { lte: new Date() } },
+      select: { slug: true, updatedAt: true },
+    }),
+  ])
 
   const staticEntries = STATIC_ROUTES.map(r => ({
     url: `${SITE_URL}${r.path}`,

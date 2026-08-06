@@ -10,31 +10,31 @@ export async function GET(request) {
       return NextResponse.json({ success: true, data: [] })
     }
 
-    const games = await prisma.game.findMany({
-      where: {
-        isActive: true,
-        name: { contains: q, mode: 'insensitive' }
-      },
-      take: 4,
-    })
-
-    const services = await prisma.service.findMany({
-      where: {
-        isActive: true,
-        name: { contains: q, mode: 'insensitive' }
-      },
-      include: { game: true },
-      take: 5,
-    })
-
-    const posts = await prisma.blogPost.findMany({
-      where: {
-        isPublished: true,
-        publishedAt: { lte: new Date() },
-        title: { contains: q, mode: 'insensitive' }
-      },
-      take: 4,
-    })
+    const [games, services, posts] = await Promise.all([
+      prisma.game.findMany({
+        where: {
+          isActive: true,
+          name: { contains: q, mode: 'insensitive' }
+        },
+        take: 4,
+      }),
+      prisma.service.findMany({
+        where: {
+          isActive: true,
+          name: { contains: q, mode: 'insensitive' }
+        },
+        include: { game: true },
+        take: 5,
+      }),
+      prisma.blogPost.findMany({
+        where: {
+          isPublished: true,
+          publishedAt: { lte: new Date() },
+          title: { contains: q, mode: 'insensitive' }
+        },
+        take: 4,
+      }),
+    ])
 
     const results = [
       ...games.map(g => ({

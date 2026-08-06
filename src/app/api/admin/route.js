@@ -87,15 +87,17 @@ export async function GET(request) {
     }
 
     if (type === 'gameCategories') {
-      const games = await prisma.game.findMany({
-        select: { category: true },
-        where: { isActive: true }
-      })
+      const [games, setting] = await Promise.all([
+        prisma.game.findMany({
+          select: { category: true },
+          where: { isActive: true }
+        }),
+        prisma.setting.findUnique({ where: { key: 'gameCategories' } }),
+      ])
       const autoCategories = [...new Set(
         games.flatMap(g => g.category ? g.category.split(', ') : [])
       )]
-      
-      const setting = await prisma.setting.findUnique({ where: { key: 'gameCategories' } })
+
       const manualCategories = (setting?.value || [])
       
       const all = [...new Set([...autoCategories, ...manualCategories])].sort()

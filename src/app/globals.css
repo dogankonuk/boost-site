@@ -250,6 +250,20 @@ body, p, span, a, input, textarea {
   background: var(--gold);
 }
 
+.hover-gold-border {
+  transition: border-color 0.2s;
+}
+.hover-gold-border:hover {
+  border-color: var(--gold);
+}
+
+.hover-gold-text {
+  transition: color 0.2s;
+}
+.hover-gold-text:hover {
+  color: var(--gold);
+}
+
 html, body {
   background:
     radial-gradient(ellipse 900px 700px at 8% -8%, rgba(245, 197, 24, 0.12), transparent 60%),

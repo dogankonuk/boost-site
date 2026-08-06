@@ -1,21 +1,7 @@
-'use client'
-import { useEffect, useState } from 'react'
-import Skeleton from 'react-loading-skeleton'
 import Reveal from './motion/Reveal'
 
-export default function TestimonialsSection() {
-  const [testimonials, setTestimonials] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetch('/api/testimonials?limit=8')
-      .then(r => r.json())
-      .then(d => { if (d.success) setTestimonials(d.data) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (!loading && testimonials.length === 0) return null
+export default function TestimonialsSection({ testimonials = [] }) {
+  if (testimonials.length === 0) return null
 
   return (
     <section className="container" style={{ paddingBottom: '48px' }}>
@@ -23,21 +9,13 @@ export default function TestimonialsSection() {
         <h2 className="h3" style={{ color: '#fff', marginBottom: '18px' }}>What Players Are Saying</h2>
       </Reveal>
 
-      {loading ? (
-        <div style={{ display: 'flex', gap: '14px' }}>
-          {[0, 1, 2].map(i => (
-            <Skeleton key={i} height={168} width={300} borderRadius={14} style={{ flexShrink: 0 }} />
-          ))}
-        </div>
-      ) : (
-        <div className="themed-scrollbar" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '10px' }}>
-          {testimonials.map((t, i) => (
-            <Reveal key={t.id} delay={i * 0.05}>
-              <TestimonialCard t={t} />
-            </Reveal>
-          ))}
-        </div>
-      )}
+      <div className="themed-scrollbar" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '10px' }}>
+        {testimonials.map((t, i) => (
+          <Reveal key={t.id} delay={i * 0.05}>
+            <TestimonialCard t={t} />
+          </Reveal>
+        ))}
+      </div>
     </section>
   )
 }

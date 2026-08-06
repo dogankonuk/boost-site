@@ -1,4 +1,3 @@
-'use client'
 import AnimatedNumber from './AnimatedNumber'
 import Reveal from './motion/Reveal'
 
