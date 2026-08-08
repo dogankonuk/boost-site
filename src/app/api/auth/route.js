@@ -368,7 +368,7 @@ export async function PUT(request) {
       await prisma.user.update({ where: { id: decoded.userId }, data: { passwordHash } })
       // Best-effort — the only signal the account owner gets that this happened,
       // since changing the password doesn't invalidate any other active session token.
-      sendPasswordChangedEmail({ to: user.email, username: user.username }).catch(() => {})
+      sendPasswordChangedEmail({ to: user.email, username: user.username }).catch(err => console.error('password changed email error:', err))
       return NextResponse.json({ success: true })
     }
 
