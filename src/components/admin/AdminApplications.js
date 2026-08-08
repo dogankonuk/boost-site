@@ -1,5 +1,6 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import Image from 'next/image'
 import AdminSkeleton from './AdminSkeleton'
 
 const STATUS_LABELS = { pending: 'Bekliyor', approved: 'Onaylandı', rejected: 'Reddedildi' }
@@ -19,14 +20,9 @@ export default function AdminApplications({ secret }) {
   const [reviewNotes, setReviewNotes] = useState({})
   const [msg, setMsg] = useState('')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => {
-    fetchApplications()
-    fetch('/api/games').then(r => r.json()).then(d => { if (d.success) setGames(d.data) }).catch(() => {})
-  }, [])
-
-  async function fetchApplications() {
+  const fetchApplications = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=applications', { headers })
@@ -34,7 +30,28 @@ export default function AdminApplications({ secret }) {
       if (d.success) setApplications(d.data)
     } catch {}
     setLoading(false)
-  }
+  }, [headers])
+
+  const fetchGames = useCallback(async () => {
+    try {
+      const res = await fetch('/api/games')
+      const data = await res.json()
+      if (data.success) setGames(data.data)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadApplications() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchApplications(), fetchGames()])
+    }
+
+    loadApplications()
+    return () => { cancelled = true }
+  }, [fetchApplications, fetchGames])
 
   async function decide(app, status) {
     await fetch('/api/admin', {
@@ -138,7 +155,7 @@ export default function AdminApplications({ secret }) {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                           {app.screenshots.map(url => (
                             <a key={url} href={url} target="_blank" rel="noopener noreferrer">
-                              <img src={url} alt="" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} />
+                              <Image src={url} alt="Başvuru ekran görüntüsü" width={80} height={80} style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} />
                             </a>
                           ))}
                         </div>

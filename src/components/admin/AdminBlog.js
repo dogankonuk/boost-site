@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import AdminSkeleton from './AdminSkeleton'
 
 export default function AdminBlog({ secret }) {
@@ -9,11 +9,9 @@ export default function AdminBlog({ secret }) {
   const [filter, setFilter] = useState('all')
   const [msg, setMsg] = useState('')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => { fetchPosts() }, [])
-
-  async function fetchPosts() {
+  const fetchPosts = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=blogPosts', { headers })
@@ -21,7 +19,19 @@ export default function AdminBlog({ secret }) {
       if (d.success) setPosts(d.data)
     } catch {}
     setLoading(false)
-  }
+  }, [headers])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPosts() {
+      await Promise.resolve()
+      if (!cancelled) await fetchPosts()
+    }
+
+    loadPosts()
+    return () => { cancelled = true }
+  }, [fetchPosts])
 
   async function togglePublish(post) {
     await fetch('/api/admin', {
@@ -155,12 +165,23 @@ function AdminBlogAuthors({ headers }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/admin?type=contentCreators', { headers })
-      .then(res => res.json())
-      .then(d => { if (d.success) setCreators(d.data) })
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [])
+    const controller = new AbortController()
+
+    async function fetchCreators() {
+      try {
+        const res = await fetch('/api/admin?type=contentCreators', { headers, signal: controller.signal })
+        const data = await res.json()
+        if (!controller.signal.aborted && data.success) setCreators(data.data)
+      } catch (error) {
+        if (error.name !== 'AbortError') console.error(error)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+
+    fetchCreators()
+    return () => controller.abort()
+  }, [headers])
 
   if (loading) return <AdminSkeleton rows={5} />
 
@@ -168,7 +189,7 @@ function AdminBlogAuthors({ headers }) {
     return (
       <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
         <p className="body-large">Henüz içerik üreticisi yok.</p>
-        <p style={{ fontSize: '12px', marginTop: '6px' }}>Kullanıcılar sekmesinden birini "Yazar Yap" ile içerik üreticisi yapabilirsin.</p>
+        <p style={{ fontSize: '12px', marginTop: '6px' }}>Kullanıcılar sekmesinden birini &ldquo;Yazar Yap&rdquo; ile içerik üreticisi yapabilirsin.</p>
       </div>
     )
   }

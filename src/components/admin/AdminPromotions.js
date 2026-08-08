@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import AdminSkeleton from './AdminSkeleton'
 
@@ -19,14 +19,9 @@ export default function AdminPromotions({ secret }) {
   const [couponListRef] = useAutoAnimate()
   const [campaignListRef] = useAutoAnimate()
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => {
-    fetchAll()
-    fetch('/api/games').then(r => r.json()).then(d => { if (d.success) setGames(d.data) }).catch(() => {})
-  }, [])
-
-  async function fetchAll() {
+  const fetchAll = useCallback(async () => {
     setLoading(true)
     try {
       const [cRes, kRes] = await Promise.all([
@@ -39,7 +34,28 @@ export default function AdminPromotions({ secret }) {
       if (kd.success) setCampaigns(kd.data)
     } catch {}
     setLoading(false)
-  }
+  }, [headers])
+
+  const fetchGames = useCallback(async () => {
+    try {
+      const res = await fetch('/api/games')
+      const data = await res.json()
+      if (data.success) setGames(data.data)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPromotions() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchAll(), fetchGames()])
+    }
+
+    loadPromotions()
+    return () => { cancelled = true }
+  }, [fetchAll, fetchGames])
 
   function flash(text) {
     setMsg(text)
