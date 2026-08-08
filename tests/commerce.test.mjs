@@ -5,6 +5,7 @@ import {
   calculatePrice,
   normalizeSelection,
 } from '../src/lib/pricing.js'
+import { buildCheckoutError } from '../src/lib/cartCheckout.js'
 
 test('quantity selection clamps and snaps from the configured minimum', () => {
   const options = {
@@ -68,4 +69,23 @@ test('range price sums configured price bands after normalization', () => {
   }
 
   assert.equal(calculatePrice(options, 0, { from: 5, to: 25 }), 40)
+})
+
+test('checkout error explains when no orders were placed', () => {
+  assert.equal(
+    buildCheckoutError([
+      { name: 'Power Leveling', reason: 'This coupon has expired' },
+      { name: 'Currency', reason: 'This coupon has expired' },
+    ], 0),
+    'No orders were placed. This coupon has expired',
+  )
+})
+
+test('checkout error reports partial success without claiming every item succeeded', () => {
+  assert.equal(
+    buildCheckoutError([
+      { name: 'Currency', reason: 'The order could not be created.' },
+    ], 2),
+    '2 orders were placed successfully. Could not place: Currency.',
+  )
 })

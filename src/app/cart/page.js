@@ -13,6 +13,7 @@ import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
+import { buildCheckoutError } from '@/lib/cartCheckout'
 import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 
 function subscribeToAuth(onChange) {
@@ -51,6 +52,7 @@ export default function CartPage() {
     })
 
     const failed = []
+    let placedCount = 0
 
     for (const item of items) {
       try {
@@ -66,6 +68,7 @@ export default function CartPage() {
         if (!res) return
         const d = await res.json()
         if (d.success) {
+          placedCount += 1
           trackEvent('purchase', {
             transaction_id: d.data.orderNumber,
             value: d.data.price,
@@ -75,10 +78,10 @@ export default function CartPage() {
           })
           removeItem(item.cartId)
         } else {
-          failed.push(item.serviceName)
+          failed.push({ name: item.serviceName, reason: d.error || 'The order could not be created.' })
         }
       } catch {
-        failed.push(item.serviceName)
+        failed.push({ name: item.serviceName, reason: 'Could not connect to the server.' })
       }
     }
 
@@ -89,7 +92,7 @@ export default function CartPage() {
       toast.success('Order placed!')
       router.push('/dashboard')
     } else {
-      const msg = `Could not place order for: ${failed.join(', ')}. The rest were ordered successfully.`
+      const msg = buildCheckoutError(failed, placedCount)
       setError(msg)
       toast.error(msg)
     }
