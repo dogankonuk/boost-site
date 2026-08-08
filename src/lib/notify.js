@@ -21,7 +21,9 @@ export async function notifyOrderStatus(prisma, order, status) {
         type: 'order_status',
         title,
         body,
-        link: status === 'completed' ? '/dashboard?tab=account' : '/dashboard',
+        link: status === 'completed'
+          ? `/dashboard?tab=orders&orderId=${order.id}`
+          : '/dashboard',
       },
     })
   } catch (err) {

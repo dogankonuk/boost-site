@@ -1283,6 +1283,7 @@ function RatingWidget({ order, onRated }) {
   const [review, setReview] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [error, setError] = useState('')
 
   if (order.rating) {
     return (
@@ -1303,6 +1304,7 @@ function RatingWidget({ order, onRated }) {
   async function submit() {
     if (!selected) return
     setSubmitting(true)
+    setError('')
     try {
       const res = await authFetch('/api/orders', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -1310,49 +1312,78 @@ function RatingWidget({ order, onRated }) {
       })
       if (res) {
         const d = await res.json()
-        if (d.success) onRated(order.id, selected, review.trim())
+        if (d.success) {
+          onRated(order.id, selected, review.trim())
+          toast.success('Thanks for sharing your experience!')
+        } else setError(d.error || 'We could not submit your review. Please try again.')
       }
-    } catch {}
+    } catch {
+      setError('Could not connect to the server. Please try again.')
+    }
     setSubmitting(false)
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Rate this order:</span>
+    <div style={{
+      padding: '14px', borderRadius: '12px',
+      background: 'rgba(245,197,24,0.055)', border: '1px solid rgba(245,197,24,0.2)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 190px' }}>
+          <div style={{ fontSize: '13px', color: '#fff', fontWeight: '700', fontFamily: 'var(--font-montserrat)' }}>
+            How did your order go?
+          </div>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: '1.5', marginTop: '3px' }}>
+            Your feedback helps us improve and helps other players choose confidently.
+          </p>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '2px' }}>
+          <div role="group" aria-label="Rate this order" style={{ display: 'flex', gap: '2px' }}>
             {[1, 2, 3, 4, 5].map(n => (
               <button key={n} type="button"
+                aria-label={`${n} out of 5 stars`}
+                aria-pressed={selected === n}
                 onClick={() => setSelected(n)}
                 onMouseEnter={() => setHovered(n)}
                 onMouseLeave={() => setHovered(0)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer', fontSize: '19px',
-                  padding: '0 1px', lineHeight: 1,
+                  width: '32px', height: '32px', padding: 0, lineHeight: 1,
                   color: (hovered || selected) >= n ? 'var(--gold)' : 'var(--border-hover)',
                   transition: 'color 0.1s',
                 }}
               >★</button>
             ))}
           </div>
-          <button onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '11px', cursor: 'pointer' }}>
+          <button type="button" onClick={() => setDismissed(true)} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '11px', cursor: 'pointer', padding: '6px 2px' }}>
             Not now
           </button>
         </div>
       </div>
 
       {selected > 0 && (
-        <div style={{ marginTop: '10px', display: 'flex', gap: '8px' }}>
-          <input value={review} onChange={e => setReview(e.target.value)}
-            placeholder="Optional feedback..."
+        <div style={{ marginTop: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <textarea value={review} onChange={e => setReview(e.target.value)}
+            aria-label="Review (optional)"
+            aria-describedby={error ? `review-error-${order.id}` : undefined}
+            placeholder="What went well? Is there anything we could improve?"
+            rows={2}
+            maxLength={1000}
             style={{
-              flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-              borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px', outline: 'none',
+              flex: '1 1 220px', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px', outline: 'none',
+              resize: 'vertical', fontFamily: 'var(--font-inter)',
             }} />
-          <button className="btn-primary" onClick={submit} disabled={submitting} style={{ fontSize: '12px', padding: '8px 16px', flexShrink: 0 }}>
-            {submitting ? '...' : 'Submit'}
+          <button type="button" className="btn-primary" onClick={submit} disabled={submitting} style={{ fontSize: '12px', padding: '9px 16px', flexShrink: 0, alignSelf: 'stretch' }}>
+            {submitting ? 'Submitting...' : 'Submit Review'}
           </button>
+          </div>
+          {error && (
+            <p id={`review-error-${order.id}`} role="alert" style={{ color: '#ff8a8a', fontSize: '11px', lineHeight: '1.5', marginTop: '7px' }}>
+              {error}
+            </p>
+          )}
         </div>
       )}
     </div>
