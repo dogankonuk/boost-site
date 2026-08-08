@@ -7,6 +7,7 @@ import {
 } from '../src/lib/pricing.js'
 import { buildCheckoutError } from '../src/lib/cartCheckout.js'
 import { sanitizeCartItems } from '../src/lib/cartStorage.js'
+import { buildDashboardTabUrl } from '../src/lib/dashboardNavigation.js'
 
 test('quantity selection clamps and snaps from the configured minimum', () => {
   const options = {
@@ -100,5 +101,16 @@ test('stored cart restores valid items with numeric prices and removable ids', (
   assert.deepEqual(
     sanitizeCartItems([{ serviceId: '23', serviceName: 'Power Leveling', price: '63.00' }]),
     [{ serviceId: 23, serviceName: 'Power Leveling', price: 63, cartId: 'restored-23-0' }],
+  )
+})
+
+test('dashboard tab URLs survive refresh and discard stale order highlights', () => {
+  assert.equal(
+    buildDashboardTabUrl('orderId=42', 'orders'),
+    '/dashboard?tab=orders',
+  )
+  assert.equal(
+    buildDashboardTabUrl('tab=orders&orderId=42', 'overview'),
+    '/dashboard',
   )
 })

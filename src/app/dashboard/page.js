@@ -18,6 +18,7 @@ import { AlertTriangleIcon, GamepadIcon, XIcon } from '@/components/BrandIcons'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
+import { buildDashboardTabUrl } from '@/lib/dashboardNavigation'
 
 // Compares against the last-seen tier/referral count in localStorage so a
 // reward toast + confetti only fires the moment a milestone is newly crossed.
@@ -145,6 +146,11 @@ function DashboardContent() {
     router.push('/')
   }
 
+  function navigateToTab(nextTab) {
+    setTab(nextTab)
+    router.replace(buildDashboardTabUrl(searchParams.toString(), nextTab), { scroll: false })
+  }
+
   function handleOrderRated(orderId, rating, review) {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, rating, review } : o))
   }
@@ -231,7 +237,8 @@ function DashboardContent() {
                 { key: 'active', icon: '⚡', label: 'Active Orders' },
                 { key: 'account', icon: '⚙️', label: 'Account Settings' },
               ].map(item => (
-                <button key={item.key} onClick={() => setTab(item.key)} style={{
+                <button key={item.key} type="button" aria-pressed={tab === item.key}
+                  onClick={() => navigateToTab(item.key)} style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   width: '100%', padding: '9px 12px', borderRadius: '8px',
                   background: tab === item.key ? 'rgba(245,197,24,0.1)' : 'transparent',
@@ -241,7 +248,7 @@ function DashboardContent() {
                   cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
                   marginBottom: '2px',
                 }}>
-                  <span>{item.icon}</span>
+                  <span aria-hidden="true">{item.icon}</span>
                   {item.label}
                 </button>
               ))}
@@ -269,7 +276,7 @@ function DashboardContent() {
         {/* Right content */}
         <div>
           {tab === 'overview' && (
-            <OverviewTab username={username} orders={orders} loading={loading} onNavigate={setTab} tier={tier} profile={profile} />
+            <OverviewTab username={username} orders={orders} loading={loading} onNavigate={navigateToTab} tier={tier} profile={profile} />
           )}
           {tab === 'orders' && (
             <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
