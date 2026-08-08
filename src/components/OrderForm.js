@@ -454,6 +454,7 @@ function SliderTrack({ min, max, start = min, end, children }) {
   const span = Math.max(1, max - min)
   const startPct = ((start - min) / span) * 100
   const endPct = ((end - min) / span) * 100
+  const filledRatio = Math.max(0, endPct - startPct) / 100
 
   return (
     <div style={{ position: 'relative', height: '28px', margin: '8px 0 2px' }}>
@@ -463,7 +464,8 @@ function SliderTrack({ min, max, start = min, end, children }) {
       }} />
       <div style={{
         position: 'absolute', top: '12px', height: '5px',
-        left: `${startPct}%`, width: `${Math.max(0, endPct - startPct)}%`,
+        left: `calc(10px + (100% - 20px) * ${startPct / 100})`,
+        width: `calc((100% - 20px) * ${filledRatio})`,
         background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', borderRadius: '20px',
       }} />
       {children}
@@ -617,7 +619,7 @@ function DualRangeSlider({ options, from, to, onChange }) {
           type="range"
           aria-label={`Current ${options.unitName || 'value'}`}
           min={min}
-          max={max - step}
+          max={max}
           step="any"
           value={safeFrom}
           onChange={e => updateFrom(e.target.value)}
@@ -627,7 +629,7 @@ function DualRangeSlider({ options, from, to, onChange }) {
           className="order-range-input"
           type="range"
           aria-label={`Target ${options.unitName || 'value'}`}
-          min={min + step}
+          min={min}
           max={max}
           step="any"
           value={safeTo}
