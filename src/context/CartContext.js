@@ -10,11 +10,23 @@ export function CartProvider({ children }) {
 
   // Load from localStorage once on mount
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setItems(JSON.parse(raw))
-    } catch {}
-    setHydrated(true)
+    let cancelled = false
+
+    async function hydrateCart() {
+      await Promise.resolve()
+      if (cancelled) return
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY)
+        if (raw) setItems(JSON.parse(raw))
+      } catch {
+        // Invalid or unavailable storage should behave like an empty cart.
+      }
+      setHydrated(true)
+    }
+
+    hydrateCart()
+    return () => { cancelled = true }
   }, [])
 
   // Persist on every change (but not before the initial load finishes,
@@ -23,7 +35,9 @@ export function CartProvider({ children }) {
     if (!hydrated) return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-    } catch {}
+    } catch {
+      // The in-memory cart remains usable when storage is unavailable.
+    }
   }, [items, hydrated])
 
   // item: { serviceId, serviceName, gameName, gameSlug, imageUrl, priceLabel, options, selection, price, note }

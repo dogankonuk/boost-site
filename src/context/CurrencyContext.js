@@ -15,15 +15,21 @@ export function CurrencyProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('sb_currency') : null
-    if (saved && CURRENCY_SYMBOLS[saved]) setCurrencyState(saved)
+    let cancelled = false
 
-    async function loadRates() {
+    async function initializeCurrency() {
+      await Promise.resolve()
+      if (cancelled) return
+
       try {
+        const saved = localStorage.getItem('sb_currency')
+        if (saved && CURRENCY_SYMBOLS[saved]) setCurrencyState(saved)
+
         const cached = localStorage.getItem(CACHE_KEY)
         if (cached) {
           const parsed = JSON.parse(cached)
           if (Date.now() - parsed.fetchedAt < CACHE_TTL && parsed.rates?.TRY && parsed.rates?.EUR) {
+            if (cancelled) return
             setRates(parsed.rates)
             setLoading(false)
             return
@@ -31,16 +37,18 @@ export function CurrencyProvider({ children }) {
         }
         const res = await fetch('/api/exchange-rate')
         const d = await res.json()
-        if (d.success) {
+        if (!cancelled && d.success) {
           setRates(d.rates)
           localStorage.setItem(CACHE_KEY, JSON.stringify({ rates: d.rates, fetchedAt: Date.now() }))
         }
       } catch {
         // Silently fall back — convert() will just return TRY amounts if rates never load
       }
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     }
-    loadRates()
+
+    initializeCurrency()
+    return () => { cancelled = true }
   }, [])
 
   const setCurrency = useCallback((c) => {
