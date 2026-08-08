@@ -68,6 +68,9 @@ html {
   .content-sidebar-grid > div:last-child {
     position: static !important;
   }
+  .order-checkout-panel {
+    order: -1;
+  }
 }
 
 .game-services-grid {
@@ -122,6 +125,90 @@ body, p, span, a, input, textarea {
   font-family: var(--font-montserrat);
 }
 
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  padding-top: 80px;
+  padding-bottom: 56px;
+  text-align: center;
+}
+.hero-section::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  width: min(880px, 90vw);
+  height: 440px;
+  top: -112px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 50%, rgba(147, 51, 234, 0.16), transparent 65%);
+  pointer-events: none;
+}
+.hero-content {
+  position: relative;
+  z-index: 1;
+  margin: 0 auto;
+  max-width: 760px;
+}
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  margin: 0 0 16px;
+  padding: 5px 11px;
+  border: 1px solid rgba(245, 197, 24, 0.35);
+  border-radius: 999px;
+  background: rgba(245, 197, 24, 0.08);
+  color: var(--gold);
+  font-family: var(--font-montserrat);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+.hero-assurances {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 28px;
+  padding: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  list-style: none;
+}
+.hero-assurances li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.hero-assurances li::before {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  content: '';
+}
+
+@media (max-width: 640px) {
+  .hero-section {
+    padding-top: 56px;
+    padding-bottom: 40px;
+  }
+  .hero-eyebrow { margin-bottom: 14px; }
+  .hero-actions > a,
+  .hero-actions > button { flex: 1 1 150px; }
+  .hero-actions button { width: 100%; }
+  .hero-assurances { gap: 8px 14px; }
+}
+
 .h1 { font-size: 42px; line-height: 50px; font-weight: 700; }
 .h2 { font-size: 32px; line-height: 42px; font-weight: 600; }
 .h3 { font-size: 24px; line-height: 31px; font-weight: 600; }
@@ -132,6 +219,10 @@ body, p, span, a, input, textarea {
 .body-small { font-size: 14px; line-height: 21px; font-weight: 400; }
 
 .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   font-family: var(--font-montserrat);
   font-size: 16px;
   font-weight: 600;
@@ -148,6 +239,10 @@ body, p, span, a, input, textarea {
 .btn-primary:hover { background: var(--gold-hover); }
 
 .btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   font-family: var(--font-montserrat);
   font-size: 15px;
   font-weight: 500;

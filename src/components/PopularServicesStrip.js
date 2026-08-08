@@ -1,11 +1,16 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import Tilt from 'react-parallax-tilt'
+import { useReducedMotion } from 'framer-motion'
 import { useCurrency } from '@/context/CurrencyContext'
+import useFinePointer from '@/hooks/useFinePointer'
 import Reveal from './motion/Reveal'
 
 export default function PopularServicesStrip({ services }) {
   const { format } = useCurrency()
+  const shouldReduceMotion = useReducedMotion()
+  const tiltEnabled = useFinePointer() && !shouldReduceMotion
   if (!services || services.length === 0) return null
 
   return (
@@ -23,8 +28,9 @@ export default function PopularServicesStrip({ services }) {
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>
             <Link href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
               <Tilt
+                tiltEnable={tiltEnabled}
                 tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.04} transitionSpeed={1200}
-                glareEnable glareMaxOpacity={0.2} glareColor="#f5c518" glarePosition="all"
+                glareEnable={tiltEnabled} glareMaxOpacity={0.2} glareColor="#f5c518" glarePosition="all"
                 glareBorderRadius="14px" tiltReverse
                 style={{ width: '220px' }}
               >
@@ -38,10 +44,17 @@ export default function PopularServicesStrip({ services }) {
               >
                 <div style={{
                   height: '110px', position: 'relative',
-                  background: (service.imageUrl || service.game?.coverImage)
-                    ? `url(${service.imageUrl || service.game.coverImage}) center/cover`
-                    : 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(147,51,234,0.15))',
+                  background: 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(147,51,234,0.15))',
                 }}>
+                  {(service.imageUrl || service.game?.coverImage) && (
+                    <Image
+                      src={service.imageUrl || service.game.coverImage}
+                      alt={service.name}
+                      fill
+                      sizes="220px"
+                      style={{ objectFit: 'cover' }}
+                    />
+                  )}
                   <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, rgba(0,0,0,0.75) 100%)' }} />
                   <span style={{
                     position: 'absolute', top: '8px', left: '8px',

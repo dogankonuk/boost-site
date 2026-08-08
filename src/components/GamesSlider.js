@@ -1,10 +1,13 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import Tilt from 'react-parallax-tilt'
+import useFinePointer from '@/hooks/useFinePointer'
 
 export default function GamesSlider() {
+  const shouldReduceMotion = useReducedMotion()
+  const tiltEnabled = useFinePointer() && !shouldReduceMotion
   const [games, setGames] = useState([])
   const [offset, setOffset] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -41,21 +44,21 @@ export default function GamesSlider() {
   // Auto-advance so the homepage feels alive; pauses while the visitor is
   // hovering or has manually interacted, loops back to the start at the end.
   useEffect(() => {
-    if (paused || maxOffset <= 0) return
+    if (shouldReduceMotion || paused || maxOffset <= 0) return
     const id = setInterval(() => {
       setOffset(o => (o >= maxOffset ? 0 : o + 1))
     }, 3500)
     return () => clearInterval(id)
-  }, [paused, maxOffset])
+  }, [paused, maxOffset, shouldReduceMotion])
 
   return (
     <section style={{ padding: '0 0 48px' }}>
       <motion.div className="container" ref={containerRef}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        initial={{ opacity: 0, y: 16 }}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15, ease: 'easeOut' }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.5, delay: 0.15, ease: 'easeOut' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <NavBtn onClick={prev} disabled={offset === 0}>&#8249;</NavBtn>
@@ -65,13 +68,14 @@ export default function GamesSlider() {
               display: 'flex',
               gap: `${gap}px`,
               transform: `translateX(-${offset * (cardW + gap)}px)`,
-              transition: 'transform 0.3s ease',
+              transition: shouldReduceMotion ? 'none' : 'transform 0.3s ease',
             }}>
               {games.map(game => (
                 <Link key={game.id} href={`/games/${game.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
                   <Tilt
+                    tiltEnable={tiltEnabled}
                     tiltMaxAngleX={8} tiltMaxAngleY={8} scale={1.03} transitionSpeed={1200}
-                    glareEnable glareMaxOpacity={0.18} glareColor="#f5c518" glarePosition="all"
+                    glareEnable={tiltEnabled} glareMaxOpacity={0.18} glareColor="#f5c518" glarePosition="all"
                     glareBorderRadius="16px" tiltReverse
                     style={{ width: `${cardW}px` }}
                   >
@@ -148,7 +152,7 @@ export default function GamesSlider() {
 function NavBtn({ onClick, disabled, children }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      width: '40px', height: '40px',
+      width: '44px', height: '44px',
       background: disabled ? 'var(--bg-elevated)' : 'var(--bg-card)',
       border: '1px solid var(--border)',
       borderRadius: '50%',

@@ -70,8 +70,10 @@ export default function OrderForm({ service }) {
 
   useEffect(() => {
     const hasToken = !!localStorage.getItem('token')
-    setLoggedIn(hasToken)
-    const t = setTimeout(() => setMounted(true), 20)
+    const t = setTimeout(() => {
+      setLoggedIn(hasToken)
+      setMounted(true)
+    }, 20)
 
     if (hasToken) {
       authFetch('/api/auth', {
@@ -183,7 +185,7 @@ export default function OrderForm({ service }) {
         }}>
           {options?.type === 'fixed' || !options ? 'Price' : 'Total price'}
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+        <div aria-live="polite" aria-atomic="true" style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
           {bestDiscountAmount > 0 && (
             <div style={{ fontSize: '18px', color: 'var(--text-dim)', textDecoration: 'line-through', lineHeight: 1 }}>
               {format(price)}
@@ -237,13 +239,13 @@ export default function OrderForm({ service }) {
 
         {options?.type === 'quantity' && (
           <div>
-            <SectionLabel>{options.unitName} amount</SectionLabel>
+            <SectionLabel htmlFor="order-quantity">{options.unitName} amount</SectionLabel>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <StepperButton
                 disabled={selection.quantity <= options.minQty}
                 onClick={() => setSelection(s => ({ ...s, quantity: Math.max(options.minQty, s.quantity - 1) }))}
               >−</StepperButton>
-              <input type="number" value={selection.quantity}
+              <input id="order-quantity" type="number" value={selection.quantity}
                 min={options.minQty} max={options.maxQty}
                 onChange={e => setSelection(s => ({ ...s, quantity: Math.min(options.maxQty, Math.max(options.minQty, parseInt(e.target.value) || options.minQty)) }))}
                 style={{
@@ -279,8 +281,8 @@ export default function OrderForm({ service }) {
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>From</label>
-                <select value={selection.from}
+                <label htmlFor="order-range-from" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>From</label>
+                <select id="order-range-from" value={selection.from}
                   onChange={e => {
                     const from = parseInt(e.target.value)
                     setSelection(s => ({ ...s, from, to: Math.max(from + 1, s.to) }))
@@ -292,8 +294,8 @@ export default function OrderForm({ service }) {
                 </select>
               </div>
               <div>
-                <label style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>To</label>
-                <select value={selection.to}
+                <label htmlFor="order-range-to" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>To</label>
+                <select id="order-range-to" value={selection.to}
                   onChange={e => setSelection(s => ({ ...s, to: parseInt(e.target.value) }))}
                   style={selectStyle}>
                   {Array.from({ length: options.max - selection.from }, (_, i) => selection.from + 1 + i).map(v => (
@@ -419,8 +421,8 @@ export default function OrderForm({ service }) {
         </div>
 
         <div>
-          <SectionLabel>Note (optional)</SectionLabel>
-          <textarea value={note} onChange={e => setNote(e.target.value)}
+          <SectionLabel htmlFor="order-note">Note (optional)</SectionLabel>
+          <textarea id="order-note" value={note} onChange={e => setNote(e.target.value)}
             placeholder="Any special instructions for your booster..."
             rows={3} style={{
               width: '100%', background: 'var(--bg-elevated)',
@@ -431,7 +433,7 @@ export default function OrderForm({ service }) {
         </div>
 
         {error && (
-          <div style={{
+          <div role="alert" style={{
             display: 'flex', alignItems: 'center', gap: '8px',
             background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
             padding: '10px 14px', color: '#ff6666', fontSize: '13px',
@@ -483,9 +485,9 @@ const selectStyle = {
   borderRadius: '8px', padding: '10px', color: '#fff', fontSize: '14px', outline: 'none',
 }
 
-function SectionLabel({ children }) {
+function SectionLabel({ children, htmlFor }) {
   return (
-    <label style={{
+    <label htmlFor={htmlFor} style={{
       fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'var(--font-montserrat)',
       fontWeight: '700', display: 'block', marginBottom: '10px',
       textTransform: 'uppercase', letterSpacing: '0.04em',
@@ -498,7 +500,7 @@ function SectionLabel({ children }) {
 function StepperButton({ children, disabled, onClick }) {
   return (
     <button onClick={onClick} disabled={disabled} type="button" style={{
-      width: '36px', height: '36px', background: 'var(--bg-elevated)',
+      width: '44px', height: '44px', background: 'var(--bg-elevated)',
       border: '1px solid var(--border)', borderRadius: '8px',
       color: disabled ? 'var(--text-dim)' : '#fff', fontSize: '18px',
       cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,

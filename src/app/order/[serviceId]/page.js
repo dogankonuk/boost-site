@@ -1,4 +1,6 @@
 import { cache } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
@@ -84,8 +86,14 @@ export default async function OrderPage({ params }) {
         background: '#0a0a0a',
       }}>
         {service.game.bannerImage && (
-          <img src={service.game.bannerImage} alt={service.game.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.3 }} />
+          <Image
+            src={service.game.bannerImage}
+            alt=""
+            fill
+            preload
+            sizes="100vw"
+            style={{ objectFit: 'cover', opacity: 0.3 }}
+          />
         )}
         <div style={{
           position: 'absolute', inset: 0,
@@ -97,11 +105,11 @@ export default async function OrderPage({ params }) {
         }}>
           <Container style={{ paddingBottom: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
+              <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</Link>
               <span style={{ color: 'var(--text-dim)' }}>/</span>
-              <a href={`/games/${service.game.slug}`} style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>
+              <Link href={`/games/${service.game.slug}`} style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>
                 {service.game.name}
-              </a>
+              </Link>
               <span style={{ color: 'var(--text-dim)' }}>/</span>
               <span style={{ color: 'var(--gold)', fontSize: '13px' }}>{service.name}</span>
             </div>
@@ -291,7 +299,7 @@ export default async function OrderPage({ params }) {
             )}
           </div>
 
-          <div style={{ position: 'sticky', top: '80px' }}>
+          <div className="order-checkout-panel" style={{ position: 'sticky', top: '80px' }}>
             <OrderForm service={JSON.parse(JSON.stringify(service))} />
           </div>
         </div>

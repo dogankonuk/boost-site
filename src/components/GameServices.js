@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useCurrency } from '@/context/CurrencyContext'
 
 const ICON_RULES = [
@@ -48,9 +49,16 @@ export default function GameServices({ services, game }) {
           {game?.coverImage ? (
             <div style={{
               width: '28px', height: '28px', borderRadius: '6px', flexShrink: 0,
-              backgroundImage: `url(${game.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center',
-              border: '1px solid var(--border)',
-            }} />
+              border: '1px solid var(--border)', overflow: 'hidden', position: 'relative',
+            }}>
+              <Image
+                src={game.coverImage}
+                alt=""
+                fill
+                sizes="28px"
+                style={{ objectFit: 'cover' }}
+              />
+            </div>
           ) : (
             <span style={{ fontSize: '18px' }}>🎮</span>
           )}
@@ -150,8 +158,13 @@ function ServiceCard({ service }) {
       >
         {service.imageUrl ? (
           <div style={{ height: '140px', overflow: 'hidden', position: 'relative' }}>
-            <img src={service.imageUrl} alt={service.name}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <Image
+              src={service.imageUrl}
+              alt={service.name}
+              fill
+              sizes="(max-width: 640px) calc(100vw - 32px), 270px"
+              style={{ objectFit: 'cover' }}
+            />
             <div style={{
               position: 'absolute', inset: 0,
               background: 'linear-gradient(to bottom, transparent 50%, var(--bg-card) 100%)',

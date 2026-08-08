@@ -62,6 +62,8 @@ export default function CouponInput({ serviceId, selection, applied, onApplied, 
     <div>
       <div style={{ display: 'flex', gap: '8px' }}>
         <input
+          aria-label="Coupon code"
+          aria-describedby={error ? 'coupon-error' : undefined}
           value={code}
           onChange={e => setCode(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && apply()}
@@ -73,11 +75,11 @@ export default function CouponInput({ serviceId, selection, applied, onApplied, 
           }}
         />
         <button type="button" onClick={apply} disabled={applying || !code.trim()} className="btn-secondary"
-          style={{ padding: '9px 16px', fontSize: '13px', opacity: (applying || !code.trim()) ? 0.6 : 1 }}>
+          style={{ minHeight: '44px', padding: '9px 16px', fontSize: '13px', opacity: (applying || !code.trim()) ? 0.6 : 1 }}>
           {applying ? '...' : 'Apply'}
         </button>
       </div>
-      {error && <p style={{ fontSize: '11px', color: '#ff6666', marginTop: '5px' }}>{error}</p>}
+      {error && <p id="coupon-error" role="alert" style={{ fontSize: '11px', color: '#ff6666', marginTop: '5px' }}>{error}</p>}
     </div>
   )
 }

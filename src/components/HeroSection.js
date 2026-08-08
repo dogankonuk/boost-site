@@ -1,29 +1,27 @@
 'use client'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import EmberParticles from './EmberParticles'
 
 export default function HeroSection() {
+  const shouldReduceMotion = useReducedMotion()
+
   function openGamesMenu(e) {
     e.stopPropagation()
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: shouldReduceMotion ? 'auto' : 'smooth' })
     window.dispatchEvent(new Event('open-games-menu'))
   }
 
   return (
-    <section className="container" style={{
-      textAlign: 'center',
-      paddingTop: '72px',
-      paddingBottom: '48px',
-      position: 'relative',
-    }}>
+    <section className="container hero-section">
       <EmberParticles />
       <motion.div
-        style={{ position: 'relative', zIndex: 1 }}
-        initial={{ opacity: 0, y: 16 }}
+        className="hero-content"
+        initial={false}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
+        <p className="hero-eyebrow">Game boosting, made clear</p>
         <h1 className="hero-title" style={{ textTransform: 'uppercase' }}>
           Your best support<br />
           <span style={{ color: 'var(--gold)' }}>behind the shadows</span>
@@ -36,12 +34,15 @@ export default function HeroSection() {
         }}>
           Vetted boosters, VPN-protected sessions, and live order tracking — so your account stays exactly as safe as it should.
         </p>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary">Browse Boosts</button>
-          </Link>
+        <div className="hero-actions">
+          <Link href="/games" className="btn-primary">Browse Boosts</Link>
           <button className="btn-secondary" onClick={openGamesMenu}>Browse Games</button>
         </div>
+        <ul className="hero-assurances" aria-label="Service highlights">
+          <li>Live order tracking</li>
+          <li>VPN-protected sessions</li>
+          <li>Flexible service options</li>
+        </ul>
       </motion.div>
     </section>
   )

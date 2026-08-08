@@ -2,8 +2,10 @@
 import { useMemo } from 'react'
 import Particles, { ParticlesProvider } from '@tsparticles/react'
 import { loadSlim } from '@tsparticles/slim'
+import { useReducedMotion } from 'framer-motion'
 
 export default function EmberParticles() {
+  const shouldReduceMotion = useReducedMotion()
   const options = useMemo(() => ({
     fullScreen: { enable: false },
     background: { color: 'transparent' },
@@ -30,6 +32,8 @@ export default function EmberParticles() {
     interactivity: { events: { onHover: { enable: false }, onClick: { enable: false } } },
     detectRetina: true,
   }), [])
+
+  if (shouldReduceMotion) return null
 
   return (
     <ParticlesProvider init={loadSlim}>
