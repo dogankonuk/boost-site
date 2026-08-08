@@ -1110,6 +1110,7 @@ function ReportIssueButton({ order, onReported }) {
   const [open, setOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
   if (order.issueReport && !order.issueResolved) {
     return (
@@ -1128,6 +1129,7 @@ function ReportIssueButton({ order, onReported }) {
     const text = message.trim()
     if (!text) return
     setSubmitting(true)
+    setError('')
     try {
       const res = await authFetch('/api/orders', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -1139,16 +1141,19 @@ function ReportIssueButton({ order, onReported }) {
           onReported(order.id, text)
           setOpen(false)
           setMessage('')
-        }
+        } else setError(d.error || 'We could not send your report. Please try again.')
       }
-    } catch {}
+    } catch {
+      setError('Could not connect to the server. Please try again.')
+    }
     setSubmitting(false)
   }
 
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        type="button"
+        onClick={() => { setOpen(true); setError('') }}
         title="Having a problem with this order?"
         aria-label="Report a problem with this order"
         style={{
@@ -1170,6 +1175,8 @@ function ReportIssueButton({ order, onReported }) {
   return (
     <div style={{ width: '100%' }}>
       <textarea
+        aria-label="Describe the order problem"
+        aria-describedby={error ? `report-issue-error-${order.id}` : undefined}
         value={message}
         onChange={e => setMessage(e.target.value)}
         placeholder="Tell us what's wrong and we'll help sort it out..."
@@ -1180,11 +1187,18 @@ function ReportIssueButton({ order, onReported }) {
           fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical', marginBottom: '8px',
         }}
       />
+      {error && (
+        <p id={`report-issue-error-${order.id}`} role="alert" style={{
+          color: '#ff8a8a', fontSize: '11px', lineHeight: '1.5', marginBottom: '8px',
+        }}>
+          {error}
+        </p>
+      )}
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button className="btn-primary" onClick={submit} disabled={submitting || !message.trim()} style={{ fontSize: '12px', padding: '7px 16px' }}>
+        <button type="button" className="btn-primary" onClick={submit} disabled={submitting || !message.trim()} style={{ fontSize: '12px', padding: '7px 16px' }}>
           {submitting ? 'Sending...' : 'Submit'}
         </button>
-        <button onClick={() => { setOpen(false); setMessage('') }} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '12px', cursor: 'pointer' }}>
+        <button type="button" onClick={() => { setOpen(false); setMessage(''); setError('') }} style={{ background: 'none', border: 'none', color: 'var(--text-dim)', fontSize: '12px', cursor: 'pointer' }}>
           Cancel
         </button>
       </div>
@@ -1195,9 +1209,11 @@ function ReportIssueButton({ order, onReported }) {
 function CancelOrderButton({ order, onCancelled }) {
   const [confirming, setConfirming] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   async function cancel() {
     setLoading(true)
+    setError('')
     try {
       const res = await authFetch('/api/orders', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -1205,11 +1221,15 @@ function CancelOrderButton({ order, onCancelled }) {
       })
       if (res) {
         const d = await res.json()
-        if (d.success) onCancelled(order.id)
+        if (d.success) {
+          onCancelled(order.id)
+          setConfirming(false)
+        } else setError(d.error || 'We could not cancel this order. Please try again.')
       }
-    } catch {}
+    } catch {
+      setError('Could not connect to the server. Please try again.')
+    }
     setLoading(false)
-    setConfirming(false)
   }
 
   if (confirming) {
@@ -1220,18 +1240,23 @@ function CancelOrderButton({ order, onCancelled }) {
         border: '1px solid rgba(255,68,68,0.2)',
       }}>
         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cancel this order?</span>
-        <button onClick={cancel} disabled={loading} style={{
+        <button type="button" onClick={cancel} disabled={loading} style={{
           fontSize: '11px', color: 'var(--error-strong)', background: 'transparent',
           border: 'none', cursor: 'pointer', fontWeight: '700', padding: '4px 2px',
         }}>
           {loading ? '...' : 'Yes, cancel it'}
         </button>
-        <button onClick={() => setConfirming(false)} style={{
+        <button type="button" onClick={() => { setConfirming(false); setError('') }} style={{
           fontSize: '11px', color: 'var(--text-dim)', background: 'none',
           border: 'none', cursor: 'pointer', padding: '4px 2px',
         }}>
           Never mind
         </button>
+        {error && (
+          <span role="alert" style={{ width: '100%', color: '#ff8a8a', fontSize: '11px', lineHeight: '1.5' }}>
+            {error}
+          </span>
+        )}
       </div>
     )
   }
