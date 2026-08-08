@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import AdminSkeleton from './AdminSkeleton'
 
 function money(n) {
@@ -14,11 +14,9 @@ export default function AdminUsers({ secret }) {
   const [filter, setFilter] = useState('all')
   const [msg, setMsg] = useState('')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => { fetchUsers() }, [])
-
-  async function fetchUsers() {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=users', { headers })
@@ -26,7 +24,19 @@ export default function AdminUsers({ secret }) {
       if (d.success) { setUsers(d.data); setViewerIsFounder(!!d.viewerIsFounder) }
     } catch {}
     setLoading(false)
-  }
+  }, [headers])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadUsers() {
+      await Promise.resolve()
+      if (!cancelled) await fetchUsers()
+    }
+
+    loadUsers()
+    return () => { cancelled = true }
+  }, [fetchUsers])
 
   async function toggleActive(user) {
     await fetch('/api/admin', {

@@ -60,19 +60,31 @@ export default function AdminOverview({ secret, onNavigate }) {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('14d')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  useEffect(() => {
+    const controller = new AbortController()
 
-  useEffect(() => { fetchStats(period) }, [period])
+    async function fetchStats() {
+      await Promise.resolve()
+      if (controller.signal.aborted) return
+      setLoading(true)
 
-  async function fetchStats(p) {
-    setLoading(true)
-    try {
-      const res = await fetch(`/api/admin?type=stats&period=${p}`, { headers })
-      const d = await res.json()
-      if (d.success) setStats(d.data)
-    } catch {}
-    setLoading(false)
-  }
+      try {
+        const res = await fetch(`/api/admin?type=stats&period=${period}`, {
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+          signal: controller.signal,
+        })
+        const data = await res.json()
+        if (!controller.signal.aborted && data.success) setStats(data.data)
+      } catch (error) {
+        if (error.name !== 'AbortError') console.error(error)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+
+    fetchStats()
+    return () => controller.abort()
+  }, [period, secret])
 
   if (loading) return <OverviewSkeleton />
   if (!stats) return <p style={{ color: 'var(--text-muted)' }}>Veri yüklenemedi.</p>

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import AdminSkeleton from './AdminSkeleton'
 
 const STATUS_LABELS = { active: 'Aktif', inactive: 'Pasif' }
@@ -22,11 +22,9 @@ export default function AdminBoosters({ secret }) {
   const [editGamesSelection, setEditGamesSelection] = useState([])
   const [expandedId, setExpandedId] = useState(null)
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => { fetchBoosters(); fetchGames() }, [])
-
-  async function fetchBoosters() {
+  const fetchBoosters = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=boosters', { headers })
@@ -34,15 +32,28 @@ export default function AdminBoosters({ secret }) {
       if (d.success) setBoosters(d.data)
     } catch (e) { console.error(e) }
     setLoading(false)
-  }
+  }, [headers])
 
-  async function fetchGames() {
+  const fetchGames = useCallback(async () => {
     try {
       const res = await fetch('/api/admin?type=games', { headers })
       const d = await res.json()
       if (d.success) setGames(d.data)
     } catch {}
-  }
+  }, [headers])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadBoosters() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchBoosters(), fetchGames()])
+    }
+
+    loadBoosters()
+    return () => { cancelled = true }
+  }, [fetchBoosters, fetchGames])
 
   async function toggleStatus(booster) {
     await fetch('/api/admin', {

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import AdminSkeleton from './AdminSkeleton'
 import OrderTimeline from '@/components/OrderTimeline'
@@ -28,17 +28,41 @@ export default function AdminOrders({ secret }) {
   const [expanded, setExpanded] = useState(null)
   const [listRef] = useAutoAnimate()
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => { fetchOrders(); fetchBoosters() }, [])
-
-  async function fetchBoosters() {
+  const fetchBoosters = useCallback(async () => {
     try {
       const res = await fetch('/api/admin?type=boosters', { headers })
       const d = await res.json()
       if (d.success) setBoosters(d.data.filter(b => b.status === 'active'))
     } catch {}
-  }
+  }, [headers])
+
+  const fetchOrders = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin?type=orders', { headers })
+      const d = await res.json()
+      if (d.success) setOrders(d.data)
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setLoading(false)
+    }
+  }, [headers])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAdminOrders() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchOrders(), fetchBoosters()])
+    }
+
+    loadAdminOrders()
+    return () => { cancelled = true }
+  }, [fetchBoosters, fetchOrders])
 
   async function assignBooster(orderId, boosterId) {
     await fetch('/api/admin', {
@@ -46,14 +70,6 @@ export default function AdminOrders({ secret }) {
       body: JSON.stringify({ type: 'order', id: orderId, data: { boosterId: boosterId ? parseInt(boosterId) : null } }),
     })
     fetchOrders()
-  }
-
-  async function fetchOrders() {
-    setLoading(true)
-    const res = await fetch('/api/admin?type=orders', { headers })
-    const d = await res.json()
-    if (d.success) setOrders(d.data)
-    setLoading(false)
   }
 
   async function resolveIssue(orderId) {
