@@ -22,7 +22,7 @@ export default function PrivacyPage() {
         <p>
           We use your information to create and manage your account, process and deliver your orders,
           communicate with you about order status, and send account-related emails (verification, password
-          resets, order updates). We don't sell your personal information to third parties.
+          resets, order updates). We don&apos;t sell your personal information to third parties.
         </p>
       </Section>
 
@@ -37,7 +37,7 @@ export default function PrivacyPage() {
       <Section title="4. Cookies">
         <p>
           We use essential cookies and browser storage to keep you signed in and remember preferences like
-          your selected currency. We don't use third-party advertising trackers.
+          your selected currency. We don&apos;t use third-party advertising trackers.
         </p>
       </Section>
 
@@ -60,7 +60,7 @@ export default function PrivacyPage() {
       <Section title="7. Your Rights">
         <p>
           You can access, correct, or request deletion of your personal information at any time. Reach out
-          through our Contact page and we'll respond as soon as possible.
+          through our Contact page and we&apos;ll respond as soon as possible.
         </p>
       </Section>
 

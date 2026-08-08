@@ -59,12 +59,12 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', lineHeight: '1.6' }}>
-            If an account exists for <strong style={{ color: '#fff' }}>{email}</strong>, we've sent a password reset link to it. Check your inbox.
+            If an account exists for <strong style={{ color: '#fff' }}>{email}</strong>, we&apos;ve sent a password reset link to it. Check your inbox.
           </p>
         ) : (
           <>
             <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px', lineHeight: '1.6' }}>
-              Enter the email address linked to your account and we'll send you a link to reset your password.
+              Enter the email address linked to your account and we&apos;ll send you a link to reset your password.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>

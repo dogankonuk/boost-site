@@ -18,7 +18,7 @@ export default function TermsPage() {
 
       <Section title="2. Account Responsibility">
         <p>
-          You're responsible for the accuracy of the account details and instructions you provide for your
+          You&apos;re responsible for the accuracy of the account details and instructions you provide for your
           order. Where a booster needs access to your account, you remain responsible for that account and
           should follow any safety guidance we or your booster provide.
         </p>
@@ -47,7 +47,7 @@ export default function TermsPage() {
 
       <Section title="6. Limitation of Liability">
         <p>
-          We provide the service on an "as is" basis. To the maximum extent permitted by law, we are not liable
+          We provide the service on an &ldquo;as is&rdquo; basis. To the maximum extent permitted by law, we are not liable
           for indirect or consequential damages arising from use of the service, including actions taken by the
           platform or game the order relates to.
         </p>

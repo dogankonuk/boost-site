@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { uploadToCloudinary } from '@/lib/cloudinary'
 
 export default function FileUpload({ value = [], onChange, multiple = true, maxFiles = 5, label }) {
@@ -64,7 +65,7 @@ export default function FileUpload({ value = [], onChange, multiple = true, maxF
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '10px' }}>
           {value.map((url, i) => (
             <div key={url} style={{ position: 'relative', width: '70px', height: '70px' }}>
-              <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} />
+              <Image src={url} alt={`Uploaded image ${i + 1}`} width={70} height={70} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)' }} />
               <button
                 type="button"
                 onClick={() => removeAt(i)}

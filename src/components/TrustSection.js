@@ -13,7 +13,7 @@ export default function TrustSection({ stats }) {
             borderRadius: '14px', padding: '20px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
-              We're just getting started — check back soon for real player reviews.
+              We&apos;re just getting started — check back soon for real player reviews.
             </div>
           </div>
         </Reveal>

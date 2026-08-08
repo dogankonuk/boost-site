@@ -11,14 +11,14 @@ export default function RefundPolicyPage() {
     <StaticPage title="Refund Policy" path="/refund" subtitle="Last updated: 2026">
       <Section title="Money-Back Guarantee">
         <p>
-          If your order has not yet been started by a booster (status: "Pending"), you're eligible for a full
+          If your order has not yet been started by a booster (status: &ldquo;Pending&rdquo;), you&apos;re eligible for a full
           refund — just contact us with your order number.
         </p>
       </Section>
 
       <Section title="Orders In Progress">
         <p>
-          Once a booster has begun working on your order ("Assigned" or "In Progress"), we'll review refund
+          Once a booster has begun working on your order (&ldquo;Assigned&rdquo; or &ldquo;In Progress&rdquo;), we&apos;ll review refund
           requests on a case-by-case basis. Partial refunds may be offered depending on how much work has
           already been completed.
         </p>
@@ -26,8 +26,8 @@ export default function RefundPolicyPage() {
 
       <Section title="Completed Orders">
         <p>
-          Refunds are not offered for orders marked "Completed" and delivered as described. If something wasn't
-          delivered as agreed, contact us within 7 days of completion and we'll make it right.
+          Refunds are not offered for orders marked &ldquo;Completed&rdquo; and delivered as described. If something wasn&apos;t
+          delivered as agreed, contact us within 7 days of completion and we&apos;ll make it right.
         </p>
       </Section>
 

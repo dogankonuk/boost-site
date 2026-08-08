@@ -1,6 +1,7 @@
 import { cache } from 'react'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
+import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
@@ -78,7 +79,7 @@ export default async function GamePage({ params }) {
       }}>
         <Container style={{ position: 'relative', paddingTop: '36px', paddingBottom: '28px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-            <a href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</a>
+            <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</Link>
             <span style={{ color: 'var(--text-dim)' }}>/</span>
             <span style={{ color: 'var(--gold)', fontSize: '13px' }}>{game.name}</span>
           </div>
