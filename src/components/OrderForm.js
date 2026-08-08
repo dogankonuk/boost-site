@@ -277,6 +277,7 @@ export default function OrderForm({ service }) {
                 const selected = selection.choice === c.label
                 return (
                   <button key={i} type="button"
+                    aria-pressed={selected}
                     onClick={() => setSelection(s => ({ ...s, choice: c.label }))}
                     style={{
                       display: 'flex', alignItems: 'center', gap: '12px',
@@ -285,7 +286,7 @@ export default function OrderForm({ service }) {
                       background: selected ? 'rgba(245,197,24,0.08)' : 'var(--bg-elevated)',
                       transition: 'border-color 0.15s, background 0.15s',
                     }}>
-                    <span style={{
+                    <span aria-hidden="true" style={{
                       width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
                       border: `2px solid ${selected ? 'var(--gold)' : 'var(--border)'}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -315,6 +316,7 @@ export default function OrderForm({ service }) {
                   : 'Free'
                 return (
                   <button key={i} type="button"
+                    aria-pressed={selected}
                     onClick={() => setSelectedAddons(s => {
                       if (group.type === 'multiselect') {
                         const list = Array.isArray(s[group.key]) ? s[group.key] : []
@@ -330,7 +332,7 @@ export default function OrderForm({ service }) {
                       background: selected ? 'rgba(245,197,24,0.08)' : 'var(--bg-elevated)',
                       transition: 'border-color 0.15s, background 0.15s',
                     }}>
-                    <span style={{
+                    <span aria-hidden="true" style={{
                       width: '18px', height: '18px', flexShrink: 0,
                       borderRadius: group.type === 'multiselect' ? '5px' : '50%',
                       border: `2px solid ${selected ? 'var(--gold)' : 'var(--border)'}`,
