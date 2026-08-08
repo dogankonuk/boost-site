@@ -134,7 +134,7 @@ export async function GET(request) {
         prisma.booster.count({ where: { status: 'active' } }),
         prisma.order.findMany({
           select: {
-            status: true, price: true, createdAt: true, rating: true,
+            userId: true, status: true, price: true, createdAt: true, rating: true,
             issueReport: true, issueResolved: true, discountAmount: true,
             service: { select: { game: { select: { id: true, name: true } } } },
           },
@@ -149,6 +149,8 @@ export async function GET(request) {
       let totalRevenue = 0, last30Revenue = 0, prev30Revenue = 0, totalDiscountGiven = 0
       let openIssues = 0, unratedCompleted = 0
       const gameStats = {}
+      const usersWithAnyOrder = new Set()
+      const completedCountByUser = {}
 
       const now = new Date()
 
@@ -193,6 +195,8 @@ export async function GET(request) {
         if (statusCounts[o.status] !== undefined) statusCounts[o.status]++
         if (o.issueReport && !o.issueResolved) openIssues++
         if (o.status === 'completed' && !o.rating) unratedCompleted++
+        usersWithAnyOrder.add(o.userId)
+        if (o.status === 'completed') completedCountByUser[o.userId] = (completedCountByUser[o.userId] || 0) + 1
 
         const gameId = o.service?.game?.id
         const gameName = o.service?.game?.name || 'Unknown'
@@ -228,6 +232,15 @@ export async function GET(request) {
         ? Math.round(((usersLast30 - usersPrev30) / usersPrev30) * 100)
         : (usersLast30 > 0 ? 100 : 0)
 
+      // Activation: % of all registered users who have ever placed an order (any status).
+      // Repeat rate: among customers with a completed order, % who completed 2+.
+      const activationRate = totalUsers > 0 ? Math.round((usersWithAnyOrder.size / totalUsers) * 100) : 0
+      const completedCustomerCount = Object.keys(completedCountByUser).length
+      const repeatCustomerCount = Object.values(completedCountByUser).filter(c => c >= 2).length
+      const repeatCustomerRate = completedCustomerCount > 0
+        ? Math.round((repeatCustomerCount / completedCustomerCount) * 100)
+        : 0
+
       return NextResponse.json({
         success: true,
         data: {
@@ -235,6 +248,7 @@ export async function GET(request) {
           totalOrders: orders.length,
           totalRevenue, last30Revenue, revenueGrowthPct, totalDiscountGiven,
           usersLast30, userGrowthPct,
+          activationRate, repeatCustomerRate,
           statusCounts, gameBreakdown, revenueTrend: buckets, period,
           pendingApplications, openIssues, unratedCompleted,
         },

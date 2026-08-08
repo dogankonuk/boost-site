@@ -92,6 +92,8 @@ export default function AdminOverview({ secret, onNavigate }) {
         <StatCard icon="👥" label="Toplam Kullanıcı" countTo={stats.totalUsers} growth={stats.userGrowthPct} growthLabel="30g" />
         <StatCard icon="🛠️" label="Booster" value={`${stats.activeBoosters} / ${stats.totalBoosters}`} />
         <StatCard icon="🏷️" label="Verilen İndirim (toplam)" countTo={stats.totalDiscountGiven} decimals={2} prefix="$" />
+        <StatCard icon="🎯" label="Aktivasyon Oranı (en az 1 sipariş)" countTo={stats.activationRate} suffix="%" />
+        <StatCard icon="🔁" label="Tekrar Müşteri Oranı" countTo={stats.repeatCustomerRate} suffix="%" />
       </div>
 
       {needsAttention > 0 && (
@@ -249,7 +251,7 @@ function OverviewSkeleton() {
   )
 }
 
-function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, decimals = 0, prefix = '' }) {
+function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, decimals = 0, prefix = '', suffix = '' }) {
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -272,7 +274,7 @@ function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, de
         color: accent ? 'var(--gold)' : '#fff',
       }}>
         {countTo !== undefined ? (
-          <AnimatedNumber end={countTo} decimals={decimals} prefix={prefix} />
+          <AnimatedNumber end={countTo} decimals={decimals} prefix={prefix} suffix={suffix} />
         ) : value}
       </div>
       <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>{label}</div>
