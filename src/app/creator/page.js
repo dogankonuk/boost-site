@@ -32,28 +32,46 @@ export default function CreatorPage() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { router.push('/login'); return }
-    checkAccess()
-    fetch('/api/games').then(r => r.json()).then(d => { if (d.success) setGames(d.data) }).catch(() => {})
-  }, [])
+    let cancelled = false
 
-  async function checkAccess() {
-    try {
-      const res = await authFetch('/api/auth', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getProfile' }),
-      })
-      if (!res) return
-      const d = await res.json()
-      const creator = !!(d.success && d.data?.isContentCreator)
+    async function initializeCreator() {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+
+      const readJson = async request => {
+        try {
+          const response = await request
+          return response ? await response.json() : null
+        } catch {
+          return null
+        }
+      }
+
+      const [profileData, gamesData, postsData] = await Promise.all([
+        readJson(authFetch('/api/auth', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getProfile' }),
+        })),
+        readJson(fetch('/api/games')),
+        readJson(authFetch('/api/blog')),
+      ])
+
+      if (cancelled) return
+
+      const creator = !!(profileData?.success && profileData.data?.isContentCreator)
       setIsCreator(creator)
-      if (creator) fetchPosts()
-    } catch {
-      setIsCreator(false)
+      if (gamesData?.success) setGames(gamesData.data)
+      if (creator && postsData?.success) setPosts(postsData.data)
+      setLoadingPosts(false)
+      setCheckedAuth(true)
     }
-    setCheckedAuth(true)
-  }
+
+    initializeCreator()
+    return () => { cancelled = true }
+  }, [router])
 
   async function fetchPosts() {
     setLoadingPosts(true)
@@ -157,8 +175,8 @@ export default function CreatorPage() {
       <Container style={{ paddingTop: '40px', paddingBottom: '64px', flex: 1 }}>
         {isCreator === false ? (
           <div style={{ textAlign: 'center', padding: '80px 20px', color: 'var(--text-muted)' }}>
-            <p className="body-large">You don't have content creator access yet.</p>
-            <p style={{ fontSize: '13px', marginTop: '8px' }}>Contact an admin if you'd like to write for the blog.</p>
+            <p className="body-large">You don&apos;t have content creator access yet.</p>
+            <p style={{ fontSize: '13px', marginTop: '8px' }}>Contact an admin if you&apos;d like to write for the blog.</p>
           </div>
         ) : view === 'list' ? (
           <>
@@ -171,7 +189,7 @@ export default function CreatorPage() {
               <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
             ) : posts.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
-                <p className="body-large">You haven't written anything yet.</p>
+                <p className="body-large">You haven&apos;t written anything yet.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>

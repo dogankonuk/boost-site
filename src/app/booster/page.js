@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -66,14 +66,7 @@ function BoosterContent() {
   const [discordId, setDiscordId] = useState('')
   const [savingDiscord, setSavingDiscord] = useState(false)
 
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token) { router.push('/login'); return }
-    fetchMe()
-    setCheckedAuth(true)
-  }, [])
-
-  async function fetchMe() {
+  const fetchMe = useCallback(async () => {
     setFetchError(null)
     try {
       const res = await authFetch('/api/booster?type=me')
@@ -90,7 +83,25 @@ function BoosterContent() {
       setFetchError('Could not connect to the server. Check your internet connection or try again later.')
       setBooster(null)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function authenticateBooster() {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+
+      await fetchMe()
+      if (!cancelled) setCheckedAuth(true)
+    }
+
+    authenticateBooster()
+    return () => { cancelled = true }
+  }, [fetchMe, router])
 
   async function saveDiscordId() {
     setSavingDiscord(true)
@@ -110,17 +121,42 @@ function BoosterContent() {
     setSavingDiscord(false)
   }
 
-  useEffect(() => {
-    if (booster && booster.status === 'active') {
-      fetchPool()
-      fetchMine()
-    }
-  }, [booster])
+  const fetchPool = useCallback(async () => {
+    setLoadingOrders(true)
+    try {
+      const res = await authFetch('/api/booster?type=pool')
+      if (!res) return
+      const d = await res.json()
+      if (d.success) setPool(d.data)
+    } catch {}
+    setLoadingOrders(false)
+  }, [])
+
+  const fetchMine = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/booster?type=mine')
+      if (!res) return
+      const d = await res.json()
+      if (d.success) {
+        setMine(d.data)
+        if (highlightOrderId && d.data.some(order => order.id === highlightOrderId)) setTab('mine')
+      }
+    } catch {}
+  }, [highlightOrderId])
 
   useEffect(() => {
-    if (!highlightOrderId || scrolledRef.current) return
-    if (mine.some(o => o.id === highlightOrderId)) setTab('mine')
-  }, [highlightOrderId, mine])
+    if (!booster || booster.status !== 'active') return
+    let cancelled = false
+
+    async function loadOrders() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchPool(), fetchMine()])
+    }
+
+    loadOrders()
+    return () => { cancelled = true }
+  }, [booster, fetchMine, fetchPool])
 
   useEffect(() => {
     if (!highlightOrderId || scrolledRef.current || tab !== 'mine') return
@@ -131,26 +167,6 @@ function BoosterContent() {
     const timer = setTimeout(() => setActiveHighlight(null), 2500)
     return () => clearTimeout(timer)
   }, [highlightOrderId, tab, mine])
-
-  async function fetchPool() {
-    setLoadingOrders(true)
-    try {
-      const res = await authFetch('/api/booster?type=pool')
-      if (!res) return
-      const d = await res.json()
-      if (d.success) setPool(d.data)
-    } catch {}
-    setLoadingOrders(false)
-  }
-
-  async function fetchMine() {
-    try {
-      const res = await authFetch('/api/booster?type=mine')
-      if (!res) return
-      const d = await res.json()
-      if (d.success) setMine(d.data)
-    } catch {}
-  }
 
   async function claimOrder(orderId) {
     setClaimingId(orderId)
@@ -479,9 +495,9 @@ function BoosterContent() {
             }}>
               <h3 className="h4" style={{ color: '#fff', marginBottom: '4px' }}>💬 Discord Notifications</h3>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', lineHeight: '1.6' }}>
-                If you enter your Discord User ID, you'll get mentioned on Discord whenever an order is
+                If you enter your Discord User ID, you&apos;ll get mentioned on Discord whenever an order is
                 assigned to you. To find your ID, open Discord Settings → Advanced → enable Developer Mode,
-                then right-click your profile and select "Copy ID".
+                then right-click your profile and select &ldquo;Copy ID&rdquo;.
               </p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input value={discordId} onChange={e => setDiscordId(e.target.value)} placeholder="123456789012345678"
@@ -649,7 +665,7 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
           </div>
           {details.note && (
             <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', fontStyle: 'italic' }}>
-              "{details.note}"
+              &ldquo;{details.note}&rdquo;
             </div>
           )}
           {order.rating && (
@@ -658,7 +674,7 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
                 {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
               </span>
               {order.review && (
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>"{order.review}"</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>&ldquo;{order.review}&rdquo;</span>
               )}
             </div>
           )}
