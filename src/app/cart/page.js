@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import Navbar from '@/components/Navbar'
+import { GamepadIcon } from '@/components/BrandIcons'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import { useCart } from '@/context/CartContext'
@@ -133,7 +134,7 @@ export default function CartPage() {
                       background: 'var(--bg-elevated)', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '22px', border: '1px solid var(--border)',
-                    }}>🎮</div>
+                    }}><GamepadIcon size={30} /></div>
                   )}
 
                   <div style={{ flex: 1, minWidth: 0 }}>

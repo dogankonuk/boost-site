@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import PageHeader from '@/components/PageHeader'
+import { ArticleIcon, RssIcon } from '@/components/BrandIcons'
 
 export const metadata = {
   title: 'Game Boosting Guides, Tips & News',
@@ -49,7 +50,7 @@ export default async function BlogPage({ searchParams }) {
             display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-dim)',
             textDecoration: 'none', border: '1px solid var(--border)', borderRadius: '20px', padding: '6px 12px',
           }}>
-            📡 RSS
+            <RssIcon size={14} /> RSS
           </a>
         }
       />
@@ -111,7 +112,7 @@ export function BlogCard({ post }) {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '32px', flexShrink: 0,
         }}>
-          {!post.coverImage && '📝'}
+          {!post.coverImage && <span style={{ color: 'var(--violet)', display: 'flex' }}><ArticleIcon size={32} /></span>}
         </div>
         <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

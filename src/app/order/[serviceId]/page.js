@@ -8,6 +8,7 @@ import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import OrderForm from '@/components/OrderForm'
 import JsonLd from '@/components/JsonLd'
+import { GamepadIcon } from '@/components/BrandIcons'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
 
@@ -132,13 +133,13 @@ export default async function OrderPage({ params }) {
           }}>
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(10,10,10,0.75) 0%, transparent 55%)' }} />
             {!(service.imageUrl || service.game.coverImage) && (
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px', opacity: 0.35 }}>🎮</div>
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', opacity: 0.35 }}><GamepadIcon size={48} /></div>
             )}
             <div style={{ position: 'absolute', top: '16px', left: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Fast Delivery', '100% Safe & Secure'].map(tag => (
                 <span key={tag} style={{
                   fontSize: '11px', fontWeight: '700', padding: '5px 12px', borderRadius: '20px',
-                  background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
+                  background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', color: '#0a0a0a',
                   fontFamily: 'var(--font-montserrat)', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', width: 'fit-content',
                 }}>{tag}</span>
               ))}

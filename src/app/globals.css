@@ -336,6 +336,7 @@ body, p, span, a, input, textarea {
 :root {
   --gold: #f5c518;
   --gold-hover: #e6b800;
+  --gold-soft: #ffdd77;
   --violet: #9333ea;
   --bg: #0a0a0a;
   --bg-card: #111111;

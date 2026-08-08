@@ -1,6 +1,7 @@
 'use client'
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { GamepadIcon } from './BrandIcons'
 
 export default function GamesGrid({ games }) {
   const [query, setQuery] = useState('')
@@ -125,7 +126,7 @@ export default function GamesGrid({ games }) {
                   position: 'absolute', inset: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <span style={{ fontSize: '48px', opacity: 0.2 }}>🎮</span>
+                  <span style={{ color: 'var(--gold)', opacity: 0.22, display: 'flex' }}><GamepadIcon size={48} /></span>
                 </div>
               )}
             </div>

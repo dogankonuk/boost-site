@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
 import useFinePointer from '@/hooks/useFinePointer'
 import AdaptiveTilt from './AdaptiveTilt'
+import { FlameIcon } from './BrandIcons'
 
 export default function GamesSlider() {
   const shouldReduceMotion = useReducedMotion()
@@ -108,9 +109,10 @@ export default function GamesSlider() {
                       <span style={{
                         position: 'absolute', top: '10px', left: '10px', zIndex: 2,
                         fontSize: '10px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
-                        background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
+                        background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', color: '#0a0a0a',
                         fontFamily: 'var(--font-montserrat)', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                      }}>🔥 HOT</span>
+                        display: 'flex', alignItems: 'center', gap: '4px',
+                      }}><FlameIcon size={11} /> HOT</span>
                     )}
                     <div style={{
                       fontFamily: 'var(--font-montserrat)',

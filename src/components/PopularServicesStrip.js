@@ -6,6 +6,7 @@ import { useCurrency } from '@/context/CurrencyContext'
 import useFinePointer from '@/hooks/useFinePointer'
 import Reveal from './motion/Reveal'
 import AdaptiveTilt from './AdaptiveTilt'
+import { FlameIcon, GamepadIcon } from './BrandIcons'
 
 export default function PopularServicesStrip({ services }) {
   const { format } = useCurrency()
@@ -17,7 +18,7 @@ export default function PopularServicesStrip({ services }) {
     <section style={{ padding: '0 0 48px' }}>
       <div className="container">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' }}>
-          <span style={{ fontSize: '20px' }}>🔥</span>
+          <span style={{ color: 'var(--gold)', display: 'flex' }}><FlameIcon size={20} /></span>
           <h2 className="h3" style={{ color: '#fff' }}>Popular This Week</h2>
         </div>
 
@@ -59,11 +60,12 @@ export default function PopularServicesStrip({ services }) {
                   <span style={{
                     position: 'absolute', top: '8px', left: '8px',
                     fontSize: '9px', fontWeight: '700', padding: '3px 8px', borderRadius: '20px',
-                    background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
+                    background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', color: '#0a0a0a',
                     fontFamily: 'var(--font-montserrat)',
-                  }}>🔥 HOT</span>
+                    display: 'flex', alignItems: 'center', gap: '4px',
+                  }}><FlameIcon size={10} /> HOT</span>
                   {!(service.imageUrl || service.game?.coverImage) && (
-                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', opacity: 0.3 }}>🎮</div>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold)', opacity: 0.3 }}><GamepadIcon size={28} /></div>
                   )}
                 </div>
                 <div style={{ padding: '12px 14px' }}>

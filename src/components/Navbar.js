@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCurrency, CURRENCY_SYMBOLS } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
 import { getServiceIcon } from '@/components/GameServices'
+import { ArticleIcon, FlameIcon, GamepadIcon } from '@/components/BrandIcons'
 
 const AUTH_CHANGE_EVENT = 'shadowboosting-auth-change'
 
@@ -338,8 +339,8 @@ export default function Navbar() {
                         width: '36px', height: '36px', borderRadius: '8px',
                         background: 'var(--bg-elevated)', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '16px', border: '1px solid var(--border)',
-                      }}>{result.type === 'post' ? '📝' : '🎮'}</div>
+                        color: result.type === 'post' ? 'var(--violet)' : 'var(--gold)', border: '1px solid var(--border)',
+                      }}>{result.type === 'post' ? <ArticleIcon size={18} /> : <GamepadIcon size={18} />}</div>
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -863,7 +864,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
             width: '380px', flexShrink: 0, borderLeft: '1px solid var(--border)',
             padding: '26px 24px', overflowY: 'auto',
           }}>
-            <h4 style={sideLabelStyle}>🔥 Products of the Day</h4>
+            <h4 style={{ ...sideLabelStyle, display: 'flex', alignItems: 'center', gap: '6px' }}><FlameIcon size={14} /> Products of the Day</h4>
             {productsOfTheDay.length === 0 ? (
               <div style={{ color: 'var(--text-dim)', fontSize: '12px' }}>No services listed yet for this game.</div>
             ) : (
@@ -893,7 +894,7 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                           <span style={{
                             position: 'absolute', top: '8px', left: '8px',
                             fontSize: '9px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
-                            background: 'linear-gradient(90deg, var(--gold), #ffdd77)', color: '#0a0a0a',
+                            background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', color: '#0a0a0a',
                             fontFamily: 'var(--font-montserrat)',
                           }}>HIT</span>
                         )}

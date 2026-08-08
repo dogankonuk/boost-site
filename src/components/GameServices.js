@@ -3,24 +3,25 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCurrency } from '@/context/CurrencyContext'
+import { GamepadIcon, ServiceTypeIcon } from './BrandIcons'
 
 const ICON_RULES = [
-  { keywords: ['level', 'leveling', 'xp', 'prestige'], icon: '📈' },
-  { keywords: ['win', 'wins', 'rank', 'ranked', 'rating', 'elo', 'mmr', 'league', 'division'], icon: '🏆' },
-  { keywords: ['point', 'hype', 'currency', 'gold', 'coin', 'farm', 'farming', 'kill'], icon: '💰' },
-  { keywords: ['pass', 'battlepass', 'season'], icon: '👑' },
-  { keywords: ['gear', 'item', 'weapon', 'loot', 'build'], icon: '💎' },
-  { keywords: ['quest', 'mission', 'dungeon', 'raid', 'campaign', 'story'], icon: '🏰' },
-  { keywords: ['pvp', 'arena', 'duel', 'wipe'], icon: '🥷' },
-  { keywords: ['achievement', 'trophy', 'title'], icon: '🏅' },
-  { keywords: ['coach', 'coaching', 'lesson', 'training', 'review'], icon: '🎯' },
-  { keywords: ['account', 'unlock', 'placement'], icon: '🎮' },
+  { keywords: ['level', 'leveling', 'xp', 'prestige'], type: 'level' },
+  { keywords: ['win', 'wins', 'rank', 'ranked', 'rating', 'elo', 'mmr', 'league', 'division'], type: 'rank' },
+  { keywords: ['point', 'hype', 'currency', 'gold', 'coin', 'farm', 'farming', 'kill'], type: 'currency' },
+  { keywords: ['pass', 'battlepass', 'season'], type: 'season' },
+  { keywords: ['gear', 'item', 'weapon', 'loot', 'build'], type: 'gear' },
+  { keywords: ['quest', 'mission', 'dungeon', 'raid', 'campaign', 'story'], type: 'quest' },
+  { keywords: ['pvp', 'arena', 'duel', 'wipe'], type: 'pvp' },
+  { keywords: ['achievement', 'trophy', 'title'], type: 'achievement' },
+  { keywords: ['coach', 'coaching', 'lesson', 'training', 'review'], type: 'coaching' },
+  { keywords: ['account', 'unlock', 'placement'], type: 'account' },
 ]
 
 export function getServiceIcon(service) {
   const haystack = `${service.name || ''} ${service.serviceCategory || ''}`.toLowerCase()
   const rule = ICON_RULES.find(r => r.keywords.some(k => haystack.includes(k)))
-  return rule?.icon || '⚡'
+  return <ServiceTypeIcon type={rule?.type} />
 }
 
 export default function GameServices({ services, game }) {
@@ -60,7 +61,7 @@ export default function GameServices({ services, game }) {
               />
             </div>
           ) : (
-            <span style={{ fontSize: '18px' }}>🎮</span>
+            <span style={{ color: 'var(--gold)', display: 'flex' }}><GamepadIcon size={18} /></span>
           )}
           <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
             {game?.name}
@@ -172,7 +173,7 @@ function ServiceCard({ service }) {
             {service.isHot && (
               <span style={{
                 position: 'absolute', top: '10px', left: '10px',
-                background: '#ff4444', color: '#fff',
+                background: 'var(--error-strong)', color: '#fff',
                 fontSize: '10px', fontWeight: '700',
                 padding: '2px 8px', borderRadius: '4px',
                 fontFamily: 'var(--font-montserrat)',
@@ -186,11 +187,11 @@ function ServiceCard({ service }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderBottom: '1px solid var(--border)', position: 'relative',
           }}>
-            <span style={{ fontSize: '28px', opacity: 0.3 }}>{getServiceIcon(service)}</span>
+            <span style={{ color: 'var(--gold)', opacity: 0.35, display: 'flex' }}>{getServiceIcon(service)}</span>
             {service.isHot && (
               <span style={{
                 position: 'absolute', top: '8px', left: '8px',
-                background: '#ff4444', color: '#fff',
+                background: 'var(--error-strong)', color: '#fff',
                 fontSize: '10px', fontWeight: '700',
                 padding: '2px 8px', borderRadius: '4px',
                 fontFamily: 'var(--font-montserrat)',
