@@ -195,6 +195,9 @@ export default function CartPage() {
                 <div style={{ fontSize: '30px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
                   {format(totalUSD)}
                 </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '3px' }}>
+                  Subtotal before discounts
+                </div>
               </div>
 
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -204,6 +207,7 @@ export default function CartPage() {
                   </label>
                   <input
                     id="cart-coupon-code"
+                    aria-describedby="cart-coupon-help"
                     value={couponCode}
                     onChange={e => setCouponCode(e.target.value)}
                     placeholder="e.g. WELCOME10"
@@ -213,6 +217,11 @@ export default function CartPage() {
                       fontFamily: 'var(--font-inter)', outline: 'none', textTransform: 'uppercase',
                     }}
                   />
+                  <p id="cart-coupon-help" style={{
+                    fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5', marginTop: '6px',
+                  }}>
+                    Validated separately for each item at checkout. Eligible discounts appear on the created orders.
+                  </p>
                 </div>
                 {error && (
                   <div role="alert" style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px', color: '#ff6666', fontSize: '12px', lineHeight: '1.5' }}>
