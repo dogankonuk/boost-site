@@ -7,7 +7,6 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import Container from '@/components/Container'
 import OrderForm from '@/components/OrderForm'
-import { getTrustStats } from '@/lib/trustStats'
 import JsonLd from '@/components/JsonLd'
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').replace(/\/$/, '')
@@ -41,7 +40,7 @@ export async function generateMetadata({ params }) {
 
 export default async function OrderPage({ params }) {
   const { serviceId } = await params
-  const [service, trustStats] = await Promise.all([getService(serviceId), getTrustStats()])
+  const service = await getService(serviceId)
 
   if (!service) return notFound()
 
@@ -119,9 +118,11 @@ export default async function OrderPage({ params }) {
       </div>
 
       <Container style={{ paddingTop: '40px', paddingBottom: '60px' }}>
+        <div className="content-sidebar-grid">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-        {/* Product image + badges + trust/timing card */}
-        <div className="order-hero-row" style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'stretch', flexWrap: 'wrap' }}>
+        {/* Product image + badges + timing card */}
+        <div className="order-hero-row" style={{ display: 'flex', gap: '20px', alignItems: 'stretch', flexWrap: 'wrap' }}>
           <div style={{
             position: 'relative', flex: '1.4 1 320px', minHeight: '220px', borderRadius: '18px',
             overflow: 'hidden', border: '1px solid var(--border)',
@@ -165,9 +166,7 @@ export default async function OrderPage({ params }) {
         </div>
 
         {/* Trust badge strip */}
-        <div style={{
-          display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '28px',
-        }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
           {[
             { icon: <RefundIcon />, label: 'Easy Refunds' },
             { icon: <SupportIcon />, label: '24/7 Support' },
@@ -189,8 +188,6 @@ export default async function OrderPage({ params }) {
           ))}
         </div>
 
-        <div className="content-sidebar-grid">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             {service.description && (
               <div style={{
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -285,18 +282,6 @@ export default async function OrderPage({ params }) {
               </div>
             </div>
 
-            {trustStats.avgRating && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: '10px', padding: '4px 4px',
-              }}>
-                <span style={{ color: 'var(--gold)', fontSize: '12px', letterSpacing: '2px' }}>
-                  {'★'.repeat(Math.round(trustStats.avgRating))}{'☆'.repeat(5 - Math.round(trustStats.avgRating))}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
-                  {trustStats.avgRating} / 5 · {trustStats.completedCount}+ orders completed
-                </span>
-              </div>
-            )}
           </div>
 
           <div className="order-checkout-panel" style={{ position: 'sticky', top: '80px' }}>

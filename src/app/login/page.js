@@ -134,21 +134,8 @@ function LoginForm() {
             Forge Your<br />Power in the <span style={{ color: 'var(--gold)' }}>Shadows</span>
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: '1.7', marginBottom: '48px' }}>
-            Join thousands of players who trust ShadowBoosting to level up their game — safe, fast, and guaranteed.
+            Choose your game, configure your service, and keep track of every step from one place.
           </p>
-
-          <div style={{
-            background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
-            borderRadius: '14px', padding: '20px 24px', display: 'inline-block',
-          }}>
-            <div style={{ fontSize: '18px', color: 'var(--gold)', letterSpacing: '3px', marginBottom: '8px' }}>★★★★★</div>
-            <div style={{ fontFamily: 'var(--font-montserrat)', fontWeight: '700', fontSize: '15px', color: 'var(--gold)', marginBottom: '2px' }}>
-              4.9 / 5 Trust Score
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Trusted by 12,000+ players worldwide
-            </div>
-          </div>
         </div>
       </div>
 

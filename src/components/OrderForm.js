@@ -443,37 +443,42 @@ export default function OrderForm({ service }) {
         )}
 
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button type="button" onClick={handleAddToCart} disabled={addedToCart}
-            className="btn-secondary"
-            style={{
-              flex: 1, padding: '14px', fontSize: '14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-            }}>
-            {addedToCart ? (
-              <><CheckIcon /> Added</>
-            ) : (
-              <><CartAddIcon /> Add to Cart</>
-            )}
-          </button>
-          <button className="btn-primary" onClick={handleOrder} disabled={loading}
-            style={{
-              flex: 1.4, padding: '14px', fontSize: '15px', opacity: loading ? 0.7 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-            }}>
-            {loading ? (
-              <>
-                <Spinner /> Processing...
-              </>
-            ) : loggedIn ? (
-              `${format(finalPrice)} — Buy Now`
-            ) : (
-              'Sign In to Purchase'
-            )}
-          </button>
+          {loggedIn ? (
+            <>
+              <button type="button" onClick={handleAddToCart} disabled={addedToCart}
+                className="btn-secondary"
+                style={{
+                  flex: 1, minHeight: '48px', padding: '14px', fontSize: '14px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                }}>
+                {addedToCart ? <><CheckIcon /> Added</> : <><CartAddIcon /> Add to Cart</>}
+              </button>
+              <button className="btn-primary" onClick={handleOrder} disabled={loading}
+                style={{
+                  flex: 1.4, minHeight: '48px', padding: '14px', fontSize: '15px', opacity: loading ? 0.7 : 1,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                }}>
+                {loading ? <><Spinner /> Processing...</> : `${format(finalPrice)} — Buy Now`}
+              </button>
+            </>
+          ) : (
+            <button type="button" onClick={handleAddToCart} disabled={addedToCart}
+              className="btn-primary"
+              style={{
+                width: '100%', minHeight: '48px', padding: '14px', fontSize: '15px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              }}>
+              {addedToCart
+                ? <><CheckIcon /> Added to Cart</>
+                : <><CartAddIcon /> {format(finalPrice)} — Add to Cart</>}
+            </button>
+          )}
         </div>
 
         <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
-          By placing an order you agree to our terms of service.
+          {loggedIn
+            ? 'By placing an order you agree to our terms of service.'
+            : 'Review your selections in the cart before checkout.'}
         </p>
       </div>
     </div>

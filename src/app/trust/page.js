@@ -1,9 +1,7 @@
-import { getTrustStats } from '@/lib/trustStats'
 import { getTestimonials } from '@/lib/testimonials'
 import Navbar from '@/components/Navbar'
 import TrustHeroSection from '@/components/TrustHeroSection'
 import FeaturesSection from '@/components/FeaturesSection'
-import TrustSection from '@/components/TrustSection'
 import TestimonialsSection from '@/components/TestimonialsSection'
 import HomeFAQSection from '@/components/HomeFAQSection'
 import ClosingCTASection from '@/components/ClosingCTASection'
@@ -16,17 +14,13 @@ export const metadata = {
 }
 
 export default async function TrustPage() {
-  const [trustStats, testimonials] = await Promise.all([
-    getTrustStats(),
-    getTestimonials(8),
-  ])
+  const testimonials = await getTestimonials(8)
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Navbar />
       <TrustHeroSection />
       <FeaturesSection />
-      <TrustSection stats={trustStats} />
       <TestimonialsSection testimonials={JSON.parse(JSON.stringify(testimonials))} />
       <HomeFAQSection />
       <ClosingCTASection />
