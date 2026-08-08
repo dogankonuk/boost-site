@@ -104,7 +104,7 @@ export default async function OrderPage({ params }) {
           display: 'flex', alignItems: 'flex-end',
         }}>
           <Container style={{ paddingBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <div className="order-breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
               <Link href="/" style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>Home</Link>
               <span style={{ color: 'var(--text-dim)' }}>/</span>
               <Link href={`/games/${service.game.slug}`} style={{ color: 'var(--text-muted)', fontSize: '13px', textDecoration: 'none' }}>
@@ -149,7 +149,7 @@ export default async function OrderPage({ params }) {
           <div style={{
             flex: '1 1 240px', display: 'flex', flexDirection: 'column', gap: '12px',
           }}>
-            <div style={{
+            <div className="order-timing-card" style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '14px', padding: '20px', flex: 1,
               display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '18px',
@@ -190,7 +190,7 @@ export default async function OrderPage({ params }) {
         </div>
 
             {service.description && (
-              <div style={{
+              <div className="order-info-card" style={{
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: '16px', padding: '28px',
               }}>
@@ -204,7 +204,7 @@ export default async function OrderPage({ params }) {
             )}
 
             {service.features && service.features.length > 0 && (
-              <div style={{
+              <div className="order-info-card" style={{
                 background: 'var(--bg-card)', border: '1px solid var(--border)',
                 borderRadius: '16px', padding: '28px',
               }}>
@@ -225,7 +225,7 @@ export default async function OrderPage({ params }) {
               </div>
             )}
 
-            <div style={{
+            <div className="order-info-card" style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '16px', padding: '28px',
             }}>
@@ -258,7 +258,7 @@ export default async function OrderPage({ params }) {
               </div>
             </div>
 
-            <div style={{
+            <div className="order-info-card" style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
               borderRadius: '16px', padding: '28px',
             }}>

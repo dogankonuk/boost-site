@@ -502,6 +502,26 @@ body, p, span, a, input, textarea {
   .order-form-trust-grid {
     grid-template-columns: 1fr !important;
   }
+
+  .order-breadcrumb {
+    flex-wrap: wrap;
+    row-gap: 4px !important;
+  }
+
+  .order-info-card {
+    padding: 20px !important;
+  }
+
+  .order-timing-card {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+  }
+
+  .order-timing-card > div {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .hover-gold-border {
