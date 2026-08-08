@@ -38,11 +38,11 @@ export default function GameServices({ services, game }) {
 
   return (
     <div className="game-services-grid">
-      <aside style={{
+      <aside className="game-service-category-panel" style={{
         background: 'var(--bg-card)', border: '1px solid var(--border)',
         borderRadius: '14px', padding: '18px', position: 'sticky', top: '80px',
       }}>
-        <div style={{
+        <div className="game-service-category-heading" style={{
           display: 'flex', alignItems: 'center', gap: '10px',
           marginBottom: '14px', paddingBottom: '14px', borderBottom: '1px solid var(--border)',
         }}>
@@ -67,7 +67,7 @@ export default function GameServices({ services, game }) {
           </span>
         </div>
 
-        <nav aria-label={`${game?.name || 'Game'} service categories`} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <nav className="game-service-category-nav" aria-label={`${game?.name || 'Game'} service categories`} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <CategoryItem label="All Services" active={active === 'All'} onClick={() => setActive('All')} />
           {categories.map(cat => (
             <CategoryItem key={cat} label={cat} active={active === cat} onClick={() => setActive(cat)} />
@@ -98,7 +98,7 @@ export default function GameServices({ services, game }) {
 
 function CategoryItem({ label, active, onClick }) {
   return (
-    <button onClick={onClick} type="button" aria-pressed={active} style={{
+    <button className="game-service-category-chip" data-active={active} onClick={onClick} type="button" aria-pressed={active} style={{
       display: 'flex', alignItems: 'center', gap: '9px',
       minHeight: '44px', padding: '9px 10px', borderRadius: '8px', border: 'none', textAlign: 'left', width: '100%',
       background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
