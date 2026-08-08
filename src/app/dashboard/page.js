@@ -72,6 +72,7 @@ function DashboardContent() {
   const [orders, setOrders] = useState([])
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(true)
+  const [ordersError, setOrdersError] = useState('')
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState(
     ['account', 'orders', 'active'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview'
@@ -112,6 +113,7 @@ function DashboardContent() {
 
       setUsername(username)
       if (ordersData?.success) setOrders(ordersData.data)
+      else setOrdersError('We could not load your orders. Your order history has not been changed.')
       if (profileData?.success) {
         checkRewardMilestones(profileData.data)
         setProfile(profileData.data)
@@ -213,7 +215,9 @@ function DashboardContent() {
                 { label: 'Completed', value: completedOrders.length },
               ].map(stat => (
                 <div key={stat.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>{stat.value}</div>
+                  <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
+                    {loading || ordersError ? '—' : stat.value}
+                  </div>
                   <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '1px' }}>{stat.label}</div>
                 </div>
               ))}
@@ -275,13 +279,32 @@ function DashboardContent() {
 
         {/* Right content */}
         <div>
-          {tab === 'overview' && (
+          {ordersError && tab !== 'account' ? (
+            <div role="alert" style={{
+              display: 'flex', alignItems: 'flex-start', gap: '12px',
+              background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '14px',
+              padding: '16px 18px', color: '#ff8a8a',
+            }}>
+              <AlertTriangleIcon size={20} />
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#fff', fontSize: '14px', fontWeight: '700', marginBottom: '4px' }}>
+                  Orders unavailable
+                </div>
+                <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-muted)' }}>{ordersError}</p>
+                <button type="button" className="btn-secondary" onClick={() => window.location.reload()} style={{
+                  marginTop: '12px', padding: '8px 14px', fontSize: '12px',
+                }}>
+                  Try again
+                </button>
+              </div>
+            </div>
+          ) : tab === 'overview' && (
             <OverviewTab username={username} orders={orders} loading={loading} onNavigate={navigateToTab} tier={tier} profile={profile} />
           )}
-          {tab === 'orders' && (
+          {!ordersError && tab === 'orders' && (
             <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
-          {tab === 'active' && (
+          {!ordersError && tab === 'active' && (
             <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
           {tab === 'account' && (
