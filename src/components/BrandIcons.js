@@ -63,3 +63,11 @@ export function RssIcon({ size = 24 }) {
 export function ArticleIcon({ size = 24 }) {
   return <Icon size={size}><path d="M6 3h9l3 3v15H6V3Z" /><path d="M14 3v4h4M9 11h6M9 15h6" /></Icon>
 }
+
+export function AlertTriangleIcon({ size = 24 }) {
+  return <Icon size={size}><path d="M12 3 2.8 20h18.4L12 3Z" /><path d="M12 9v5M12 17h.01" /></Icon>
+}
+
+export function XIcon({ size = 24 }) {
+  return <Icon size={size}><path d="m6 6 12 12M18 6 6 18" /></Icon>
+}

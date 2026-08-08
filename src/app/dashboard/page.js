@@ -14,6 +14,7 @@ import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
 import OrderTimeline from '@/components/OrderTimeline'
+import { AlertTriangleIcon, GamepadIcon, XIcon } from '@/components/BrandIcons'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
@@ -586,6 +587,76 @@ function OverviewStat({ icon, label, value, accent, small, countTo }) {
   )
 }
 
+function getOrderConfiguration(order) {
+  const selection = order.details?.selection || {}
+  const options = order.service?.options
+
+  if (options?.type === 'range' && selection.from !== undefined && selection.to !== undefined) {
+    return `${selection.from} → ${selection.to} ${options.unitName || ''}`.trim()
+  }
+  if (options?.type === 'quantity' && selection.quantity !== undefined) {
+    return `${selection.quantity} × ${options.unitName || ''}`.trim()
+  }
+  if (options?.type === 'options' && selection.choice) return selection.choice
+  return 'Fixed service'
+}
+
+function getOrderAddons(order) {
+  const groups = Object.values(order.details?.selectedAddons || {})
+  return groups
+    .flatMap(group => (group.values || []).map(value => value.label))
+    .filter(Boolean)
+}
+
+function OrderDetailItem({ label, children }) {
+  return (
+    <div style={{ minWidth: 0 }}>
+      <div style={{
+        color: 'var(--text-dim)', fontSize: '10px', fontWeight: '700',
+        fontFamily: 'var(--font-montserrat)', letterSpacing: '0.04em',
+        marginBottom: '4px', textTransform: 'uppercase',
+      }}>
+        {label}
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function OrderDetails({ order }) {
+  const addons = getOrderAddons(order)
+  const placedAt = new Date(order.createdAt).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+
+  return (
+    <div style={{
+      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+      borderRadius: '12px', padding: '13px 14px',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: '12px', marginBottom: '12px',
+      }}>
+        <span style={{ color: '#fff', fontSize: '12px', fontWeight: '700', fontFamily: 'var(--font-montserrat)' }}>
+          Order details
+        </span>
+        <span style={{ color: 'var(--text-dim)', fontSize: '10px', fontFamily: 'var(--font-montserrat)' }}>
+          {order.orderNumber || `Order #${order.id}`}
+        </span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(145px, 1fr))', gap: '12px 18px' }}>
+        <OrderDetailItem label="Game">{order.service?.game?.name || '—'}</OrderDetailItem>
+        <OrderDetailItem label="Configuration">{getOrderConfiguration(order)}</OrderDetailItem>
+        <OrderDetailItem label="Add-ons">{addons.length > 0 ? addons.join(', ') : 'No add-ons'}</OrderDetailItem>
+        <OrderDetailItem label="Placed">{placedAt}</OrderDetailItem>
+      </div>
+    </div>
+  )
+}
+
 function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported, highlightOrderId, unreadMessageOrderIds, onMessagesSeen }) {
   const { format } = useCurrency()
   const [listRef] = useAutoAnimate()
@@ -625,9 +696,6 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
         <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {orders.map(order => {
             const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending
-            const details = order.details || {}
-            const selection = details.selection || {}
-            const options = order.service?.options
             const hasNewMessage = unreadMessageOrderIds?.has(order.id)
             const isHighlighted = activeHighlight === order.id || hasNewMessage
 
@@ -637,29 +705,29 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                 border: isHighlighted ? '1px solid var(--gold)' : '1px solid var(--border)',
                 boxShadow: isHighlighted ? '0 0 0 3px rgba(245,197,24,0.25)' : 'none',
                 transition: 'box-shadow 0.5s ease, border-color 0.5s ease',
-                borderRadius: '12px', padding: '16px 20px',
-                display: 'flex', flexDirection: 'column', gap: '12px',
+                borderRadius: '16px', padding: '18px 20px',
+                display: 'flex', flexDirection: 'column', gap: '14px',
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                   {order.service?.game?.coverImage ? (
                     <div style={{
-                      width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
+                      width: '52px', height: '52px', borderRadius: '12px', flexShrink: 0,
                       backgroundImage: `url(${order.service.game.coverImage})`,
                       backgroundSize: 'cover', backgroundPosition: 'center',
                       border: '1px solid var(--border)',
                     }} />
                   ) : (
                     <div style={{
-                      width: '48px', height: '48px', borderRadius: '10px',
+                      width: '52px', height: '52px', borderRadius: '12px',
                       background: 'var(--bg-elevated)', flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '20px', border: '1px solid var(--border)',
-                    }}>🎮</div>
+                      color: 'var(--gold)', border: '1px solid var(--border)',
+                    }}><GamepadIcon size={24} /></div>
                   )}
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
+                      <span style={{ fontSize: '15px', fontWeight: '700', color: '#fff', fontFamily: 'var(--font-montserrat)' }}>
                         {order.service?.name}
                       </span>
                       <span style={{
@@ -679,26 +747,25 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                       {order.service?.game?.name}
-                      {options?.type === 'range' && ` · ${selection.from} → ${selection.to} ${options.unitName}`}
-                      {options?.type === 'quantity' && ` · ${selection.quantity} ${options.unitName}`}
-                      {options?.type === 'options' && ` · ${selection.choice}`}
-                      {details.selectedAddons && Object.values(details.selectedAddons).map((g, i) => (
-                        <span key={i}> · {g.values.map(v => v.label).join(', ')}</span>
-                      ))}
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 'auto' }}>
+                    <div style={{
+                      fontSize: '9px', color: 'var(--text-dim)', fontWeight: '700',
+                      fontFamily: 'var(--font-montserrat)', letterSpacing: '0.05em', textTransform: 'uppercase',
+                    }}>
+                      Total
+                    </div>
                     <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                       {order.price !== undefined && order.price !== null ? format(order.price) : ''}
-                    </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                      {new Date(order.createdAt).toLocaleDateString('en-US')}
                     </div>
                   </div>
                 </div>
 
                 <OrderTimeline order={order} />
+
+                <OrderDetails order={order} />
 
                 {!['completed', 'cancelled'].includes(order.status) && (
                   <MessageThread orderId={order.id} onOpen={() => onMessagesSeen?.(order.id)} />
@@ -709,7 +776,10 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                 )}
 
                 {order.status !== 'cancelled' && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    flexWrap: 'wrap', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '12px',
+                  }}>
                     <div style={{ flex: 1 }}>
                       {['pending', 'assigned'].includes(order.status) && (
                         <CancelOrderButton order={order} onCancelled={onCancelled} />
@@ -1013,8 +1083,13 @@ function ReportIssueButton({ order, onReported }) {
 
   if (order.issueReport && !order.issueResolved) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', width: '100%' }}>
-        ⚠️ Issue reported — our team will follow up with you.
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px',
+        color: 'var(--gold-soft)', width: '100%', padding: '9px 11px', borderRadius: '9px',
+        background: 'rgba(245,197,24,0.07)', border: '1px solid rgba(245,197,24,0.2)',
+      }}>
+        <AlertTriangleIcon size={15} />
+        <span>Issue reported — our team will follow up with you.</span>
       </div>
     )
   }
@@ -1047,16 +1122,17 @@ function ReportIssueButton({ order, onReported }) {
         title="Having a problem with this order?"
         aria-label="Report a problem with this order"
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          width: '26px', height: '26px', borderRadius: '50%',
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+          minHeight: '32px', borderRadius: '8px', padding: '6px 10px', flexShrink: 0,
           background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer',
-          color: 'var(--text-dim)', fontSize: '12px', padding: 0, flexShrink: 0,
-          transition: 'color 0.15s, border-color 0.15s',
+          color: 'var(--text-dim)', fontSize: '11px', fontWeight: '600',
+          fontFamily: 'var(--font-montserrat)', transition: 'color 0.15s, border-color 0.15s',
         }}
         onMouseEnter={e => { e.currentTarget.style.color = '#ffcc44'; e.currentTarget.style.borderColor = '#ffcc44' }}
         onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.borderColor = 'var(--border)' }}
       >
-        ⚠️
+        <AlertTriangleIcon size={14} />
+        Report a problem
       </button>
     )
   }
@@ -1108,12 +1184,22 @@ function CancelOrderButton({ order, onCancelled }) {
 
   if (confirming) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Cancel this order?</span>
-        <button onClick={cancel} disabled={loading} style={{ fontSize: '12px', color: '#ff6666', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+        padding: '8px 10px', borderRadius: '9px', background: 'rgba(255,68,68,0.06)',
+        border: '1px solid rgba(255,68,68,0.2)',
+      }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cancel this order?</span>
+        <button onClick={cancel} disabled={loading} style={{
+          fontSize: '11px', color: 'var(--error-strong)', background: 'transparent',
+          border: 'none', cursor: 'pointer', fontWeight: '700', padding: '4px 2px',
+        }}>
           {loading ? '...' : 'Yes, cancel it'}
         </button>
-        <button onClick={() => setConfirming(false)} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
+        <button onClick={() => setConfirming(false)} style={{
+          fontSize: '11px', color: 'var(--text-dim)', background: 'none',
+          border: 'none', cursor: 'pointer', padding: '4px 2px',
+        }}>
           Never mind
         </button>
       </div>
@@ -1122,7 +1208,14 @@ function CancelOrderButton({ order, onCancelled }) {
 
   return (
     <div>
-      <button onClick={() => setConfirming(true)} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
+      <button onClick={() => setConfirming(true)} style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+        minHeight: '32px', padding: '6px 10px', borderRadius: '8px',
+        fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)',
+        background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer',
+        fontFamily: 'var(--font-montserrat)',
+      }}>
+        <XIcon size={13} />
         Cancel order
       </button>
     </div>
