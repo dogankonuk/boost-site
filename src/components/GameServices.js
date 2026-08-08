@@ -67,7 +67,7 @@ export default function GameServices({ services, game }) {
           </span>
         </div>
 
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <nav aria-label={`${game?.name || 'Game'} service categories`} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           <CategoryItem label="All Services" active={active === 'All'} onClick={() => setActive('All')} />
           {categories.map(cat => (
             <CategoryItem key={cat} label={cat} active={active === cat} onClick={() => setActive(cat)} />
@@ -98,9 +98,9 @@ export default function GameServices({ services, game }) {
 
 function CategoryItem({ label, active, onClick }) {
   return (
-    <button onClick={onClick} type="button" style={{
+    <button onClick={onClick} type="button" aria-pressed={active} style={{
       display: 'flex', alignItems: 'center', gap: '9px',
-      padding: '9px 10px', borderRadius: '8px', border: 'none', textAlign: 'left', width: '100%',
+      minHeight: '44px', padding: '9px 10px', borderRadius: '8px', border: 'none', textAlign: 'left', width: '100%',
       background: active ? 'rgba(245,197,24,0.1)' : 'transparent',
       color: active ? 'var(--gold)' : 'var(--text-muted)',
       fontSize: '13px', fontFamily: 'var(--font-inter)', fontWeight: active ? '600' : '400',
@@ -109,7 +109,7 @@ function CategoryItem({ label, active, onClick }) {
       onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#fff' }}
       onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-muted)' }}
     >
-      <span style={{ fontSize: '7px', color: active ? 'var(--gold)' : 'var(--text-dim)', flexShrink: 0 }}>●</span>
+      <span aria-hidden="true" style={{ fontSize: '7px', color: active ? 'var(--gold)' : 'var(--text-dim)', flexShrink: 0 }}>●</span>
       {label}
     </button>
   )
