@@ -32,11 +32,11 @@ export const metadata = {
     default: 'ShadowBoosting.co — Forge Your Power in the Shadows',
     template: '%s | ShadowBoosting.co',
   },
-  description: 'Professional game boosting services. Safe, fast, guaranteed.',
+  description: 'Explore configurable game boosting services with clear pricing, flexible delivery options, order tracking, and support across a growing catalog of games.',
   alternates: { canonical: '/' },
   openGraph: {
     title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
-    description: 'Professional game boosting services. Safe, fast, guaranteed.',
+    description: 'Explore configurable game boosting services with clear pricing, flexible delivery options, order tracking, and support across a growing catalog of games.',
     url: SITE_URL,
     siteName: 'ShadowBoosting.co',
     type: 'website',
@@ -44,7 +44,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'ShadowBoosting.co — Forge Your Power in the Shadows',
-    description: 'Professional game boosting services. Safe, fast, guaranteed.',
+    description: 'Explore configurable game boosting services with clear pricing, flexible delivery options, order tracking, and support across a growing catalog of games.',
   },
 }
 
@@ -72,7 +72,7 @@ export default function RootLayout({ children }) {
               '@type': 'Organization',
               name: 'ShadowBoosting.co',
               url: SITE_URL,
-              description: 'Professional game boosting services. Safe, fast, guaranteed.',
+              description: 'Configurable game boosting services with clear pricing, delivery options, order tracking, and support.',
             },
             {
               '@type': 'WebSite',

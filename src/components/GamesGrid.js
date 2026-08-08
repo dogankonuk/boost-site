@@ -131,7 +131,7 @@ export default function GamesGrid({ games }) {
             </div>
 
             <div style={{ padding: '16px' }}>
-              <h3 className="h4" style={{ color: '#fff', marginBottom: '6px' }}>{game.name}</h3>
+              <h2 className="h4" style={{ color: '#fff', marginBottom: '6px' }}>{game.name}</h2>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{
                   fontSize: '11px', color: 'var(--gold)',

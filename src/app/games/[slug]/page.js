@@ -27,8 +27,11 @@ export async function generateMetadata({ params }) {
   const game = await getGame(slug)
   if (!game) return { title: 'Game Not Found' }
 
-  const description = game.description
-    || `Professional ${game.name} boosting services — ${game.category}. Safe, fast, and guaranteed delivery.`
+  const serviceCount = game.services.length
+  const serviceLabel = `${serviceCount} available ${serviceCount === 1 ? 'service' : 'services'}`
+  const description = truncateMetaDescription(
+    `Explore ${game.name} boosting services for ${game.category || 'players'}. Compare ${serviceLabel}, pricing, delivery methods, and service details before choosing your boost.`
+  )
 
   return {
     title: `${game.name} Boosting Services`,
@@ -47,6 +50,9 @@ export default async function GamePage({ params }) {
   const game = await getGame(slug)
 
   if (!game) return notFound()
+
+  const serviceCategories = [...new Set(game.services.map(service => service.serviceCategory).filter(Boolean))]
+  const serviceCountLabel = `${game.services.length} ${game.services.length === 1 ? 'service' : 'services'}`
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -90,22 +96,72 @@ export default async function GamePage({ params }) {
             fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '700',
           }}>{game.category}</span>
 
-          {game.description && (
-            <p className="body-default" style={{
-              color: 'var(--text-muted)', lineHeight: '1.8',
-              marginTop: '16px', maxWidth: '760px',
-            }}>
-              {game.description}
-            </p>
-          )}
+          <p className="body-default" style={{
+            color: 'var(--text-muted)', lineHeight: '1.8',
+            marginTop: '16px', maxWidth: '760px',
+          }}>
+            {game.description || `Compare the available ${game.name} services, configure the option that matches your goal, and review pricing and delivery details before ordering.`}
+          </p>
         </Container>
       </div>
 
       <Container style={{ paddingTop: '24px', paddingBottom: '48px', flex: 1 }}>
+        <div style={{ marginBottom: '22px', maxWidth: '760px' }}>
+          <div style={{
+            color: 'var(--gold)', fontSize: '11px', fontFamily: 'var(--font-montserrat)',
+            fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '7px',
+          }}>
+            {serviceCountLabel} available
+          </div>
+          <h2 className="h3" style={{ color: '#fff', marginBottom: '8px' }}>Choose your {game.name} service</h2>
+          <p className="body-default" style={{ color: 'var(--text-muted)', lineHeight: '1.7' }}>
+            Review each service&apos;s scope, starting price, included features, and configurable options to find the closest match for your in-game goal.
+          </p>
+        </div>
+
         <GameServices services={game.services} game={game} />
+
+        <section aria-labelledby="game-service-guide" style={{ marginTop: '48px' }}>
+          <div style={{ maxWidth: '760px', marginBottom: '20px' }}>
+            <h2 id="game-service-guide" className="h3" style={{ color: '#fff', marginBottom: '10px' }}>
+              How to choose your {game.name} boost
+            </h2>
+            <p className="body-default" style={{ color: 'var(--text-muted)', lineHeight: '1.75' }}>
+              Start with the result you want, then compare the available service types and configuration fields. This page currently lists {serviceCountLabel}
+              {serviceCategories.length > 0 ? ` across ${serviceCategories.join(', ')}` : ''}. Open any service to see its current price, delivery method, included features, optional add-ons, and estimated start information before adding it to your cart.
+              Use the category filters above to narrow the list by service type.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+            {[
+              { title: 'Compare the scope', text: 'Check what the service includes and whether its selectable range, quantity, or package matches your target.' },
+              { title: 'Review delivery options', text: 'The service page explains the available delivery method and shows any configurable add-ons before checkout.' },
+              { title: 'Track the next steps', text: 'After an order is created, its status and available progress details appear in your account dashboard.' },
+            ].map(item => (
+              <div key={item.title} style={{
+                padding: '20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '14px',
+              }}>
+                <h3 className="h4" style={{ color: '#fff', marginBottom: '8px' }}>{item.title}</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: '1.65', margin: 0 }}>{item.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: '1.7', marginTop: '18px' }}>
+            Need more context first? Read about <Link href="/trust" style={{ color: 'var(--gold)' }}>account safety and delivery practices</Link> or visit the <Link href="/faq" style={{ color: 'var(--gold)' }}>frequently asked questions</Link>.
+          </p>
+        </section>
       </Container>
 
       <Footer />
     </main>
   )
+}
+
+function truncateMetaDescription(text, maxLength = 160) {
+  if (text.length <= maxLength) return text
+  const shortened = text.slice(0, maxLength - 1)
+  const lastSpace = shortened.lastIndexOf(' ')
+  return `${shortened.slice(0, lastSpace).replace(/[,.;:!?-]+$/, '')}.`
 }

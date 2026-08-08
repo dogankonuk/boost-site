@@ -6,8 +6,8 @@ import Container from '@/components/Container'
 import PageHeader from '@/components/PageHeader'
 
 export const metadata = {
-  title: 'Blog',
-  description: 'Guides, updates, and playthroughs from the ShadowBoosting team and content creators.',
+  title: 'Game Boosting Guides, Tips & News',
+  description: 'Read practical game guides, boosting explainers, platform updates, and detailed playthroughs for supported titles from the ShadowBoosting content team.',
   alternates: {
     canonical: '/blog',
     types: { 'application/rss+xml': '/blog/rss.xml' },
@@ -41,7 +41,7 @@ export default async function BlogPage({ searchParams }) {
 
       <PageHeader
         eyebrow="Notes From the Shadows"
-        title="Blog"
+        title="Game Guides & News"
         subtitle="Guides, updates, and playthroughs from our team and content creators."
         accent="violet"
         right={
@@ -124,10 +124,10 @@ export function BlogCard({ post }) {
               <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{post.game.name}</span>
             )}
           </div>
-          <h3 style={{
+          <h2 style={{
             fontSize: '15px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '700',
             margin: 0, lineHeight: '1.4',
-          }}>{post.title}</h3>
+          }}>{post.title}</h2>
           {post.excerpt && (
             <p style={{
               fontSize: '13px', color: 'var(--text-muted)', margin: 0, lineHeight: '1.5',

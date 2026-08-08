@@ -53,7 +53,7 @@ export default function GameServices({ services, game }) {
             }}>
               <Image
                 src={game.coverImage}
-                alt=""
+                alt={`${game.name} cover`}
                 fill
                 sizes="28px"
                 style={{ objectFit: 'cover' }}
