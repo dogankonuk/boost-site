@@ -14,11 +14,12 @@ export default function VerifyEmailPage() {
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const [status, setStatus] = useState('loading') // loading | success | error
-  const [error, setError] = useState('')
+  const [verification, setVerification] = useState({ token: null, status: 'loading', error: '' })
 
   useEffect(() => {
-    if (!token) { setStatus('error'); setError('This link is invalid.'); return }
+    if (!token) return
+
+    let cancelled = false
 
     fetch('/api/auth', {
       method: 'POST',
@@ -27,11 +28,24 @@ function VerifyEmailContent() {
     })
       .then(res => res.json())
       .then(d => {
-        if (d.success) setStatus('success')
-        else { setStatus('error'); setError(d.error || 'An error occurred') }
+        if (cancelled) return
+        setVerification({
+          token,
+          status: d.success ? 'success' : 'error',
+          error: d.success ? '' : (d.error || 'An error occurred'),
+        })
       })
-      .catch(() => { setStatus('error'); setError('Failed to connect to the server') })
+      .catch(() => {
+        if (!cancelled) setVerification({ token, status: 'error', error: 'Failed to connect to the server' })
+      })
+
+    return () => { cancelled = true }
   }, [token])
+
+  const status = !token
+    ? 'error'
+    : verification.token === token ? verification.status : 'loading'
+  const error = !token ? 'This link is invalid.' : verification.error
 
   return (
     <div style={{

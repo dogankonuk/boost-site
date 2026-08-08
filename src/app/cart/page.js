@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -14,19 +14,28 @@ import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
 import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 
+function subscribeToAuth(onChange) {
+  window.addEventListener('storage', onChange)
+  return () => window.removeEventListener('storage', onChange)
+}
+
+function getAuthSnapshot() {
+  return Boolean(localStorage.getItem('token'))
+}
+
+function getServerAuthSnapshot() {
+  return false
+}
+
 export default function CartPage() {
   const router = useRouter()
   const { items, removeItem, clearCart, totalUSD, hydrated } = useCart()
   const { format } = useCurrency()
-  const [loggedIn, setLoggedIn] = useState(false)
+  const loggedIn = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, getServerAuthSnapshot)
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState('')
   const [couponCode, setCouponCode] = useState('')
   const [listRef] = useAutoAnimate()
-
-  useEffect(() => {
-    setLoggedIn(!!localStorage.getItem('token'))
-  }, [])
 
   async function handleCheckout() {
     if (!loggedIn) { router.push('/login'); return }
