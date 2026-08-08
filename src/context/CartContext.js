@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { sanitizeCartItems } from '@/lib/cartStorage'
 
 const CartContext = createContext(null)
 const STORAGE_KEY = 'sb_cart'
@@ -18,7 +19,7 @@ export function CartProvider({ children }) {
 
       try {
         const raw = localStorage.getItem(STORAGE_KEY)
-        if (raw) setItems(JSON.parse(raw))
+        if (raw) setItems(sanitizeCartItems(JSON.parse(raw)))
       } catch {
         // Invalid or unavailable storage should behave like an empty cart.
       }

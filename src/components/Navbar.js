@@ -507,7 +507,7 @@ export default function Navbar() {
             )}
           </div>
 
-          <NavIcon href="/cart" label="Cart" badge={cartCount}><CartIcon /></NavIcon>
+          <NavIcon href="/cart" label={cartCount > 0 ? `Cart, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}` : 'Cart'} badge={cartCount}><CartIcon /></NavIcon>
 
           {user ? (
             <div ref={dropdownRef} style={{ position: 'relative' }}>

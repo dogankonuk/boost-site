@@ -6,6 +6,7 @@ import {
   normalizeSelection,
 } from '../src/lib/pricing.js'
 import { buildCheckoutError } from '../src/lib/cartCheckout.js'
+import { sanitizeCartItems } from '../src/lib/cartStorage.js'
 
 test('quantity selection clamps and snaps from the configured minimum', () => {
   const options = {
@@ -87,5 +88,17 @@ test('checkout error reports partial success without claiming every item succeed
       { name: 'Currency', reason: 'The order could not be created.' },
     ], 2),
     '2 orders were placed successfully. Could not place: Currency.',
+  )
+})
+
+test('stored cart ignores malformed data instead of breaking cart consumers', () => {
+  assert.deepEqual(sanitizeCartItems({ serviceId: 23 }), [])
+  assert.deepEqual(sanitizeCartItems([null, 'invalid', { serviceId: 23, price: 'nope', serviceName: 'Leveling' }]), [])
+})
+
+test('stored cart restores valid items with numeric prices and removable ids', () => {
+  assert.deepEqual(
+    sanitizeCartItems([{ serviceId: '23', serviceName: 'Power Leveling', price: '63.00' }]),
+    [{ serviceId: 23, serviceName: 'Power Leveling', price: 63, cartId: 'restored-23-0' }],
   )
 })
