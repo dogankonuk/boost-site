@@ -472,6 +472,38 @@ body, p, span, a, input, textarea {
   -moz-appearance: textfield;
 }
 
+@media (max-width: 430px) {
+  .order-form-header {
+    padding: 20px 16px !important;
+  }
+
+  .order-form-price {
+    font-size: 32px !important;
+  }
+
+  .order-form-coupon {
+    padding: 14px 16px 0 !important;
+  }
+
+  .order-form-body {
+    padding: 20px 16px !important;
+    gap: 18px !important;
+  }
+
+  .order-form-actions {
+    flex-direction: column;
+  }
+
+  .order-form-actions > button {
+    width: 100%;
+    flex: none !important;
+  }
+
+  .order-form-trust-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .hover-gold-border {
   transition: border-color 0.2s;
 }

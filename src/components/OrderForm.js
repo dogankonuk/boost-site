@@ -177,7 +177,7 @@ export default function OrderForm({ service }) {
       transition: 'opacity 0.35s ease, transform 0.35s ease',
     }}>
       {/* Price summary header */}
-      <div style={{
+      <div className="order-form-header" style={{
         background: 'linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-card) 100%)',
         padding: '22px 24px',
         borderBottom: '1px solid var(--border)',
@@ -195,7 +195,7 @@ export default function OrderForm({ service }) {
               {format(price)}
             </div>
           )}
-          <div style={{ fontSize: '38px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
+          <div className="order-form-price" style={{ fontSize: '38px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
             {format(finalPrice)}
           </div>
           {couponWins && (
@@ -229,7 +229,7 @@ export default function OrderForm({ service }) {
         )}
       </div>
 
-      <div style={{ padding: '16px 24px 0' }}>
+      <div className="order-form-coupon" style={{ padding: '16px 24px 0' }}>
         <CouponInput
           serviceId={service.id}
           selection={selection}
@@ -239,7 +239,7 @@ export default function OrderForm({ service }) {
         />
       </div>
 
-      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div className="order-form-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
         {options?.type === 'quantity' && (
           <QuantitySlider
@@ -356,7 +356,7 @@ export default function OrderForm({ service }) {
         ))}
 
         {/* Trust badges */}
-        <div style={{
+        <div className="order-form-trust-grid" style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
           padding: '14px', background: 'var(--bg-elevated)',
           borderRadius: '10px', border: '1px solid var(--border)',
@@ -395,7 +395,7 @@ export default function OrderForm({ service }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: '10px' }}>
+        <div className="order-form-actions" style={{ display: 'flex', gap: '10px' }}>
           {loggedIn ? (
             <>
               <button type="button" onClick={handleAddToCart} disabled={addedToCart}
