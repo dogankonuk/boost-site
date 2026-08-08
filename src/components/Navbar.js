@@ -1,14 +1,48 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCurrency, CURRENCY_SYMBOLS } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
 import { getServiceIcon } from '@/components/GameServices'
 
+const AUTH_CHANGE_EVENT = 'shadowboosting-auth-change'
+
+function subscribeToAuth(onChange) {
+  window.addEventListener('storage', onChange)
+  window.addEventListener(AUTH_CHANGE_EVENT, onChange)
+  return () => {
+    window.removeEventListener('storage', onChange)
+    window.removeEventListener(AUTH_CHANGE_EVENT, onChange)
+  }
+}
+
+function getAuthSnapshot() {
+  return JSON.stringify([
+    localStorage.getItem('token') || '',
+    localStorage.getItem('username') || '',
+  ])
+}
+
+function getServerAuthSnapshot() {
+  return '["",""]'
+}
+
+function formatTimeAgo(dateStr, now) {
+  const diffMs = now - new Date(dateStr).getTime()
+  const mins = Math.floor(diffMs / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.floor(hours / 24)}d ago`
+}
+
 export default function Navbar() {
   const [search, setSearch] = useState('')
-  const [user, setUser] = useState(null)
+  const authSnapshot = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, getServerAuthSnapshot)
+  const [token, username] = JSON.parse(authSnapshot)
+  const user = token && username ? { username } : null
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef(null)
   const router = useRouter()
@@ -33,33 +67,48 @@ export default function Navbar() {
   const { count: cartCount } = useCart()
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const username = localStorage.getItem('username')
-    if (token && username) {
-      setUser({ username })
-      fetch('/api/auth', {
+    if (!token) return
+
+    let cancelled = false
+
+    fetch('/api/auth', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ action: 'getProfile' }),
       })
         .then(res => res.json())
         .then(d => {
-          if (!d.success) return
+          if (cancelled || !d.success) return
           setIsBooster(!!d.data.isBooster)
           setIsContentCreator(!!d.data.isContentCreator)
         })
         .catch(() => {})
-      fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => res.json())
-        .then(d => setNotifications(d.success ? d.data : []))
-        .catch(() => setNotifications([]))
-    }
 
+    fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => res.json())
+      .then(d => {
+        if (cancelled) return
+        const now = Date.now()
+        setNotifications(d.success
+          ? d.data.map(notification => ({ ...notification, relativeTime: formatTimeAgo(notification.createdAt, now) }))
+          : [])
+      })
+      .catch(() => { if (!cancelled) setNotifications([]) })
+
+    return () => { cancelled = true }
+  }, [token])
+
+  useEffect(() => {
+    let cancelled = false
     fetch('/api/games')
       .then(res => res.json())
-      .then(d => { if (d.success) setNavGames(d.data) })
-      .catch(() => setNavGames([]))
+      .then(d => { if (!cancelled && d.success) setNavGames(d.data) })
+      .catch(() => { if (!cancelled) setNavGames([]) })
 
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
     function handleClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false)
@@ -92,8 +141,9 @@ export default function Navbar() {
   function logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
-    setUser(null)
+    window.dispatchEvent(new Event(AUTH_CHANGE_EVENT))
     setIsBooster(false)
+    setIsContentCreator(false)
     setNotifications([])
     setDropdownOpen(false)
     router.push('/')
@@ -134,17 +184,6 @@ export default function Navbar() {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ action: 'markAllRead' }),
     }).catch(() => {})
-  }
-
-  function timeAgo(dateStr) {
-    const diffMs = Date.now() - new Date(dateStr).getTime()
-    const mins = Math.floor(diffMs / 60000)
-    if (mins < 1) return 'just now'
-    if (mins < 60) return `${mins}m ago`
-    const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
   }
 
   return (
@@ -448,7 +487,7 @@ export default function Navbar() {
                           {n.body && (
                             <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{n.body}</div>
                           )}
-                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px' }}>{timeAgo(n.createdAt)}</div>
+                          <div style={{ fontSize: '10px', color: 'var(--text-dim)', marginTop: '3px' }}>{n.relativeTime}</div>
                         </div>
                       </div>
                     ))
