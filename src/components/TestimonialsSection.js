@@ -9,7 +9,10 @@ export default function TestimonialsSection({ testimonials = [] }) {
         <h2 className="h3" style={{ color: '#fff', marginBottom: '18px' }}>What Players Are Saying</h2>
       </Reveal>
 
-      <div className="themed-scrollbar" style={{ display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '10px' }}>
+      <div className="themed-scrollbar" style={{
+        display: 'flex', gap: '14px', overflowX: 'auto', overflowY: 'hidden',
+        paddingBottom: '10px', WebkitOverflowScrolling: 'touch',
+      }}>
         {testimonials.map((t, i) => (
           <Reveal key={t.id} delay={i * 0.05}>
             <TestimonialCard t={t} />

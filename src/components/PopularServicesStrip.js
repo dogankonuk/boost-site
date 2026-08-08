@@ -23,7 +23,8 @@ export default function PopularServicesStrip({ services }) {
         </div>
 
         <div className="themed-scrollbar" style={{
-          display: 'flex', gap: '14px', overflowX: 'auto', paddingBottom: '8px',
+          display: 'flex', gap: '14px', overflowX: 'auto', overflowY: 'hidden',
+          paddingBottom: '8px', WebkitOverflowScrolling: 'touch',
         }}>
           {services.map((service, i) => (
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>

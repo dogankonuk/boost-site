@@ -451,10 +451,11 @@ export default function Navbar() {
                     Notifications
                   </span>
                   {notifications.some(n => !n.isRead) && (
-                    <button onClick={markAllNotifsRead} style={{
-                      background: 'none', border: 'none', color: 'var(--gold)',
-                      fontSize: '11px', cursor: 'pointer', fontFamily: 'var(--font-inter)',
-                    }}>Mark all read</button>
+                    <button onClick={markAllNotifsRead} aria-label="Mark all notifications as read" style={{
+                      background: 'rgba(245,197,24,0.08)', border: '1px solid rgba(245,197,24,0.24)',
+                      borderRadius: '20px', color: 'var(--gold)', padding: '5px 9px',
+                      fontSize: '10px', fontWeight: '600', cursor: 'pointer', fontFamily: 'var(--font-inter)',
+                    }}>Mark all as read</button>
                   )}
                 </div>
 
@@ -756,10 +757,13 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           {/* Left — Popular Games / Other Games */}
-          <div className="themed-scrollbar" style={{
+          <div style={{
             width: '320px', flexShrink: 0, borderRight: '1px solid var(--border)',
-            padding: '26px 24px', overflowY: 'auto',
+            display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden',
           }}>
+            <div className="themed-scrollbar" style={{
+              flex: 1, minHeight: 0, padding: '26px 24px 18px', overflowY: 'auto',
+            }}>
             <input
               value={gamesSearch}
               onChange={e => setGamesSearch(e.target.value)}
@@ -790,8 +794,11 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
               </>
             )}
 
+            </div>
             <Link href="/games" onClick={onClose} style={{
-              display: 'block', marginTop: '20px', fontSize: '13px', color: 'var(--gold)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0,
+              padding: '15px 24px', fontSize: '13px', color: 'var(--gold)',
+              borderTop: '1px solid var(--border)', background: 'var(--bg-card)',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600', textDecoration: 'none',
             }}>
               View All Games →
