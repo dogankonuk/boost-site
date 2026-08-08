@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, Fragment } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback, Fragment } from 'react'
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core'
@@ -73,16 +73,14 @@ export default function AdminGames({ secret }) {
   })
   const [msg, setMsg] = useState('')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
-  useEffect(() => { fetchGames(); fetchGameCategories() }, [])
-
-  async function fetchGames() {
+  const fetchGames = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=games', { headers })
@@ -90,14 +88,28 @@ export default function AdminGames({ secret }) {
       if (d.success) setGames(d.data)
     } catch (e) { console.error(e) }
     setLoading(false)
-  }
-  async function fetchGameCategories() {
+  }, [headers])
+
+  const fetchGameCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/admin?type=gameCategories', { headers })
       const d = await res.json()
       if (d.success) setGameCategories(d.data)
     } catch {}
-  }
+  }, [headers])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadGames() {
+      await Promise.resolve()
+      if (cancelled) return
+      await Promise.all([fetchGames(), fetchGameCategories()])
+    }
+
+    loadGames()
+    return () => { cancelled = true }
+  }, [fetchGameCategories, fetchGames])
 
   async function handleDragEnd(event) {
     const { active, over } = event
@@ -738,11 +750,9 @@ function GameCategories({ secret, onCategoriesChange }) {
   const [loading, setLoading] = useState(true)
   const [msg, setMsg] = useState('')
 
-  const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }
+  const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
-  useEffect(() => { fetchCategories() }, [])
-
-  async function fetchCategories() {
+  const fetchCategories = useCallback(async () => {
     setLoading(true)
     try {
       const res = await fetch('/api/admin?type=gameCategories', { headers })
@@ -754,18 +764,28 @@ function GameCategories({ secret, onCategoriesChange }) {
       }
     } catch (e) { console.error(e) }
     setLoading(false)
-  }
+  }, [headers, onCategoriesChange])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCategories() {
+      await Promise.resolve()
+      if (!cancelled) await fetchCategories()
+    }
+
+    loadCategories()
+    return () => { cancelled = true }
+  }, [fetchCategories])
 
   async function addCategory() {
     if (!newCat.trim()) return
-    console.log('addCategory çağrıldı:', newCat.trim())
     const res = await fetch('/api/admin', {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ type: 'gameCategories', action: 'add', value: newCat.trim() }),
     })
     const d = await res.json()
-    console.log('response:', d)
     if (d.success) { setMsg('Kategori eklendi'); setNewCat(''); fetchCategories() }
     else setMsg(d.error || 'Hata')
   }
