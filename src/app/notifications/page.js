@@ -22,20 +22,29 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('token')
-    if (!token) { router.push('/login'); return }
-    fetchNotifications()
-  }, [])
+    if (!token) {
+      router.push('/login')
+      return
+    }
 
-  async function fetchNotifications() {
-    setLoading(true)
-    try {
-      const res = await authFetch('/api/notifications')
-      if (!res) return
-      const d = await res.json()
-      if (d.success) setNotifications(d.data)
-    } catch {}
-    setLoading(false)
-  }
+    const controller = new AbortController()
+
+    async function fetchNotifications() {
+      try {
+        const res = await authFetch('/api/notifications', { signal: controller.signal })
+        if (!res) return
+        const data = await res.json()
+        if (!controller.signal.aborted && data.success) setNotifications(data.data)
+      } catch (error) {
+        if (error.name !== 'AbortError') console.error(error)
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
+      }
+    }
+
+    fetchNotifications()
+    return () => controller.abort()
+  }, [router])
 
   async function markAllRead() {
     const res = await authFetch('/api/notifications', {
@@ -83,7 +92,7 @@ export default function NotificationsPage() {
             borderRadius: '16px', padding: '60px', textAlign: 'center',
           }}>
             <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}>🔔</div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>You don't have any notifications yet.</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>You don&apos;t have any notifications yet.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

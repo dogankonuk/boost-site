@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from 'next-auth/react'
@@ -35,23 +35,16 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [tab, setTab] = useState('login')
+  const [tab, setTab] = useState(() => searchParams.get('ref') ? 'register' : 'login')
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(() => searchParams.get('expired') === '1'
+    ? 'Your session has expired. Please sign in again.'
+    : '')
 
   const { register, handleSubmit, clearErrors, setError: setFieldError, formState: { errors } } = useForm({
     resolver: zodResolver(tab === 'login' ? loginSchema : registerSchema),
     defaultValues: { email: '', username: '', password: '', agreedToTerms: false },
   })
-
-  useEffect(() => {
-    if (searchParams.get('expired') === '1') {
-      setError('Your session has expired. Please sign in again.')
-    }
-    if (searchParams.get('ref')) {
-      setTab('register')
-    }
-  }, [])
 
   function switchTab(key) {
     setTab(key)

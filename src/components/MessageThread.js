@@ -20,39 +20,69 @@ export default function MessageThread({ orderId, onOpen }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const listRef = useRef(null)
+  const onOpenRef = useRef(onOpen)
 
-  const load = useCallback(async (silent) => {
-    if (!silent) setLoading(true)
+  const load = useCallback(async (silent, signal) => {
+    if (!silent && !signal?.aborted) setLoading(true)
     try {
-      const res = await authFetch(`/api/messages?orderId=${orderId}`)
+      const res = await authFetch(`/api/messages?orderId=${orderId}`, { signal })
       if (res) {
         const d = await res.json()
-        if (d.success) setMessages(d.data)
+        if (!signal?.aborted && d.success) setMessages(d.data)
       }
-    } catch {}
-    if (!silent) setLoading(false)
+    } catch (error) {
+      if (error.name !== 'AbortError') console.error(error)
+    }
+    if (!silent && !signal?.aborted) setLoading(false)
   }, [orderId])
+
+  useEffect(() => {
+    onOpenRef.current = onOpen
+  }, [onOpen])
 
   // Fetches once on mount (silently) so the message count badge is accurate
   // even before the thread is ever expanded.
-  useEffect(() => { load(true) }, [load])
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadInitialMessages() {
+      await Promise.resolve()
+      if (!controller.signal.aborted) await load(true, controller.signal)
+    }
+
+    loadInitialMessages()
+    return () => controller.abort()
+  }, [load])
 
   useEffect(() => {
     if (!open) return
-    load()
-    const interval = setInterval(() => load(true), 8000)
-    return () => clearInterval(interval)
+    const controller = new AbortController()
+
+    async function loadOpenMessages() {
+      await Promise.resolve()
+      if (!controller.signal.aborted) await load(false, controller.signal)
+    }
+
+    loadOpenMessages()
+    const interval = setInterval(() => load(true, controller.signal), 8000)
+    return () => {
+      controller.abort()
+      clearInterval(interval)
+    }
   }, [open, load])
 
   // Opening the thread counts as having seen it — clears the order-level
   // "new message" indicator both locally and via the unread notification(s).
   useEffect(() => {
     if (!open) return
-    onOpen?.()
+    onOpenRef.current?.()
+    const controller = new AbortController()
     authFetch('/api/notifications', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'markReadForOrder', orderId }),
+      signal: controller.signal,
     }).catch(() => {})
+    return () => controller.abort()
   }, [open, orderId])
 
   useEffect(() => {
