@@ -100,9 +100,7 @@ export default function CartPage() {
             <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
               Your cart is empty.
             </p>
-            <Link href="/games" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary">Browse Services</button>
-            </Link>
+            <Link href="/games" className="btn-primary">Browse Services</Link>
           </div>
         ) : (
           <div className="content-sidebar-grid" style={{ '--sidebar-width': '340px', '--sidebar-gap': '24px' }}>

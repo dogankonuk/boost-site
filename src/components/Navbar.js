@@ -531,16 +531,13 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <Link href="/login" style={{ textDecoration: 'none' }}>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'var(--gold)', border: 'none',
-                borderRadius: '8px', padding: '7px 16px',
-                cursor: 'pointer', fontFamily: 'var(--font-montserrat)',
-                fontWeight: '600', fontSize: '13px', color: '#0a0a0a',
-              }}>
-                Sign In
-              </button>
+            <Link href="/login" style={{
+              minHeight: '44px', display: 'flex', alignItems: 'center', gap: '8px',
+              background: 'var(--gold)', borderRadius: '8px', padding: '7px 16px',
+              fontFamily: 'var(--font-montserrat)', fontWeight: '600',
+              fontSize: '13px', color: '#0a0a0a', textDecoration: 'none',
+            }}>
+              Sign In
             </Link>
           )}
         </div>
@@ -640,10 +637,8 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ textDecoration: 'none' }}>
-              <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>
-                Sign In
-              </button>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="btn-primary" style={{ width: '100%', padding: '11px' }}>
+              Sign In
             </Link>
           )}
         </div>

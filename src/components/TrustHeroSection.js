@@ -32,9 +32,7 @@ export default function TrustHeroSection() {
           No — if it's done right. Here's exactly how we keep every order safe, from the booster we assign to the moment it's delivered.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary">Browse Boosts</button>
-          </Link>
+          <Link href="/games" className="btn-primary">Browse Boosts</Link>
         </div>
       </motion.div>
     </section>

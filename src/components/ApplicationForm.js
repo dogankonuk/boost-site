@@ -122,9 +122,7 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
           <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
             <p className="body-large" style={{ color: '#fff', marginBottom: '12px' }}>Please log in first</p>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px' }}>You need an account to submit an application.</p>
-            <Link href="/login" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary">Log In</button>
-            </Link>
+            <Link href="/login" className="btn-primary">Log In</Link>
           </div>
         ) : alreadyHasRole ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>

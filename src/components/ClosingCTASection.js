@@ -18,9 +18,7 @@ export default function ClosingCTASection() {
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '24px', maxWidth: '420px', margin: '0 auto 24px' }}>
             Pick your game and get a vetted booster on your order within 15–30 minutes.
           </p>
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary" style={{ padding: '12px 32px' }}>Browse Boosts</button>
-          </Link>
+          <Link href="/games" className="btn-primary" style={{ padding: '12px 32px' }}>Browse Boosts</Link>
         </div>
       </Reveal>
     </section>

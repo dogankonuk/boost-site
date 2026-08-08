@@ -49,10 +49,8 @@ export default function ServiceCard({ service }) {
         {format(service.basePrice)}
       </div>
 
-      <Link href={`/order/${service.id}`} style={{ textDecoration: 'none' }}>
-        <button className="btn-primary" style={{ width: '100%' }}>
-          Buy Now
-        </button>
+      <Link href={`/order/${service.id}`} className="btn-primary" style={{ width: '100%' }}>
+        Buy Now
       </Link>
     </div>
   )

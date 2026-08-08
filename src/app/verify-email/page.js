@@ -69,9 +69,7 @@ function VerifyEmailContent() {
               Email verified!
             </h1>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '20px' }}>Your account is now fully active.</p>
-            <Link href="/dashboard" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary" style={{ width: '100%', padding: '12px' }}>Go to Dashboard</button>
-            </Link>
+            <Link href="/dashboard" className="btn-primary" style={{ width: '100%', padding: '12px' }}>Go to Dashboard</Link>
           </>
         )}
         {status === 'error' && (
