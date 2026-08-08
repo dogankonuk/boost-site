@@ -36,6 +36,7 @@ export default function CartPage() {
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState('')
   const [couponCode, setCouponCode] = useState('')
+  const [confirmClear, setConfirmClear] = useState(false)
   const [listRef] = useAutoAnimate()
 
   async function handleCheckout() {
@@ -156,9 +157,10 @@ export default function CartPage() {
                     <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
                       {format(item.price)}
                     </div>
-                    <button onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{
+                    <button type="button" aria-label={`Remove ${item.serviceName} from cart`}
+                      onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{
                       background: 'none', border: 'none', color: 'var(--text-dim)',
-                      fontSize: '12px', cursor: 'pointer', padding: 0,
+                      fontSize: '12px', cursor: 'pointer', padding: '8px 6px', minHeight: '36px',
                       transition: 'color 0.15s',
                     }}
                       onMouseEnter={e => e.currentTarget.style.color = '#ff6666'}
@@ -194,10 +196,11 @@ export default function CartPage() {
 
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div>
-                  <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                  <label htmlFor="cart-coupon-code" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
                     Coupon code (optional)
                   </label>
                   <input
+                    id="cart-coupon-code"
                     value={couponCode}
                     onChange={e => setCouponCode(e.target.value)}
                     placeholder="e.g. WELCOME10"
@@ -209,7 +212,7 @@ export default function CartPage() {
                   />
                 </div>
                 {error && (
-                  <div style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px', color: '#ff6666', fontSize: '12px', lineHeight: '1.5' }}>
+                  <div role="alert" style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px', color: '#ff6666', fontSize: '12px', lineHeight: '1.5' }}>
                     {error}
                   </div>
                 )}
@@ -217,8 +220,17 @@ export default function CartPage() {
                   style={{ width: '100%', padding: '14px', fontSize: '15px', opacity: checkingOut ? 0.7 : 1 }}>
                   {checkingOut ? 'Placing orders...' : loggedIn ? 'Checkout' : 'Sign In to Checkout'}
                 </button>
-                <button onClick={clearCart} className="btn-secondary" style={{ width: '100%', padding: '12px', fontSize: '13px' }}>
-                  Clear Cart
+                <button type="button" onClick={() => {
+                  if (!confirmClear) { setConfirmClear(true); return }
+                  clearCart()
+                  setConfirmClear(false)
+                  toast('Cart cleared')
+                }} className="btn-secondary" style={{
+                  width: '100%', padding: '12px', fontSize: '13px',
+                  color: confirmClear ? '#ff8a8a' : undefined,
+                  borderColor: confirmClear ? '#7a3030' : undefined,
+                }}>
+                  {confirmClear ? 'Confirm Clear Cart' : 'Clear Cart'}
                 </button>
                 <p style={{ fontSize: '11px', color: 'var(--text-dim)', textAlign: 'center', lineHeight: '1.6' }}>
                   Each item becomes a separate order once you check out.
