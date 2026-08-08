@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from 'react'
 
-const FINE_POINTER_QUERY = '(hover: hover) and (pointer: fine)'
+const FINE_POINTER_QUERY = '(min-width: 769px) and (hover: hover) and (pointer: fine)'
 
 function subscribe(onChange) {
   const mediaQuery = window.matchMedia(FINE_POINTER_QUERY)

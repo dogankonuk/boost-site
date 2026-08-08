@@ -2,8 +2,8 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'framer-motion'
-import Tilt from 'react-parallax-tilt'
 import useFinePointer from '@/hooks/useFinePointer'
+import AdaptiveTilt from './AdaptiveTilt'
 
 export default function GamesSlider() {
   const shouldReduceMotion = useReducedMotion()
@@ -72,10 +72,10 @@ export default function GamesSlider() {
             }}>
               {games.map(game => (
                 <Link key={game.id} href={`/games/${game.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
-                  <Tilt
-                    tiltEnable={tiltEnabled}
+                  <AdaptiveTilt
+                    enabled={tiltEnabled}
                     tiltMaxAngleX={8} tiltMaxAngleY={8} scale={1.03} transitionSpeed={1200}
-                    glareEnable={tiltEnabled} glareMaxOpacity={0.18} glareColor="#f5c518" glarePosition="all"
+                    glareEnable glareMaxOpacity={0.18} glareColor="#f5c518" glarePosition="all"
                     glareBorderRadius="16px" tiltReverse
                     style={{ width: `${cardW}px` }}
                   >
@@ -136,7 +136,7 @@ export default function GamesSlider() {
                       )}
                     </div>
                   </div>
-                  </Tilt>
+                  </AdaptiveTilt>
                 </Link>
               ))}
             </div>

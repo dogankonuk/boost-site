@@ -1,11 +1,11 @@
 'use client'
 import Link from 'next/link'
 import Image from 'next/image'
-import Tilt from 'react-parallax-tilt'
 import { useReducedMotion } from 'framer-motion'
 import { useCurrency } from '@/context/CurrencyContext'
 import useFinePointer from '@/hooks/useFinePointer'
 import Reveal from './motion/Reveal'
+import AdaptiveTilt from './AdaptiveTilt'
 
 export default function PopularServicesStrip({ services }) {
   const { format } = useCurrency()
@@ -27,10 +27,10 @@ export default function PopularServicesStrip({ services }) {
           {services.map((service, i) => (
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>
             <Link href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
-              <Tilt
-                tiltEnable={tiltEnabled}
+              <AdaptiveTilt
+                enabled={tiltEnabled}
                 tiltMaxAngleX={10} tiltMaxAngleY={10} scale={1.04} transitionSpeed={1200}
-                glareEnable={tiltEnabled} glareMaxOpacity={0.2} glareColor="#f5c518" glarePosition="all"
+                glareEnable glareMaxOpacity={0.2} glareColor="#f5c518" glarePosition="all"
                 glareBorderRadius="14px" tiltReverse
                 style={{ width: '220px' }}
               >
@@ -79,7 +79,7 @@ export default function PopularServicesStrip({ services }) {
                   </div>
                 </div>
               </div>
-              </Tilt>
+              </AdaptiveTilt>
             </Link>
             </Reveal>
           ))}
