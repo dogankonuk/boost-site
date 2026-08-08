@@ -259,10 +259,8 @@ function DashboardContent() {
             </div>
           </div>
 
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>
-              + New Order
-            </button>
+          <Link href="/games" className="btn-primary" style={{ width: '100%', padding: '11px' }}>
+            + New Order
           </Link>
         </div>
 
@@ -357,8 +355,8 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '440px', margin: '0 auto 18px', lineHeight: '1.6' }}>
             Browse boosting services for your game and place your first order — a professional booster is typically ready within 15–30 minutes.
           </p>
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary" style={{ padding: '11px 28px' }}>Browse Games</button>
+          <Link href="/games" className="btn-primary" style={{ padding: '11px 28px' }}>
+            Browse Games
           </Link>
         </div>
 
@@ -470,8 +468,8 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
       </div>
 
       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <Link href="/games" style={{ textDecoration: 'none', flex: 1, minWidth: '160px' }}>
-          <button className="btn-primary" style={{ width: '100%', padding: '11px' }}>+ New Order</button>
+        <Link href="/games" className="btn-primary" style={{ flex: 1, minWidth: '160px', width: '100%', padding: '11px' }}>
+          + New Order
         </Link>
         <button className="btn-secondary" style={{ flex: 1, minWidth: '160px', padding: '11px' }} onClick={() => onNavigate('orders')}>
           View All Orders
@@ -618,8 +616,8 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
           <p className="body-large" style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>
             {emptyText || 'You have not placed any orders yet.'}
           </p>
-          <Link href="/games" style={{ textDecoration: 'none' }}>
-            <button className="btn-primary">Browse Services</button>
+          <Link href="/games" className="btn-primary">
+            Browse Services
           </Link>
         </div>
       ) : (

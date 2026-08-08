@@ -61,8 +61,8 @@ export default function AdminPage() {
               : 'Bu hesabın yönetici yetkisi yok.'}
           </p>
           {status === 'no-token' ? (
-            <Link href="/login" style={{ textDecoration: 'none' }}>
-              <button className="btn-primary" style={{ width: '100%' }}>Giriş Yap</button>
+            <Link href="/login" className="btn-primary" style={{ width: '100%' }}>
+              Giriş Yap
             </Link>
           ) : (
             <button className="btn-secondary" style={{ width: '100%' }} onClick={logout}>Çıkış Yap</button>
@@ -81,10 +81,8 @@ export default function AdminPage() {
             ShadowBoosting — Admin
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}>
-              <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                🏠 Anasayfaya Git
-              </button>
+            <Link href="/" className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              🏠 Anasayfaya Git
             </Link>
             <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
               Çıkış
