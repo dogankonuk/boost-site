@@ -5,6 +5,7 @@ const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').r
 const STATIC_ROUTES = [
   { path: '', changeFrequency: 'daily', priority: 1 },
   { path: '/games', changeFrequency: 'daily', priority: 0.9 },
+  { path: '/trust', changeFrequency: 'monthly', priority: 0.7 },
   { path: '/blog', changeFrequency: 'daily', priority: 0.8 },
   { path: '/apply', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/faq', changeFrequency: 'monthly', priority: 0.5 },

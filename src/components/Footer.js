@@ -6,6 +6,7 @@ const links = [
   { label: 'Help Center', href: '/help' },
   { label: 'Contact Us', href: '/contact' },
   { label: 'FAQ', href: '/faq' },
+  { label: 'Account Safety', href: '/trust' },
   { label: 'Refund Policy', href: '/refund' },
   { label: 'Terms of Service', href: '/terms' },
   { label: 'Privacy Policy', href: '/privacy' },
