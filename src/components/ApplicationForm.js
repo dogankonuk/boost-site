@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
@@ -15,12 +15,32 @@ const STATUS_COLORS = {
   rejected: { bg: '#2a1a1a', border: '#4a2a2a', color: '#ff6666' },
 }
 
+function subscribeToAuth(onChange) {
+  window.addEventListener('storage', onChange)
+  return () => window.removeEventListener('storage', onChange)
+}
+
+function getAuthSnapshot() {
+  return localStorage.getItem('token') || ''
+}
+
+function getServerAuthSnapshot() {
+  return ''
+}
+
+function subscribeToHydration() {
+  return () => {}
+}
+
+async function readJson(response) {
+  return response ? response.json() : null
+}
+
 export default function ApplicationForm({ type, title, intro, extraFields, roleLabel }) {
-  const [checkedAuth, setCheckedAuth] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [existingApp, setExistingApp] = useState(null)
-  const [alreadyHasRole, setAlreadyHasRole] = useState(false)
-  const [games, setGames] = useState([])
+  const token = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, getServerAuthSnapshot)
+  const hydrated = useSyncExternalStore(subscribeToHydration, () => true, () => false)
+  const loggedIn = Boolean(token)
+  const [loadResult, setLoadResult] = useState({ type: null, games: [], existingApp: null, alreadyHasRole: false })
   const [form, setForm] = useState({ discord: '', telegram: '', games: [], experience: '', screenshots: [], extra: {} })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -28,40 +48,56 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
   const [submitted, setSubmitted] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    setLoggedIn(!!token)
-    fetch('/api/games').then(r => r.json()).then(d => { if (d.success) setGames(d.data) }).catch(() => {})
-    if (token) checkStatus()
-    else setCheckedAuth(true)
-  }, [])
+    if (!token) return
 
-  async function checkStatus() {
-    try {
-      const [appsRes, profileRes] = await Promise.all([
-        authFetch('/api/applications'),
-        authFetch('/api/auth', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getProfile' }) }),
-      ])
-      if (appsRes) {
-        const d = await appsRes.json()
-        if (d.success) {
-          const mine = d.data.filter(a => a.type === type)
-          if (mine.length > 0) setExistingApp(mine[0])
-        }
+    let cancelled = false
+
+    async function loadApplicationState() {
+      try {
+        const [gamesRes, appsRes, profileRes, boosterRes] = await Promise.all([
+          fetch('/api/games'),
+          authFetch('/api/applications'),
+          type === 'content_creator'
+            ? authFetch('/api/auth', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'getProfile' }) })
+            : Promise.resolve(null),
+          type === 'booster' ? authFetch('/api/booster?type=me') : Promise.resolve(null),
+        ])
+
+        const [gamesData, appsData, profileData, boosterData] = await Promise.all([
+          readJson(gamesRes),
+          readJson(appsRes),
+          readJson(profileRes),
+          readJson(boosterRes),
+        ])
+
+        if (cancelled) return
+
+        const existingApp = appsData?.success
+          ? appsData.data.find(application => application.type === type) || null
+          : null
+        const alreadyHasRole = type === 'content_creator'
+          ? Boolean(profileData?.success && profileData.data?.isContentCreator)
+          : Boolean(boosterData?.success && boosterData.data?.status === 'active')
+
+        setLoadResult({
+          type,
+          games: gamesData?.success ? gamesData.data : [],
+          existingApp,
+          alreadyHasRole,
+        })
+      } catch {
+        if (!cancelled) setLoadResult({ type, games: [], existingApp: null, alreadyHasRole: false })
       }
-      if (type === 'content_creator' && profileRes) {
-        const pd = await profileRes.json()
-        if (pd.success && pd.data?.isContentCreator) setAlreadyHasRole(true)
-      }
-      if (type === 'booster') {
-        const boosterRes = await authFetch('/api/booster?type=me')
-        if (boosterRes) {
-          const bd = await boosterRes.json()
-          if (bd.success && bd.data?.status === 'active') setAlreadyHasRole(true)
-        }
-      }
-    } catch {}
-    setCheckedAuth(true)
-  }
+    }
+
+    loadApplicationState()
+    return () => { cancelled = true }
+  }, [token, type])
+
+  const checkedAuth = hydrated && (!loggedIn || loadResult.type === type)
+  const games = loadResult.type === type ? loadResult.games : []
+  const existingApp = loadResult.type === type ? loadResult.existingApp : null
+  const alreadyHasRole = loadResult.type === type && loadResult.alreadyHasRole
 
   function toggleGame(gameId) {
     setForm(f => ({
@@ -126,12 +162,12 @@ export default function ApplicationForm({ type, title, intro, extraFields, roleL
           </div>
         ) : alreadyHasRole ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-            <p className="body-large" style={{ color: '#fff' }}>You're already a {roleLabel}!</p>
+            <p className="body-large" style={{ color: '#fff' }}>You’re already a {roleLabel}!</p>
           </div>
         ) : submitted || (existingApp && existingApp.status === 'pending') ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px' }}>
             <p className="body-large" style={{ color: '#fff', marginBottom: '8px' }}>Application submitted</p>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>We'll review it and get back to you. You can check back here for updates.</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>We’ll review it and get back to you. You can check back here for updates.</p>
           </div>
         ) : (
           <>
