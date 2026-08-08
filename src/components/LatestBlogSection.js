@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import Reveal from './motion/Reveal'
+import { ArticleIcon } from './BrandIcons'
 
 export default function LatestBlogSection({ posts }) {
   if (!posts || posts.length === 0) return null
@@ -28,9 +29,9 @@ export default function LatestBlogSection({ posts }) {
                     ? `url(${post.coverImage}) center/cover`
                     : 'linear-gradient(135deg, rgba(245,197,24,0.15), rgba(147,51,234,0.15))',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '28px', flexShrink: 0,
+                  color: 'var(--violet)', flexShrink: 0,
                 }}>
-                  {!post.coverImage && '📝'}
+                  {!post.coverImage && <ArticleIcon size={32} />}
                 </div>
                 <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '6px', flex: 1 }}>
                   <span style={{
