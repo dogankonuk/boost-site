@@ -23,6 +23,12 @@ function defaultSelectedAddons(addons) {
   return result
 }
 
+function clampNumber(value, min, max, fallback = min) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(min, Math.round(parsed)))
+}
+
 const TRUST_ITEMS = [
   { icon: <BoltIcon />, text: 'Delivered in 1–3 days' },
   { icon: <ShieldIcon />, text: 'Account safety guaranteed' },
@@ -43,9 +49,9 @@ export default function OrderForm({ service }) {
   const [tier, setTier] = useState(null)
   const [couponPreview, setCouponPreview] = useState(null)
   const [selection, setSelection] = useState({
-    quantity: service.options?.minQty || 1,
-    from: service.options?.min || 1,
-    to: service.options?.min ? service.options.min + 1 : 2,
+    quantity: service.options?.minQty ?? 1,
+    from: service.options?.min ?? 1,
+    to: service.options?.min !== undefined ? Number(service.options.min) + 1 : 2,
     choice: service.options?.choices?.[0]?.label || '',
   })
   const [selectedAddons, setSelectedAddons] = useState(() => defaultSelectedAddons(service.addons))
@@ -158,12 +164,6 @@ export default function OrderForm({ service }) {
     setTimeout(() => setAddedToCart(false), 2000)
   }
 
-  const rangeMin = options?.min ?? 0
-  const rangeMax = options?.max ?? 100
-  const rangeSpan = Math.max(1, rangeMax - rangeMin)
-  const rangeFromPct = ((selection.from - rangeMin) / rangeSpan) * 100
-  const rangeToPct = ((selection.to - rangeMin) / rangeSpan) * 100
-
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -238,72 +238,21 @@ export default function OrderForm({ service }) {
       <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
         {options?.type === 'quantity' && (
-          <div>
-            <SectionLabel htmlFor="order-quantity">{options.unitName} amount</SectionLabel>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <StepperButton
-                disabled={selection.quantity <= options.minQty}
-                onClick={() => setSelection(s => ({ ...s, quantity: Math.max(options.minQty, s.quantity - 1) }))}
-              >−</StepperButton>
-              <input id="order-quantity" type="number" value={selection.quantity}
-                min={options.minQty} max={options.maxQty}
-                onChange={e => setSelection(s => ({ ...s, quantity: Math.min(options.maxQty, Math.max(options.minQty, parseInt(e.target.value) || options.minQty)) }))}
-                style={{
-                  flex: 1, textAlign: 'center', background: 'var(--bg-elevated)',
-                  border: '1px solid var(--border)', borderRadius: '8px', padding: '9px',
-                  color: '#fff', fontSize: '16px', fontWeight: '700',
-                  fontFamily: 'var(--font-montserrat)', outline: 'none',
-                }} />
-              <StepperButton
-                disabled={selection.quantity >= options.maxQty}
-                onClick={() => setSelection(s => ({ ...s, quantity: Math.min(options.maxQty, s.quantity + 1) }))}
-              >+</StepperButton>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-dim)', marginTop: '6px' }}>
-              <span>Min {options.minQty}</span>
-              <span>Max {options.maxQty}</span>
-            </div>
-          </div>
+          <QuantitySlider
+            options={options}
+            value={selection.quantity}
+            onChange={quantity => setSelection(s => ({ ...s, quantity }))}
+          />
         )}
 
         {options?.type === 'range' && (
           <div>
-            <SectionLabel>Select {options.unitName} range</SectionLabel>
-
-            {/* Visual range track */}
-            <div style={{ position: 'relative', height: '6px', background: 'var(--bg-elevated)', borderRadius: '3px', border: '1px solid var(--border)', margin: '4px 0 16px' }}>
-              <div style={{
-                position: 'absolute', top: 0, bottom: 0,
-                left: `${rangeFromPct}%`, width: `${Math.max(0, rangeToPct - rangeFromPct)}%`,
-                background: 'var(--gold)', borderRadius: '3px',
-              }} />
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
-              <div>
-                <label htmlFor="order-range-from" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>From</label>
-                <select id="order-range-from" value={selection.from}
-                  onChange={e => {
-                    const from = parseInt(e.target.value)
-                    setSelection(s => ({ ...s, from, to: Math.max(from + 1, s.to) }))
-                  }}
-                  style={selectStyle}>
-                  {Array.from({ length: options.max - options.min }, (_, i) => options.min + i).map(v => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="order-range-to" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '4px' }}>To</label>
-                <select id="order-range-to" value={selection.to}
-                  onChange={e => setSelection(s => ({ ...s, to: parseInt(e.target.value) }))}
-                  style={selectStyle}>
-                  {Array.from({ length: options.max - selection.from }, (_, i) => selection.from + 1 + i).map(v => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <DualRangeSlider
+              options={options}
+              from={selection.from}
+              to={selection.to}
+              onChange={(from, to) => setSelection(s => ({ ...s, from, to }))}
+            />
 
             <div style={{
               background: 'var(--bg-elevated)', borderRadius: '10px',
@@ -485,11 +434,6 @@ export default function OrderForm({ service }) {
   )
 }
 
-const selectStyle = {
-  width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-  borderRadius: '8px', padding: '10px', color: '#fff', fontSize: '14px', outline: 'none',
-}
-
 function SectionLabel({ children, htmlFor }) {
   return (
     <label htmlFor={htmlFor} style={{
@@ -502,20 +446,191 @@ function SectionLabel({ children, htmlFor }) {
   )
 }
 
-function StepperButton({ children, disabled, onClick }) {
+function SliderTrack({ min, max, start = min, end, children }) {
+  const span = Math.max(1, max - min)
+  const startPct = ((start - min) / span) * 100
+  const endPct = ((end - min) / span) * 100
+
   return (
-    <button onClick={onClick} disabled={disabled} type="button" style={{
-      width: '44px', height: '44px', background: 'var(--bg-elevated)',
-      border: '1px solid var(--border)', borderRadius: '8px',
-      color: disabled ? 'var(--text-dim)' : '#fff', fontSize: '18px',
-      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'border-color 0.15s',
-    }}
-      onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = 'var(--gold)' }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
-    >{children}</button>
+    <div style={{ position: 'relative', height: '28px', margin: '8px 0 2px' }}>
+      <div style={{
+        position: 'absolute', left: 0, right: 0, top: '12px', height: '5px',
+        background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '20px',
+      }} />
+      <div style={{
+        position: 'absolute', top: '12px', height: '5px',
+        left: `${startPct}%`, width: `${Math.max(0, endPct - startPct)}%`,
+        background: 'linear-gradient(90deg, var(--gold), var(--gold-soft))', borderRadius: '20px',
+      }} />
+      {children}
+    </div>
   )
+}
+
+function SliderNumberInput({ id, value, min, max, onChange, style }) {
+  const inputRef = useRef(null)
+
+  useEffect(() => {
+    if (inputRef.current && document.activeElement !== inputRef.current) {
+      inputRef.current.value = String(value)
+    }
+  }, [value])
+
+  function commit(raw) {
+    const next = clampNumber(raw, min, max, value)
+    if (inputRef.current) inputRef.current.value = String(next)
+    onChange(next)
+  }
+
+  return (
+    <input
+      id={id}
+      className="order-number-input"
+      type="number"
+      inputMode="numeric"
+      defaultValue={value}
+      ref={inputRef}
+      min={min}
+      max={max}
+      onChange={event => {
+        const raw = event.target.value
+        if (raw === '') return
+        const parsed = Number(raw)
+        if (Number.isFinite(parsed) && parsed >= min && parsed <= max) onChange(Math.round(parsed))
+      }}
+      onBlur={event => commit(event.currentTarget.value)}
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
+      style={style}
+    />
+  )
+}
+
+function QuantitySlider({ options, value, onChange }) {
+  const min = Number(options.minQty) || 1
+  const max = Math.max(min, Number(options.maxQty) || min)
+  const safeValue = clampNumber(value, min, max)
+  const update = raw => onChange(clampNumber(raw, min, max, safeValue))
+
+  return (
+    <div>
+      <SectionLabel htmlFor="order-quantity">Choose amount</SectionLabel>
+      <label htmlFor="order-quantity" style={{
+        display: 'block', color: 'var(--text-dim)', fontSize: '11px',
+        fontWeight: '600', fontFamily: 'var(--font-montserrat)', marginBottom: '5px',
+      }}>
+        {options.unitName || 'Units'}
+      </label>
+      <SliderNumberInput
+        id="order-quantity"
+        value={safeValue}
+        min={min}
+        max={max}
+        onChange={update}
+        style={{
+          width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+          borderRadius: '10px', padding: '11px 13px', color: '#fff', fontSize: '17px',
+          fontWeight: '700', fontFamily: 'var(--font-montserrat)', outline: 'none',
+        }}
+      />
+      <SliderTrack min={min} max={max} end={safeValue}>
+        <input
+          className="order-range-input"
+          type="range"
+          aria-label={`${options.unitName || 'Unit'} amount`}
+          min={min}
+          max={max}
+          step="1"
+          value={safeValue}
+          onChange={e => update(e.target.value)}
+        />
+      </SliderTrack>
+      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)', fontSize: '11px' }}>
+        <span>{min}</span><span>{max}</span>
+      </div>
+    </div>
+  )
+}
+
+function DualRangeSlider({ options, from, to, onChange }) {
+  const min = Number(options.min) || 0
+  const max = Math.max(min + 1, Number(options.max) || min + 1)
+  const safeFrom = clampNumber(from, min, max - 1)
+  const safeTo = clampNumber(to, safeFrom + 1, max)
+
+  function updateFrom(raw) {
+    onChange(clampNumber(raw, min, safeTo - 1, safeFrom), safeTo)
+  }
+
+  function updateTo(raw) {
+    onChange(safeFrom, clampNumber(raw, safeFrom + 1, max, safeTo))
+  }
+
+  return (
+    <div>
+      <SectionLabel>Select {options.unitName || 'value'} range</SectionLabel>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div>
+          <label htmlFor="order-range-from" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '5px' }}>
+            Current {options.unitName || 'value'}
+          </label>
+          <SliderNumberInput
+            id="order-range-from"
+            min={min}
+            max={safeTo - 1}
+            value={safeFrom}
+            onChange={updateFrom}
+            style={sliderNumberInputStyle}
+          />
+        </div>
+        <div>
+          <label htmlFor="order-range-to" style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'block', marginBottom: '5px' }}>
+            Target {options.unitName || 'value'}
+          </label>
+          <SliderNumberInput
+            id="order-range-to"
+            min={safeFrom + 1}
+            max={max}
+            value={safeTo}
+            onChange={updateTo}
+            style={sliderNumberInputStyle}
+          />
+        </div>
+      </div>
+      <SliderTrack min={min} max={max} start={safeFrom} end={safeTo}>
+        <input
+          className="order-range-input"
+          type="range"
+          aria-label={`Current ${options.unitName || 'value'}`}
+          min={min}
+          max={max - 1}
+          step="1"
+          value={safeFrom}
+          onChange={e => updateFrom(e.target.value)}
+          style={{ zIndex: safeFrom > max - 3 ? 4 : 3 }}
+        />
+        <input
+          className="order-range-input"
+          type="range"
+          aria-label={`Target ${options.unitName || 'value'}`}
+          min={min + 1}
+          max={max}
+          step="1"
+          value={safeTo}
+          onChange={e => updateTo(e.target.value)}
+          style={{ zIndex: 3 }}
+        />
+      </SliderTrack>
+      <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-dim)', fontSize: '11px' }}>
+        <span>{min}</span><span>{max}</span>
+      </div>
+    </div>
+  )
+}
+
+const sliderNumberInputStyle = {
+  width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+  borderRadius: '10px', padding: '11px 13px', color: '#fff', fontSize: '16px',
+  fontWeight: '700', fontFamily: 'var(--font-montserrat)', outline: 'none',
 }
 
 function Spinner() {

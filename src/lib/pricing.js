@@ -36,21 +36,58 @@ export function calculateVolumeDiscountPct(options, quantity) {
   return pct
 }
 
+export function normalizeSelection(options, selection = {}) {
+  const safeSelection = selection && typeof selection === 'object' ? selection : {}
+  if (!options || options.type === 'fixed') return safeSelection
+
+  if (options.type === 'quantity') {
+    const min = Number(options.minQty) || 1
+    const max = Math.max(min, Number(options.maxQty) || min)
+    const raw = Number(safeSelection.quantity)
+    const quantity = Number.isFinite(raw)
+      ? Math.min(max, Math.max(min, Math.round(raw)))
+      : min
+    return { ...safeSelection, quantity }
+  }
+
+  if (options.type === 'range') {
+    const min = Number(options.min) || 0
+    const max = Math.max(min + 1, Number(options.max) || min + 1)
+    const rawFrom = Number(safeSelection.from)
+    const rawTo = Number(safeSelection.to)
+    const from = Number.isFinite(rawFrom)
+      ? Math.min(max - 1, Math.max(min, Math.round(rawFrom)))
+      : min
+    const to = Number.isFinite(rawTo)
+      ? Math.min(max, Math.max(from + 1, Math.round(rawTo)))
+      : from + 1
+    return { ...safeSelection, from, to }
+  }
+
+  if (options.type === 'options') {
+    const validChoice = options.choices?.some(choice => choice.label === safeSelection.choice)
+    return { ...safeSelection, choice: validChoice ? safeSelection.choice : options.choices?.[0]?.label || '' }
+  }
+
+  return safeSelection
+}
+
 export function calculatePrice(options, basePrice, selection) {
   if (!options || options.type === 'fixed') return basePrice
+  const normalized = normalizeSelection(options, selection)
   if (options.type === 'quantity') {
-    const qty = Math.max(options.minQty, selection.quantity || options.minQty)
+    const qty = normalized.quantity
     const base = qty * options.unitPrice
     const discountPct = calculateVolumeDiscountPct(options, qty)
     return discountPct > 0 ? round2(base * (1 - discountPct / 100)) : base
   }
   if (options.type === 'range') {
-    const from = parseInt(selection.from || options.min)
-    const to = parseInt(selection.to || options.min + 1)
+    const from = normalized.from
+    const to = normalized.to
     return calculateTieredRangeCost(options, from, to)
   }
   if (options.type === 'options') {
-    const choice = options.choices?.find(c => c.label === selection.choice)
+    const choice = options.choices?.find(c => c.label === normalized.choice)
     return choice ? choice.price : basePrice
   }
   return basePrice

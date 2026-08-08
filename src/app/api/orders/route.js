@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderConfirmation } from '@/lib/email'
-import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, resolveBestDiscount, isCampaignEligible, isCouponEligible, round2 } from '@/lib/pricing'
+import { calculatePrice, calculateAddonsCost, normalizeSelection, resolveAddonsSnapshot, resolveBestDiscount, isCampaignEligible, isCouponEligible, round2 } from '@/lib/pricing'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 
 const CANCELLABLE_STATUSES = ['pending', 'assigned']
@@ -139,7 +139,7 @@ export async function POST(request) {
     // Addon choices (delivery method, priority speed, extra items, etc.) are
     // the same: only the raw selected values are trusted, cost and labels
     // are always resolved server-side from the service's own addon defs.
-    const selection = details?.selection || {}
+    const selection = normalizeSelection(service.options, details?.selection)
     const selectedAddons = details?.selectedAddons || {}
     const servicePrice = calculatePrice(service.options, service.basePrice, selection)
     const addonsCost = calculateAddonsCost(service.addons, selectedAddons, servicePrice)
@@ -183,6 +183,7 @@ export async function POST(request) {
           currency: 'USD',
           details: {
             ...(details || {}),
+            selection,
             selectedAddons: addonsSnapshot,
             addonsCost,
           },
@@ -212,7 +213,7 @@ export async function POST(request) {
       serviceName: order.service?.name,
       price: order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
       details: (() => {
-        const sel = details?.selection
+        const sel = selection
         const opts = order.service?.options
         if (!sel || !opts) return null
         if (opts.type === 'range') return `${sel.from} → ${sel.to} ${opts.unitName}`

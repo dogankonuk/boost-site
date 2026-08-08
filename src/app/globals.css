@@ -404,6 +404,74 @@ body, p, span, a, input, textarea {
   background: var(--gold);
 }
 
+/* Order configurator sliders share one visual track. The native inputs keep
+   keyboard/touch behavior, while only their thumbs receive pointer events. */
+.order-range-input {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  touch-action: none;
+}
+
+.order-range-input::-webkit-slider-runnable-track {
+  height: 5px;
+  background: transparent;
+  border: 0;
+}
+
+.order-range-input::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  border: 3px solid var(--bg-card);
+  background: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 3px 10px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.order-range-input::-moz-range-track {
+  height: 5px;
+  background: transparent;
+  border: 0;
+}
+
+.order-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 3px solid var(--bg-card);
+  background: var(--gold);
+  box-shadow: 0 0 0 1px var(--gold), 0 3px 10px rgba(0, 0, 0, 0.45);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.order-range-input:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+.order-number-input::-webkit-inner-spin-button,
+.order-number-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.order-number-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
 .hover-gold-border {
   transition: border-color 0.2s;
 }
