@@ -30,7 +30,7 @@ export async function sendVerificationEmail({ to, username, link }) {
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -68,7 +68,7 @@ export async function sendPasswordResetEmail({ to, username, link }) {
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -109,7 +109,7 @@ export async function sendPasswordChangedEmail({ to, username }) {
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -147,7 +147,7 @@ export async function sendBlogUnpublishedEmail({ to, username, postTitle }) {
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -217,7 +217,7 @@ export async function sendOrderConfirmation({ to, username, orderNumber, gameNam
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -319,7 +319,7 @@ export async function sendOrderStatusUpdate({ to, username, orderNumber, gameNam
             </div>`}
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -370,7 +370,7 @@ export async function sendNewApplicationAdminEmail({ type, username, userEmail, 
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -426,7 +426,7 @@ export async function sendApplicationDecisionEmail({ to, username, type, decisio
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>
@@ -479,7 +479,7 @@ export async function sendNewMessageEmail({ to, username, senderUsername, orderN
             </div>
 
             <p style="text-align:center;color:#333;font-size:12px;margin:0;">
-              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows!
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
             </p>
           </div>
         </body>

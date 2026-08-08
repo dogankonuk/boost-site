@@ -28,13 +28,22 @@ export default function Footer() {
         gap: '20px',
       }}>
         <div>
-          <div style={{
-            fontFamily: 'var(--font-montserrat)',
-            fontWeight: '700', fontSize: '15px',
-            color: 'var(--gold)',
-          }}>ShadowBoosting.co</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '28px', height: '28px',
+              background: 'var(--gold)',
+              borderRadius: '7px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '14px', fontWeight: '700', color: '#0a0a0a',
+              fontFamily: 'var(--font-montserrat)',
+            }}>S</div>
+            <span style={{
+              fontFamily: 'var(--font-montserrat)',
+              fontWeight: '700', fontSize: '15px', color: '#fff',
+            }}>ShadowBoosting</span>
+          </div>
           <div className="caption" style={{ marginTop: '4px' }}>
-            Forge Your Power in the Shadows!
+            Forge Your Power in the Shadows
           </div>
         </div>
 

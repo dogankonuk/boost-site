@@ -45,7 +45,7 @@ Dark-mode-only site. No light theme exists. Gold/violet is the full accent vocab
 
 ### Logo
 
-**Wordmark only — no symbol/icon mark exists.** Rendered as text: "ShadowBoosting.co" in gold (`--gold`), Chakra Petch, weight 700. Tagline: "Forge Your Power in the Shadows" (used in footer and homepage hero, styled as `--text-dim` caption text). Do not fabricate a logo graphic/icon if one is needed — flag it as a real gap for the site owner instead.
+Wordmark + a minimal mark, used together as one lockup (Navbar, Footer, login page — made consistent across all three in a brand-guidelines pass): a 28-36px gold rounded-square badge with a black "S" (Chakra Petch, weight 700), followed by "ShadowBoosting" in white, same typeface/weight. No "​.co" in this lockup — that suffix is reserved for prose references (page titles, email sign-offs, copyright lines: "ShadowBoosting.co"). Tagline: "Forge Your Power in the Shadows" — no exclamation mark, per the voice rule below (used in footer and homepage hero, styled as `--text-dim` caption text). There is no separate standalone icon-only mark beyond this badge — don't fabricate a more elaborate logo graphic if one is needed; flag it as a real gap for the site owner instead.
 
 ### Iconography
 
