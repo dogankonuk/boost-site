@@ -1,13 +1,15 @@
 'use client'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 // A small self-contained "empty state" animation — no external asset needed,
 // just a gently floating, glowing icon that matches the site's gold/dark theme.
 export default function AnimatedEmptyIcon({ icon = '📦', size = 64 }) {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <motion.div
-      animate={{ y: [0, -10, 0] }}
-      transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+      animate={shouldReduceMotion ? { y: 0 } : { y: [0, -10, 0] }}
+      transition={shouldReduceMotion ? { duration: 0 } : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
       style={{
         width: size, height: size, borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(245,197,24,0.16), transparent 70%)',

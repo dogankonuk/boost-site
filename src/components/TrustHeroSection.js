@@ -1,8 +1,10 @@
 'use client'
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export default function TrustHeroSection() {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <section className="container" style={{
       textAlign: 'center',
@@ -10,9 +12,9 @@ export default function TrustHeroSection() {
       paddingBottom: '32px',
     }}>
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={shouldReduceMotion ? false : { opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.6, ease: 'easeOut' }}
       >
         <div style={{
           fontSize: '11px', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)',
@@ -29,7 +31,7 @@ export default function TrustHeroSection() {
           maxWidth: '520px',
           margin: '20px auto 0',
         }}>
-          No — if it's done right. Here's exactly how we keep every order safe, from the booster we assign to the moment it's delivered.
+          No — if it’s done right. Here’s exactly how we keep every order safe, from the booster we assign to the moment it’s delivered.
         </p>
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '32px' }}>
           <Link href="/games" className="btn-primary">Browse Boosts</Link>

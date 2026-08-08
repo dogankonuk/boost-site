@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import Reveal from './motion/Reveal'
 import JsonLd from './JsonLd'
 
@@ -31,6 +31,7 @@ const FAQS = [
 
 export default function HomeFAQSection() {
   const [openIndex, setOpenIndex] = useState(0)
+  const shouldReduceMotion = useReducedMotion()
 
   return (
     <section className="container" style={{ paddingBottom: '48px' }}>
@@ -69,16 +70,17 @@ export default function HomeFAQSection() {
                 {item.q}
                 <span style={{
                   flexShrink: 0, color: 'var(--gold)', fontSize: '18px', lineHeight: 1,
-                  transform: open ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s',
+                  transform: open ? 'rotate(45deg)' : 'none',
+                  transition: shouldReduceMotion ? 'none' : 'transform 0.2s',
                 }}>+</span>
               </button>
               <AnimatePresence initial={false}>
                 {open && (
                   <motion.div
-                    initial={{ height: 0, opacity: 0 }}
+                    initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeInOut' }}
+                    transition={shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: 'easeInOut' }}
                     style={{ overflow: 'hidden' }}
                   >
                     <p style={{
