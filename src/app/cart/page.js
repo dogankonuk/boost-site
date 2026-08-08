@@ -48,7 +48,7 @@ export default function CartPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             serviceId: item.serviceId,
-            details: { note: item.note, selection: item.selection, calculatedPrice: item.price },
+            details: { note: item.note, selection: item.selection, selectedAddons: item.selectedAddons, calculatedPrice: item.price },
             couponCode: couponCode.trim() || undefined,
           }),
         })

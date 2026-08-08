@@ -204,6 +204,12 @@ export default function AdminOrders({ secret }) {
                         {options?.type === 'options' && (
                           <DetailRow label="Seçenek" value={selection.choice} />
                         )}
+                        {details.selectedAddons && Object.values(details.selectedAddons).map((g, i) => (
+                          <DetailRow key={i} label={g.label} value={g.values.map(v => v.label).join(', ')} />
+                        ))}
+                        {details.addonsCost > 0 && (
+                          <DetailRow label="Ek Opsiyon Ücreti" value={`+$${details.addonsCost.toFixed(2)}`} />
+                        )}
                         {details.note && (
                           <DetailRow label="Müşteri Notu" value={details.note} />
                         )}

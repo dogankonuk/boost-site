@@ -69,6 +69,7 @@ export default function AdminGames({ secret }) {
     description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '',
     pricingType: 'fixed',
     pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
+    addons: [],
   })
   const [msg, setMsg] = useState('')
 
@@ -185,12 +186,13 @@ export default function AdminGames({ secret }) {
         isHot: serviceForm.isHot,
         serviceCategory: serviceForm.serviceCategory || 'Genel',
         options,
+        addons: serviceForm.addons?.length ? serviceForm.addons : null,
       }),
     })
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
+      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [] })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -221,6 +223,7 @@ export default function AdminGames({ secret }) {
           serviceCategory: editForm.serviceCategory || 'Genel',
           priceType: editForm.pricingType === 'fixed' ? 'fixed' : 'variable',
           options,
+          addons: editForm.addons?.length ? editForm.addons : null,
         }
       }),
     })
@@ -534,6 +537,13 @@ function SortableGameRow({
             </div>
 
             <div style={{ marginBottom: '10px' }}>
+              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                Ek Opsiyonlar (opsiyonel — teslimat yöntemi, ek ürün, hız seçeneği vb.)
+              </label>
+              <AddonsEditor addons={serviceForm.addons} onChange={addons => setServiceForm(f => ({ ...f, addons }))} />
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
               <textarea value={serviceForm.description} onChange={e => setServiceForm(f => ({ ...f, description: e.target.value }))} rows={2}
                 style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical' }} />
@@ -581,7 +591,7 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
-                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' } })
+                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [] })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
@@ -677,6 +687,13 @@ function SortableGameRow({
                                   <ChoiceAdder onAdd={choice => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, choices: [...(f.pricingOptions?.choices || []), choice] } }))} />
                                 </div>
                               )}
+                            </div>
+
+                            <div style={{ marginBottom: '8px' }}>
+                              <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>
+                                Ek Opsiyonlar (opsiyonel — teslimat yöntemi, ek ürün, hız seçeneği vb.)
+                              </label>
+                              <AddonsEditor addons={editForm.addons} onChange={addons => setEditForm(f => ({ ...f, addons }))} />
                             </div>
 
                             <div style={{ marginBottom: '8px' }}>
@@ -834,6 +851,109 @@ function ChoiceAdder({ onAdd }) {
       </div>
       <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '7px 12px' }}
         onClick={() => { if (label.trim() && price) { onAdd({ label: label.trim(), price: parseFloat(price) }); setLabel(''); setPrice('') } }}>Ekle</button>
+    </div>
+  )
+}
+
+function slugifyAddonValue(label) {
+  return label.trim().toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-') || `opt-${Date.now()}`
+}
+
+// Per-service extras beyond the base pricing model — delivery method, priority
+// speed, add-on items, etc. Each group is a customer-facing question with its
+// own choices; a choice's priceDelta is optional so a purely informational
+// toggle (Piloted vs Self-play) and a real paid upsell (Express +15%) share
+// the same mechanism. Fully admin-authored — nothing is pre-filled per game.
+function AddonsEditor({ addons, onChange }) {
+  const groups = addons || []
+
+  function updateGroup(i, patch) {
+    onChange(groups.map((g, j) => j === i ? { ...g, ...patch } : g))
+  }
+  function addGroup() {
+    onChange([...groups, { key: `group-${Date.now()}`, label: '', type: 'select', choices: [] }])
+  }
+  function removeGroup(i) {
+    onChange(groups.filter((_, j) => j !== i))
+  }
+  function addChoice(i, choice) {
+    updateGroup(i, { choices: [...(groups[i].choices || []), choice] })
+  }
+  function removeChoice(i, j) {
+    updateGroup(i, { choices: groups[i].choices.filter((_, k) => k !== j) })
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {groups.map((g, i) => (
+        <div key={i} style={{ padding: '10px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <input value={g.label}
+              onChange={e => updateGroup(i, { label: e.target.value, key: g.key.startsWith('group-') ? slugifyAddonValue(e.target.value) : g.key })}
+              placeholder="Opsiyon başlığı (ör. Teslimat Yöntemi, Ek Ürün)"
+              style={{ flex: 2, minWidth: '160px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
+            <select value={g.type} onChange={e => updateGroup(i, { type: e.target.value })}
+              style={{ flex: 1, minWidth: '110px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', outline: 'none' }}>
+              <option value="select">Tekli seçim</option>
+              <option value="multiselect">Çoklu seçim</option>
+            </select>
+            <button type="button" onClick={() => removeGroup(i)}
+              style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>Grubu Sil</button>
+          </div>
+          {(g.choices || []).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '8px' }}>
+              {g.choices.map((c, j) => (
+                <span key={j} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '3px 8px', fontSize: '12px', color: '#fff' }}>
+                  {c.label}
+                  {c.priceDelta ? ` — +${c.priceType === 'percent' ? `${c.priceDelta}%` : `$${c.priceDelta}`}` : ' (ücretsiz)'}
+                  <button type="button" onClick={() => removeChoice(i, j)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', padding: 0 }}>×</button>
+                </span>
+              ))}
+            </div>
+          )}
+          <AddonChoiceAdder onAdd={choice => addChoice(i, choice)} />
+        </div>
+      ))}
+      <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '7px 12px', alignSelf: 'flex-start' }} onClick={addGroup}>
+        + Opsiyon Grubu Ekle
+      </button>
+    </div>
+  )
+}
+
+function AddonChoiceAdder({ onAdd }) {
+  const [label, setLabel] = useState('')
+  const [priceDelta, setPriceDelta] = useState('')
+  const [priceType, setPriceType] = useState('flat')
+  return (
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+      <div style={{ flex: 2, minWidth: '150px' }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Seçenek Adı</label>
+        <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Self-play (Carry), Express..."
+          style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
+      </div>
+      <div style={{ flex: 1, minWidth: '80px' }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Ek Fiyat</label>
+        <input value={priceDelta} onChange={e => setPriceDelta(e.target.value)} type="number" placeholder="0 = ücretsiz"
+          style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none' }} />
+      </div>
+      <div style={{ flex: 1, minWidth: '90px' }}>
+        <label style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Tip</label>
+        <select value={priceType} onChange={e => setPriceType(e.target.value)}
+          style={{ width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', outline: 'none' }}>
+          <option value="flat">$ sabit</option>
+          <option value="percent">% oran</option>
+        </select>
+      </div>
+      <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '7px 12px' }}
+        onClick={() => {
+          if (!label.trim()) return
+          onAdd({ value: slugifyAddonValue(label), label: label.trim(), priceDelta: parseFloat(priceDelta) || 0, priceType })
+          setLabel(''); setPriceDelta('')
+        }}>Ekle</button>
     </div>
   )
 }

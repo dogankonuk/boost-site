@@ -38,6 +38,7 @@ model Service {
   features    Json?
   imageUrl    String?
   options     Json?
+  addons      Json?
   isActive    Boolean  @default(true)
   isHot       Boolean  @default(false)
   createdAt   DateTime @default(now())

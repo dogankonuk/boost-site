@@ -596,6 +596,10 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
   if (options?.type === 'range') selectionText = `${selection.from} → ${selection.to} ${options.unitName}`
   else if (options?.type === 'quantity') selectionText = `${selection.quantity} × ${options.unitName}`
   else if (options?.type === 'options') selectionText = selection.choice
+  if (details.selectedAddons) {
+    const addonsText = Object.values(details.selectedAddons).map(g => g.values.map(v => v.label).join(', ')).join(' · ')
+    selectionText = selectionText ? `${selectionText} · ${addonsText}` : addonsText
+  }
 
   return (
     <div id={`order-${order.id}`} style={{

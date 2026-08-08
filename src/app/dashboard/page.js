@@ -683,6 +683,9 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
                       {options?.type === 'range' && ` · ${selection.from} → ${selection.to} ${options.unitName}`}
                       {options?.type === 'quantity' && ` · ${selection.quantity} ${options.unitName}`}
                       {options?.type === 'options' && ` · ${selection.choice}`}
+                      {details.selectedAddons && Object.values(details.selectedAddons).map((g, i) => (
+                        <span key={i}> · {g.values.map(v => v.label).join(', ')}</span>
+                      ))}
                     </div>
                   </div>
 

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderConfirmation } from '@/lib/email'
-import { calculatePrice, resolveBestDiscount, isCampaignEligible, isCouponEligible } from '@/lib/pricing'
+import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, resolveBestDiscount, isCampaignEligible, isCouponEligible, round2 } from '@/lib/pricing'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 
 const CANCELLABLE_STATUSES = ['pending', 'assigned']
@@ -40,6 +40,9 @@ async function sendDiscordNotification(order) {
     detailText = `Option: ${selection.choice}`
   }
 
+  const addonsText = details.selectedAddons
+    ? Object.values(details.selectedAddons).map(g => `${g.label}: ${g.values.map(v => v.label).join(', ')}`).join('\n')
+    : ''
 
   const embed = {
     title: '🎮 New Order!',
@@ -51,6 +54,7 @@ async function sendDiscordNotification(order) {
       { name: '⚡ Service', value: order.service?.name || '-', inline: true },
       { name: '💰 Price', value: `$${order.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, inline: true },
       { name: '📊 Details', value: detailText || 'Fixed service', inline: true },
+      ...(addonsText ? [{ name: '➕ Add-ons', value: addonsText, inline: false }] : []),
       ...(details.note ? [{ name: '📝 Note', value: details.note, inline: false }] : []),
     ],
     footer: { text: 'ShadowBoosting.co' },
@@ -132,8 +136,15 @@ export async function POST(request) {
 
     // Price is always recomputed here from the service's own pricing rules —
     // details.calculatedPrice (client-sent) is never trusted for the charge.
+    // Addon choices (delivery method, priority speed, extra items, etc.) are
+    // the same: only the raw selected values are trusted, cost and labels
+    // are always resolved server-side from the service's own addon defs.
     const selection = details?.selection || {}
-    const basePrice = calculatePrice(service.options, service.basePrice, selection)
+    const selectedAddons = details?.selectedAddons || {}
+    const servicePrice = calculatePrice(service.options, service.basePrice, selection)
+    const addonsCost = calculateAddonsCost(service.addons, selectedAddons, servicePrice)
+    const addonsSnapshot = resolveAddonsSnapshot(service.addons, selectedAddons, servicePrice)
+    const basePrice = round2(servicePrice + addonsCost)
 
     const totalSpent = dbUser.orders.reduce((sum, o) => sum + o.price, 0)
     const points = pointsFromSpend(totalSpent) + (dbUser.bonusPoints || 0)
@@ -170,7 +181,11 @@ export async function POST(request) {
           couponId: source === 'coupon' ? coupon.id : null,
           couponCode: source === 'coupon' ? coupon.code : null,
           currency: 'USD',
-          details: details || {},
+          details: {
+            ...(details || {}),
+            selectedAddons: addonsSnapshot,
+            addonsCost,
+          },
         },
         include: {
           service: {

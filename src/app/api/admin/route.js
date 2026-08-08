@@ -479,6 +479,7 @@ export async function PATCH(request) {
         serviceCategory: data.serviceCategory ?? 'Genel',
         priceType: data.priceType ?? 'fixed',
         options: data.options ?? null,
+        addons: data.addons ?? null,
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       }
     })

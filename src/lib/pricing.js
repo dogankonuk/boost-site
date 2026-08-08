@@ -56,6 +56,56 @@ export function calculatePrice(options, basePrice, selection) {
   return basePrice
 }
 
+// Per-service admin-defined extras (delivery method, priority speed, add-on
+// items, etc). selectedAddons is { [group.key]: value } for 'select' groups
+// or { [group.key]: [values] } for 'multiselect' groups. Choices with no
+// priceDelta (e.g. Piloted vs Self-play) are free — this is how a purely
+// informational choice and a real paid upsell share the same mechanism.
+export function calculateAddonsCost(addons, selectedAddons, basePrice) {
+  if (!Array.isArray(addons) || !selectedAddons) return 0
+  let total = 0
+  for (const group of addons) {
+    const selected = selectedAddons[group.key]
+    if (selected == null) continue
+    const values = Array.isArray(selected) ? selected : [selected]
+    for (const val of values) {
+      const choice = group.choices?.find(c => c.value === val)
+      if (!choice || !choice.priceDelta) continue
+      total += choice.priceType === 'percent'
+        ? basePrice * (choice.priceDelta / 100)
+        : choice.priceDelta
+    }
+  }
+  return round2(total)
+}
+
+// Turns raw selectedAddons values into a self-describing snapshot (group +
+// choice labels, and what each choice actually cost) so order history stays
+// readable and accurate even if the service's addons are edited/removed later.
+export function resolveAddonsSnapshot(addons, selectedAddons, basePrice) {
+  if (!Array.isArray(addons) || !selectedAddons) return null
+  const snapshot = {}
+  for (const group of addons) {
+    const selected = selectedAddons[group.key]
+    if (selected == null) continue
+    const values = Array.isArray(selected) ? selected : [selected]
+    const resolvedValues = values
+      .map(val => group.choices?.find(c => c.value === val))
+      .filter(Boolean)
+      .map(choice => ({
+        value: choice.value,
+        label: choice.label,
+        priceDelta: choice.priceDelta || 0,
+        priceType: choice.priceType || 'flat',
+        cost: round2(choice.priceType === 'percent' ? basePrice * ((choice.priceDelta || 0) / 100) : (choice.priceDelta || 0)),
+      }))
+    if (resolvedValues.length > 0) {
+      snapshot[group.key] = { label: group.label, values: resolvedValues }
+    }
+  }
+  return Object.keys(snapshot).length > 0 ? snapshot : null
+}
+
 // A campaign applies if it's active, within its date window, and either
 // site-wide (no gameId) or restricted to the game being ordered.
 export function isCampaignEligible(campaign, gameId) {

@@ -7,9 +7,21 @@ import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
-import { calculatePrice, round2 } from '@/lib/pricing'
+import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, round2 } from '@/lib/pricing'
 import { trackEvent } from '@/lib/analytics'
 import CouponInput from './CouponInput'
+
+function defaultSelectedAddons(addons) {
+  const result = {}
+  for (const group of addons || []) {
+    if (group.type === 'multiselect') {
+      result[group.key] = []
+    } else if (group.choices?.length) {
+      result[group.key] = group.choices[0].value
+    }
+  }
+  return result
+}
 
 const TRUST_ITEMS = [
   { icon: <BoltIcon />, text: 'Delivered in 1–3 days' },
@@ -36,9 +48,12 @@ export default function OrderForm({ service }) {
     to: service.options?.min ? service.options.min + 1 : 2,
     choice: service.options?.choices?.[0]?.label || '',
   })
+  const [selectedAddons, setSelectedAddons] = useState(() => defaultSelectedAddons(service.addons))
 
   const options = service.options
-  const price = calculatePrice(options, service.basePrice, selection)
+  const servicePrice = calculatePrice(options, service.basePrice, selection)
+  const addonsCost = calculateAddonsCost(service.addons, selectedAddons, servicePrice)
+  const price = round2(servicePrice + addonsCost)
   const loyaltyDiscountAmount = tier?.discount ? round2(price * (tier.discount / 100)) : 0
   const couponDiscountAmount = couponPreview ? couponPreview.discountAmount : 0
   const couponWins = couponDiscountAmount > loyaltyDiscountAmount
@@ -46,7 +61,7 @@ export default function OrderForm({ service }) {
   const finalPrice = round2(Math.max(0, price - bestDiscountAmount))
   const discountPct = bestDiscountAmount > 0 && !couponWins ? tier?.discount || 0 : 0
 
-  const selectionKey = JSON.stringify(selection)
+  const selectionKey = JSON.stringify(selection) + JSON.stringify(selectedAddons)
   const skipCouponClear = useRef(true)
   useEffect(() => {
     if (skipCouponClear.current) { skipCouponClear.current = false; return }
@@ -79,7 +94,7 @@ export default function OrderForm({ service }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           serviceId: service.id,
-          details: { note, selection, calculatedPrice: finalPrice },
+          details: { note, selection, selectedAddons, calculatedPrice: finalPrice },
           couponCode: couponWins ? couponPreview.code : undefined,
         }),
       })
@@ -108,11 +123,19 @@ export default function OrderForm({ service }) {
   }
 
   function getSelectionSummary() {
-    if (!options || options.type === 'fixed') return null
-    if (options.type === 'range') return `${selection.from} → ${selection.to} ${options.unitName}`
-    if (options.type === 'quantity') return `${selection.quantity} × ${options.unitName}`
-    if (options.type === 'options') return selection.choice
-    return null
+    const parts = []
+    if (options && options.type !== 'fixed') {
+      if (options.type === 'range') parts.push(`${selection.from} → ${selection.to} ${options.unitName}`)
+      else if (options.type === 'quantity') parts.push(`${selection.quantity} × ${options.unitName}`)
+      else if (options.type === 'options') parts.push(selection.choice)
+    }
+    const snapshot = resolveAddonsSnapshot(service.addons, selectedAddons, servicePrice)
+    if (snapshot) {
+      for (const group of Object.values(snapshot)) {
+        parts.push(group.values.map(v => v.label).join(', '))
+      }
+    }
+    return parts.length > 0 ? parts.join(' · ') : null
   }
 
   function handleAddToCart() {
@@ -124,6 +147,7 @@ export default function OrderForm({ service }) {
       imageUrl: service.imageUrl || service.game?.coverImage || null,
       selectionSummary: getSelectionSummary(),
       selection,
+      selectedAddons,
       note,
       price: finalPrice,
     })
@@ -321,6 +345,60 @@ export default function OrderForm({ service }) {
             </div>
           </div>
         )}
+
+        {(service.addons || []).map(group => (
+          <div key={group.key}>
+            <SectionLabel>{group.label}</SectionLabel>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {group.choices?.map((c, i) => {
+                const current = selectedAddons[group.key]
+                const selected = group.type === 'multiselect'
+                  ? Array.isArray(current) && current.includes(c.value)
+                  : current === c.value
+                const priceLabel = c.priceDelta
+                  ? `+${c.priceType === 'percent' ? `${c.priceDelta}%` : format(c.priceDelta)}`
+                  : 'Free'
+                return (
+                  <button key={i} type="button"
+                    onClick={() => setSelectedAddons(s => {
+                      if (group.type === 'multiselect') {
+                        const list = Array.isArray(s[group.key]) ? s[group.key] : []
+                        const next = list.includes(c.value) ? list.filter(v => v !== c.value) : [...list, c.value]
+                        return { ...s, [group.key]: next }
+                      }
+                      return { ...s, [group.key]: c.value }
+                    })}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px 16px', borderRadius: '10px', cursor: 'pointer',
+                      border: `1px solid ${selected ? 'var(--gold)' : 'var(--border)'}`,
+                      background: selected ? 'rgba(245,197,24,0.08)' : 'var(--bg-elevated)',
+                      transition: 'border-color 0.15s, background 0.15s',
+                    }}>
+                    <span style={{
+                      width: '18px', height: '18px', flexShrink: 0,
+                      borderRadius: group.type === 'multiselect' ? '5px' : '50%',
+                      border: `2px solid ${selected ? 'var(--gold)' : 'var(--border)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      {selected && (
+                        <span style={{
+                          width: '9px', height: '9px', background: 'var(--gold)',
+                          borderRadius: group.type === 'multiselect' ? '2px' : '50%',
+                        }} />
+                      )}
+                    </span>
+                    <span style={{ fontSize: '14px', color: '#fff', fontFamily: 'var(--font-montserrat)', fontWeight: '600', flex: 1, textAlign: 'left' }}>
+                      {c.label}
+                      {c.desc && <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '400', fontFamily: 'var(--font-inter)', marginTop: '2px' }}>{c.desc}</div>}
+                    </span>
+                    <span style={{ fontSize: '13px', color: c.priceDelta ? 'var(--gold)' : 'var(--text-dim)', fontWeight: '700', fontFamily: 'var(--font-montserrat)', flexShrink: 0 }}>{priceLabel}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
 
         {/* Trust badges */}
         <div style={{

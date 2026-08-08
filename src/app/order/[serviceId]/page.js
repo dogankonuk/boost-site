@@ -43,6 +43,8 @@ export default async function OrderPage({ params }) {
 
   if (!service) return notFound()
 
+  const hasSelfPlay = (service.addons || []).some(g => g.choices?.some(c => /self.?play/i.test(c.label)))
+
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <JsonLd data={{
@@ -225,9 +227,9 @@ export default async function OrderPage({ params }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {[
                   { icon: <PilotedIcon />, title: 'Piloted', desc: 'A booster will log into your account to complete the service.' },
-                  { icon: <TeamIcon />, title: 'Self-play (Carry)', desc: 'You play alongside our booster team. No account sharing required.' },
+                  hasSelfPlay && { icon: <TeamIcon />, title: 'Self-play (Carry)', desc: 'Choose it below — you play alongside our booster team, no account sharing required.' },
                   { icon: <SafetyIcon />, title: 'VPN Protection', desc: 'Every operation is performed with region-specific VPN protection.' },
-                ].map(item => (
+                ].filter(Boolean).map(item => (
                   <div key={item.title} style={{
                     display: 'flex', gap: '14px', alignItems: 'flex-start',
                     padding: '14px', background: 'var(--bg-elevated)',
@@ -259,7 +261,9 @@ export default async function OrderPage({ params }) {
                 {[
                   { q: 'How soon do we start?', a: 'A professional booster is typically ready to begin within 15–30 minutes of your purchase. Slight delays are possible during periods of unusually high demand.' },
                   { q: 'How long will it take?', a: 'Completion time depends on the scope you’ve selected. Most orders are finished within a few hours to a few days — you can always track live progress from your dashboard.' },
-                  { q: 'Can I play my account myself during the boost?', a: 'Yes — choose the Self-play (Carry) delivery method to play alongside our booster team. No account sharing required.' },
+                  hasSelfPlay
+                    ? { q: 'Can I play my account myself during the boost?', a: 'Yes — choose the Self-play (Carry) delivery method to play alongside our booster team. No account sharing required.' }
+                    : { q: 'Can I play my account myself during the boost?', a: 'This service requires piloted delivery — a booster completes it on your account. Self-play isn’t offered for this particular service.' },
                 ].map(item => (
                   <div key={item.q}>
                     <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', fontFamily: 'var(--font-montserrat)', marginBottom: '5px' }}>

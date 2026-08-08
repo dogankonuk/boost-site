@@ -5,7 +5,7 @@ export async function POST(request, { params }) {
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, slug, basePrice, priceType, options, description, features, imageUrl, isHot, serviceCategory } = body
+    const { name, slug, basePrice, priceType, options, addons, description, features, imageUrl, isHot, serviceCategory } = body
 
     if (!name || !slug || !basePrice) {
       return NextResponse.json(
@@ -22,6 +22,7 @@ export async function POST(request, { params }) {
         basePrice: parseFloat(basePrice),
         priceType: priceType || 'fixed',
         options: options || null,
+        addons: addons || null,
         description: description || null,
         features: features || null,
         imageUrl: imageUrl || null,
