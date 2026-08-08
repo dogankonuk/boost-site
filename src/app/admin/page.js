@@ -18,22 +18,36 @@ export default function AdminPage() {
   const [token, setToken] = useState(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('token')
-    if (!stored) { setStatus('no-token'); return }
-    fetch('/api/auth', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored}` },
-      body: JSON.stringify({ action: 'getProfile' }),
-    })
-      .then(res => res.json())
-      .then(d => {
-        if (d.success && d.data?.isAdmin) {
+    let cancelled = false
+
+    async function verifyAdmin() {
+      const stored = localStorage.getItem('token')
+      if (!stored) {
+        if (!cancelled) setStatus('no-token')
+        return
+      }
+
+      try {
+        const res = await fetch('/api/auth', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored}` },
+          body: JSON.stringify({ action: 'getProfile' }),
+        })
+        const data = await res.json()
+        if (cancelled) return
+
+        if (data.success && data.data?.isAdmin) {
           setToken(stored)
           setStatus('ok')
         } else {
           setStatus('not-admin')
         }
-      })
-      .catch(() => setStatus('no-token'))
+      } catch {
+        if (!cancelled) setStatus('no-token')
+      }
+    }
+
+    verifyAdmin()
+    return () => { cancelled = true }
   }, [])
 
   function logout() {

@@ -69,7 +69,6 @@ function DashboardContent() {
   const { format } = useCurrency()
   const [orders, setOrders] = useState([])
   const [username, setUsername] = useState('')
-  const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
   const [tab, setTab] = useState(
@@ -79,29 +78,56 @@ function DashboardContent() {
   const [unreadMessageOrderIds, setUnreadMessageOrderIds] = useState(new Set())
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    const uname = localStorage.getItem('username')
-    if (!token) { router.push('/login'); return }
-    setUsername(uname || '')
-    fetchOrders()
-    fetchProfile()
-    fetchUnreadMessageOrders()
-  }, [])
+    let cancelled = false
 
-  async function fetchUnreadMessageOrders() {
-    try {
-      const res = await authFetch('/api/notifications')
-      if (!res) return
-      const d = await res.json()
-      if (d.success) {
-        const ids = d.data
-          .filter(n => n.type === 'message' && !n.isRead)
-          .map(n => parseInt(n.link?.match(/orderId=(\d+)/)?.[1]))
+    async function loadDashboard() {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        router.push('/login')
+        return
+      }
+
+      const username = localStorage.getItem('username') || ''
+      const readJson = async request => {
+        try {
+          const response = await request
+          return response ? await response.json() : null
+        } catch {
+          return null
+        }
+      }
+
+      const [ordersData, profileData, notificationsData] = await Promise.all([
+        readJson(authFetch('/api/orders')),
+        readJson(authFetch('/api/auth', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getProfile' }),
+        })),
+        readJson(authFetch('/api/notifications')),
+      ])
+
+      if (cancelled) return
+
+      setUsername(username)
+      if (ordersData?.success) setOrders(ordersData.data)
+      if (profileData?.success) {
+        checkRewardMilestones(profileData.data)
+        setProfile(profileData.data)
+      }
+      if (notificationsData?.success) {
+        const ids = notificationsData.data
+          .filter(notification => notification.type === 'message' && !notification.isRead)
+          .map(notification => parseInt(notification.link?.match(/orderId=(\d+)/)?.[1]))
           .filter(Boolean)
         setUnreadMessageOrderIds(new Set(ids))
       }
-    } catch {}
-  }
+
+      setLoading(false)
+    }
+
+    loadDashboard()
+    return () => { cancelled = true }
+  }, [router])
 
   function clearUnreadMessages(orderId) {
     setUnreadMessageOrderIds(prev => {
@@ -110,31 +136,6 @@ function DashboardContent() {
       next.delete(orderId)
       return next
     })
-  }
-
-  async function fetchOrders() {
-    try {
-      const res = await authFetch('/api/orders')
-      if (!res) return
-      const d = await res.json()
-      if (d.success) setOrders(d.data)
-    } catch {}
-    setLoading(false)
-  }
-
-  async function fetchProfile() {
-    try {
-      const res = await authFetch('/api/auth', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getProfile' }),
-      })
-      if (!res) return
-      const d = await res.json()
-      if (d.success) {
-        checkRewardMilestones(d.data)
-        setProfile(d.data)
-      }
-    } catch {}
   }
 
   function logout() {
@@ -343,7 +344,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
           Welcome, {profile?.displayName || username} 👋
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '24px' }}>
-          Let's get your first order started.
+          Let&apos;s get your first order started.
         </p>
 
         <div style={{
@@ -371,7 +372,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
         Welcome back, {profile?.displayName || username}
       </h2>
       <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '24px' }}>
-        Here's a quick look at your activity.
+        Here&apos;s a quick look at your activity.
       </p>
 
       {(profile?.isBooster || profile?.isContentCreator) && (
@@ -422,7 +423,7 @@ function OverviewTab({ username, orders, loading, onNavigate, tier, profile }) {
               </div>
             </>
           ) : (
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You've reached our highest tier — thank you!</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>You&apos;ve reached our highest tier — thank you!</div>
           )}
         </div>
       </div>
@@ -1143,7 +1144,7 @@ function RatingWidget({ order, onRated }) {
           {'★'.repeat(order.rating)}{'☆'.repeat(5 - order.rating)}
         </span>
         {order.review && (
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>"{order.review}"</span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>&ldquo;{order.review}&rdquo;</span>
         )}
       </div>
     )
