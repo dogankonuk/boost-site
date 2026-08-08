@@ -19,19 +19,26 @@ export default function MessageThread({ orderId, onOpen }) {
   const [loading, setLoading] = useState(false)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [error, setError] = useState('')
   const listRef = useRef(null)
   const onOpenRef = useRef(onOpen)
 
   const load = useCallback(async (silent, signal) => {
-    if (!silent && !signal?.aborted) setLoading(true)
+    if (!silent && !signal?.aborted) {
+      setLoading(true)
+      setError('')
+    }
     try {
       const res = await authFetch(`/api/messages?orderId=${orderId}`, { signal })
       if (res) {
         const d = await res.json()
         if (!signal?.aborted && d.success) setMessages(d.data)
+        else if (!silent && !signal?.aborted) setError(d.error || 'Could not load messages. Please try again.')
       }
     } catch (error) {
-      if (error.name !== 'AbortError') console.error(error)
+      if (error.name !== 'AbortError' && !silent && !signal?.aborted) {
+        setError('Could not connect to the server. Please try again.')
+      }
     }
     if (!silent && !signal?.aborted) setLoading(false)
   }, [orderId])
@@ -92,9 +99,11 @@ export default function MessageThread({ orderId, onOpen }) {
   }, [open, messages])
 
   async function send() {
+    if (sending) return
     const body = text.trim()
     if (!body) return
     setSending(true)
+    setError('')
     try {
       const res = await authFetch('/api/messages', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -106,16 +115,21 @@ export default function MessageThread({ orderId, onOpen }) {
           setMessages(prev => [...prev, d.data])
           setText('')
         } else {
-          alert(d.error || 'Could not send message')
+          setError(d.error || 'Could not send message. Please try again.')
         }
       }
-    } catch {}
+    } catch {
+      setError('Could not connect to the server. Please try again.')
+    }
     setSending(false)
   }
 
   return (
     <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
       <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={`order-messages-${orderId}`}
         onClick={() => setOpen(v => !v)}
         style={{
           display: 'inline-flex', alignItems: 'center', gap: '7px',
@@ -140,9 +154,13 @@ export default function MessageThread({ orderId, onOpen }) {
       </button>
 
       {open && (
-        <div style={{ marginTop: '10px' }}>
+        <div id={`order-messages-${orderId}`} style={{ marginTop: '10px' }}>
           <div
             ref={listRef}
+            role="log"
+            aria-live="polite"
+            aria-busy={loading}
+            aria-label="Order messages"
             style={{
               maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px',
               padding: messages.length > 0 ? '10px' : 0, marginBottom: '10px',
@@ -180,19 +198,33 @@ export default function MessageThread({ orderId, onOpen }) {
 
           <div style={{ display: 'flex', gap: '8px' }}>
             <input
+              aria-label="Write a message"
+              aria-describedby={error ? `message-error-${orderId}` : undefined}
               value={text}
               onChange={e => setText(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && send()}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
               placeholder="Type a message..."
               style={{
                 flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                 borderRadius: '8px', padding: '8px 12px', color: '#fff', fontSize: '13px', outline: 'none',
               }}
             />
-            <button className="btn-primary" onClick={send} disabled={sending || !text.trim()} style={{ fontSize: '12px', padding: '8px 16px', flexShrink: 0 }}>
+            <button type="button" className="btn-primary" onClick={send} disabled={sending || !text.trim()} style={{ fontSize: '12px', padding: '8px 16px', flexShrink: 0 }}>
               {sending ? '...' : 'Send'}
             </button>
           </div>
+          {error && (
+            <p id={`message-error-${orderId}`} role="alert" style={{
+              color: '#ff8a8a', fontSize: '11px', lineHeight: '1.5', marginTop: '7px',
+            }}>
+              {error}
+            </p>
+          )}
         </div>
       )}
     </div>
