@@ -23,10 +23,12 @@ function defaultSelectedAddons(addons) {
   return result
 }
 
-function clampNumber(value, min, max, fallback = min) {
+function clampNumber(value, min, max, fallback = min, step = 1, stepBase = min) {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) return fallback
-  return Math.min(max, Math.max(min, Math.round(parsed)))
+  const safeStep = Math.max(1, Number(step) || 1)
+  const snapped = stepBase + Math.round((parsed - stepBase) / safeStep) * safeStep
+  return Math.min(max, Math.max(min, Math.round(snapped)))
 }
 
 const TRUST_ITEMS = [
@@ -51,7 +53,9 @@ export default function OrderForm({ service }) {
   const [selection, setSelection] = useState({
     quantity: service.options?.minQty ?? 1,
     from: service.options?.min ?? 1,
-    to: service.options?.min !== undefined ? Number(service.options.min) + 1 : 2,
+    to: service.options?.min !== undefined
+      ? Number(service.options.min) + Math.max(1, Number(service.options.step) || 1)
+      : 2,
     choice: service.options?.choices?.[0]?.label || '',
   })
   const [selectedAddons, setSelectedAddons] = useState(() => defaultSelectedAddons(service.addons))
@@ -467,7 +471,7 @@ function SliderTrack({ min, max, start = min, end, children }) {
   )
 }
 
-function SliderNumberInput({ id, value, min, max, onChange, style }) {
+function SliderNumberInput({ id, value, min, max, step = 1, stepBase = min, onChange, style }) {
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -477,7 +481,7 @@ function SliderNumberInput({ id, value, min, max, onChange, style }) {
   }, [value])
 
   function commit(raw) {
-    const next = clampNumber(raw, min, max, value)
+    const next = clampNumber(raw, min, max, value, step, stepBase)
     if (inputRef.current) inputRef.current.value = String(next)
     onChange(next)
   }
@@ -492,11 +496,14 @@ function SliderNumberInput({ id, value, min, max, onChange, style }) {
       ref={inputRef}
       min={min}
       max={max}
+      step={step}
       onChange={event => {
         const raw = event.target.value
         if (raw === '') return
         const parsed = Number(raw)
-        if (Number.isFinite(parsed) && parsed >= min && parsed <= max) onChange(Math.round(parsed))
+        if (Number.isFinite(parsed) && parsed >= min && parsed <= max) {
+          onChange(clampNumber(parsed, min, max, value, step, stepBase))
+        }
       }}
       onBlur={event => commit(event.currentTarget.value)}
       onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur() }}
@@ -508,8 +515,9 @@ function SliderNumberInput({ id, value, min, max, onChange, style }) {
 function QuantitySlider({ options, value, onChange }) {
   const min = Number(options.minQty) || 1
   const max = Math.max(min, Number(options.maxQty) || min)
-  const safeValue = clampNumber(value, min, max)
-  const update = raw => onChange(clampNumber(raw, min, max, safeValue))
+  const step = Math.max(1, Number(options.step) || 1)
+  const safeValue = clampNumber(value, min, max, min, step, min)
+  const update = raw => onChange(clampNumber(raw, min, max, safeValue, step, min))
 
   return (
     <div>
@@ -525,6 +533,8 @@ function QuantitySlider({ options, value, onChange }) {
         value={safeValue}
         min={min}
         max={max}
+        step={step}
+        stepBase={min}
         onChange={update}
         style={{
           width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
@@ -539,7 +549,7 @@ function QuantitySlider({ options, value, onChange }) {
           aria-label={`${options.unitName || 'Unit'} amount`}
           min={min}
           max={max}
-          step="1"
+          step="any"
           value={safeValue}
           onChange={e => update(e.target.value)}
         />
@@ -554,15 +564,16 @@ function QuantitySlider({ options, value, onChange }) {
 function DualRangeSlider({ options, from, to, onChange }) {
   const min = Number(options.min) || 0
   const max = Math.max(min + 1, Number(options.max) || min + 1)
-  const safeFrom = clampNumber(from, min, max - 1)
-  const safeTo = clampNumber(to, safeFrom + 1, max)
+  const step = Math.min(max - min, Math.max(1, Number(options.step) || 1))
+  const safeFrom = clampNumber(from, min, max - step, min, step, min)
+  const safeTo = clampNumber(to, safeFrom + step, max, safeFrom + step, step, min)
 
   function updateFrom(raw) {
-    onChange(clampNumber(raw, min, safeTo - 1, safeFrom), safeTo)
+    onChange(clampNumber(raw, min, safeTo - step, safeFrom, step, min), safeTo)
   }
 
   function updateTo(raw) {
-    onChange(safeFrom, clampNumber(raw, safeFrom + 1, max, safeTo))
+    onChange(safeFrom, clampNumber(raw, safeFrom + step, max, safeTo, step, min))
   }
 
   return (
@@ -576,7 +587,9 @@ function DualRangeSlider({ options, from, to, onChange }) {
           <SliderNumberInput
             id="order-range-from"
             min={min}
-            max={safeTo - 1}
+            max={safeTo - step}
+            step={step}
+            stepBase={min}
             value={safeFrom}
             onChange={updateFrom}
             style={sliderNumberInputStyle}
@@ -588,8 +601,10 @@ function DualRangeSlider({ options, from, to, onChange }) {
           </label>
           <SliderNumberInput
             id="order-range-to"
-            min={safeFrom + 1}
+            min={safeFrom + step}
             max={max}
+            step={step}
+            stepBase={min}
             value={safeTo}
             onChange={updateTo}
             style={sliderNumberInputStyle}
@@ -602,8 +617,8 @@ function DualRangeSlider({ options, from, to, onChange }) {
           type="range"
           aria-label={`Current ${options.unitName || 'value'}`}
           min={min}
-          max={max - 1}
-          step="1"
+          max={max - step}
+          step="any"
           value={safeFrom}
           onChange={e => updateFrom(e.target.value)}
           style={{ zIndex: safeFrom > max - 3 ? 4 : 3 }}
@@ -612,9 +627,9 @@ function DualRangeSlider({ options, from, to, onChange }) {
           className="order-range-input"
           type="range"
           aria-label={`Target ${options.unitName || 'value'}`}
-          min={min + 1}
+          min={min + step}
           max={max}
-          step="1"
+          step="any"
           value={safeTo}
           onChange={e => updateTo(e.target.value)}
           style={{ zIndex: 3 }}

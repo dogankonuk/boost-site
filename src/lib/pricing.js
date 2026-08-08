@@ -36,6 +36,14 @@ export function calculateVolumeDiscountPct(options, quantity) {
   return pct
 }
 
+function normalizeSteppedValue(value, min, max, step, fallback = min) {
+  const raw = Number(value)
+  if (!Number.isFinite(raw)) return fallback
+  const safeStep = Math.max(1, Number(step) || 1)
+  const snapped = min + Math.round((raw - min) / safeStep) * safeStep
+  return Math.min(max, Math.max(min, Math.round(snapped)))
+}
+
 export function normalizeSelection(options, selection = {}) {
   const safeSelection = selection && typeof selection === 'object' ? selection : {}
   if (!options || options.type === 'fixed') return safeSelection
@@ -43,24 +51,16 @@ export function normalizeSelection(options, selection = {}) {
   if (options.type === 'quantity') {
     const min = Number(options.minQty) || 1
     const max = Math.max(min, Number(options.maxQty) || min)
-    const raw = Number(safeSelection.quantity)
-    const quantity = Number.isFinite(raw)
-      ? Math.min(max, Math.max(min, Math.round(raw)))
-      : min
+    const quantity = normalizeSteppedValue(safeSelection.quantity, min, max, options.step, min)
     return { ...safeSelection, quantity }
   }
 
   if (options.type === 'range') {
     const min = Number(options.min) || 0
     const max = Math.max(min + 1, Number(options.max) || min + 1)
-    const rawFrom = Number(safeSelection.from)
-    const rawTo = Number(safeSelection.to)
-    const from = Number.isFinite(rawFrom)
-      ? Math.min(max - 1, Math.max(min, Math.round(rawFrom)))
-      : min
-    const to = Number.isFinite(rawTo)
-      ? Math.min(max, Math.max(from + 1, Math.round(rawTo)))
-      : from + 1
+    const step = Math.min(max - min, Math.max(1, Number(options.step) || 1))
+    const from = normalizeSteppedValue(safeSelection.from, min, max - step, step, min)
+    const to = normalizeSteppedValue(safeSelection.to, from + step, max, step, from + step)
     return { ...safeSelection, from, to }
   }
 

@@ -68,7 +68,7 @@ export default function AdminGames({ secret }) {
     name: '', slug: '', basePrice: '',
     description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '',
     pricingType: 'fixed',
-    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
+    pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
     addons: [],
   })
   const [msg, setMsg] = useState('')
@@ -176,11 +176,11 @@ export default function AdminGames({ secret }) {
     let options = null
     if (serviceForm.pricingType === 'quantity') {
       const volumeDiscounts = parseTierLines(serviceForm.pricingOptions.volumeText).map(t => ({ minQty: t.a, discountPct: t.b }))
-      options = { type: 'quantity', unitName: serviceForm.pricingOptions.unitName, unitPrice: parseFloat(serviceForm.pricingOptions.unitPrice), minQty: parseInt(serviceForm.pricingOptions.minQty), maxQty: parseInt(serviceForm.pricingOptions.maxQty) }
+      options = { type: 'quantity', unitName: serviceForm.pricingOptions.unitName, unitPrice: parseFloat(serviceForm.pricingOptions.unitPrice), minQty: parseInt(serviceForm.pricingOptions.minQty), maxQty: parseInt(serviceForm.pricingOptions.maxQty), step: Math.max(1, parseInt(serviceForm.pricingOptions.step) || 1) }
       if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (serviceForm.pricingType === 'range') {
       const tiers = serviceForm.pricingOptions.tiers
-      options = { type: 'range', unitName: serviceForm.pricingOptions.unitName, pricePerUnit: parseFloat(serviceForm.pricingOptions.pricePerUnit), min: parseInt(serviceForm.pricingOptions.min), max: parseInt(serviceForm.pricingOptions.max) }
+      options = { type: 'range', unitName: serviceForm.pricingOptions.unitName, pricePerUnit: parseFloat(serviceForm.pricingOptions.pricePerUnit), min: parseInt(serviceForm.pricingOptions.min), max: parseInt(serviceForm.pricingOptions.max), step: Math.max(1, parseInt(serviceForm.pricingOptions.step) || 1) }
       if (Array.isArray(tiers) && tiers.length > 0) options.tiers = tiers
     } else if (serviceForm.pricingType === 'options') {
       options = { type: 'options', choices: serviceForm.pricingOptions.choices }
@@ -204,7 +204,7 @@ export default function AdminGames({ secret }) {
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [] })
+      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [] })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -214,11 +214,11 @@ export default function AdminGames({ secret }) {
     let options = null
     if (editForm.pricingType === 'quantity') {
       const volumeDiscounts = parseTierLines(editForm.pricingOptions.volumeText).map(t => ({ minQty: t.a, discountPct: t.b }))
-      options = { type: 'quantity', unitName: editForm.pricingOptions.unitName, unitPrice: parseFloat(editForm.pricingOptions.unitPrice), minQty: parseInt(editForm.pricingOptions.minQty), maxQty: parseInt(editForm.pricingOptions.maxQty) }
+      options = { type: 'quantity', unitName: editForm.pricingOptions.unitName, unitPrice: parseFloat(editForm.pricingOptions.unitPrice), minQty: parseInt(editForm.pricingOptions.minQty), maxQty: parseInt(editForm.pricingOptions.maxQty), step: Math.max(1, parseInt(editForm.pricingOptions.step) || 1) }
       if (volumeDiscounts.length > 0) options.volumeDiscounts = volumeDiscounts
     } else if (editForm.pricingType === 'range') {
       const tiers = editForm.pricingOptions.tiers
-      options = { type: 'range', unitName: editForm.pricingOptions.unitName, pricePerUnit: parseFloat(editForm.pricingOptions.pricePerUnit), min: parseInt(editForm.pricingOptions.min), max: parseInt(editForm.pricingOptions.max) }
+      options = { type: 'range', unitName: editForm.pricingOptions.unitName, pricePerUnit: parseFloat(editForm.pricingOptions.pricePerUnit), min: parseInt(editForm.pricingOptions.min), max: parseInt(editForm.pricingOptions.max), step: Math.max(1, parseInt(editForm.pricingOptions.step) || 1) }
       if (Array.isArray(tiers) && tiers.length > 0) options.tiers = tiers
     } else if (editForm.pricingType === 'options') {
       options = { type: 'options', choices: editForm.pricingOptions.choices }
@@ -507,6 +507,7 @@ function SortableGameRow({
                   <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.unitPrice} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.minQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, minQty: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.maxQty} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, maxQty: v } }))} />
+                  <Field label="Slider Adımı" type="number" value={serviceForm.pricingOptions.step} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, step: v } }))} />
                   <TierTextarea
                     label="Toplu alım indirimi (opsiyonel)"
                     hint='Her satıra "min_miktar:indirim_yüzdesi" — örn. 500:10 (500+ alımda %10 indirim)'
@@ -522,6 +523,7 @@ function SortableGameRow({
                   <Field label="Birim Fiyatı ($)" type="number" value={serviceForm.pricingOptions.pricePerUnit} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
                   <Field label="Min" type="number" value={serviceForm.pricingOptions.min} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                   <Field label="Max" type="number" value={serviceForm.pricingOptions.max} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
+                  <Field label="Slider Adımı" type="number" value={serviceForm.pricingOptions.step} onChange={v => setServiceForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, step: v } }))} />
                   <PerLevelPriceEditor
                     key={`new-${serviceForm.pricingOptions.min}-${serviceForm.pricingOptions.max}`}
                     min={serviceForm.pricingOptions.min}
@@ -603,7 +605,7 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
-                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min || 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [] })
+                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, step: s.options.step || 1, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min ?? 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [] })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
@@ -660,6 +662,7 @@ function SortableGameRow({
                                   <Field label="Birim Fiyatı" type="number" value={editForm.pricingOptions?.unitPrice || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitPrice: v } }))} />
                                   <Field label="Min" type="number" value={editForm.pricingOptions?.minQty || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, minQty: v } }))} />
                                   <Field label="Max" type="number" value={editForm.pricingOptions?.maxQty || 999} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, maxQty: v } }))} />
+                                  <Field label="Slider Adımı" type="number" value={editForm.pricingOptions?.step || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, step: v } }))} />
                                   <TierTextarea
                                     label="Toplu alım indirimi (opsiyonel)"
                                     hint='Her satıra "min_miktar:indirim_yüzdesi" — örn. 500:10'
@@ -673,11 +676,12 @@ function SortableGameRow({
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                                   <Field label="Birim Adı" value={editForm.pricingOptions?.unitName || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, unitName: v } }))} />
                                   <Field label="Birim Fiyatı" type="number" value={editForm.pricingOptions?.pricePerUnit || ''} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, pricePerUnit: v } }))} />
-                                  <Field label="Min" type="number" value={editForm.pricingOptions?.min || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
+                                  <Field label="Min" type="number" value={editForm.pricingOptions?.min ?? 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, min: v } }))} />
                                   <Field label="Max" type="number" value={editForm.pricingOptions?.max || 100} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, max: v } }))} />
+                                  <Field label="Slider Adımı" type="number" value={editForm.pricingOptions?.step || 1} onChange={v => setEditForm(f => ({ ...f, pricingOptions: { ...f.pricingOptions, step: v } }))} />
                                   <PerLevelPriceEditor
                                     key={`edit-${editService}-${editForm.pricingOptions?.min}-${editForm.pricingOptions?.max}`}
-                                    min={editForm.pricingOptions?.min || 1}
+                                    min={editForm.pricingOptions?.min ?? 1}
                                     max={editForm.pricingOptions?.max || 100}
                                     unitName={editForm.pricingOptions?.unitName}
                                     basePrice={editForm.pricingOptions?.pricePerUnit}
