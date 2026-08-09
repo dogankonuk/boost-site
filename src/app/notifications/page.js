@@ -12,6 +12,7 @@ const TYPE_ICONS = {
   message: '💬',
   application_status: '📋',
   blog_unpublished: '📄',
+  blog_milestone: '📈',
   referral_bonus: '🎁',
 }
 

@@ -76,7 +76,7 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Title and content are required' }, { status: 400 })
     }
 
-    const slug = await uniqueSlug(slugify(title))
+    const slug = await uniqueSlug(slugify(body.slug?.trim() || title))
     const isPublished = !!body.isPublished
     const publishedAt = body.publishedAt ? new Date(body.publishedAt) : (isPublished ? new Date() : null)
 
@@ -116,6 +116,7 @@ export async function PATCH(request) {
 
     const data = {}
     if (body.title !== undefined) data.title = body.title.trim()
+    if (body.slug !== undefined && body.slug.trim()) data.slug = await uniqueSlug(slugify(body.slug.trim()), id)
     if (body.excerpt !== undefined) data.excerpt = body.excerpt?.trim() || null
     if (body.content !== undefined) data.content = body.content.trim()
     if (body.coverImage !== undefined) data.coverImage = body.coverImage?.trim() || null

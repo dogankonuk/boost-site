@@ -69,6 +69,23 @@ export async function notifyReferralBonus(prisma, { userId, points, role }) {
   }
 }
 
+// Notifies a content creator when one of their posts crosses a view milestone.
+export async function notifyBlogMilestone(prisma, { userId, title, views }) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'blog_milestone',
+        title: `Your post passed ${views.toLocaleString('en-US')} views! 🎉`,
+        body: title,
+        link: '/creator',
+      },
+    })
+  } catch (err) {
+    console.error('notifyBlogMilestone error:', err)
+  }
+}
+
 // Notifies a user that they've received a new message on an order's chat thread.
 export async function notifyNewMessage(prisma, { recipientUserId, senderUsername, orderNumber, link }) {
   try {
