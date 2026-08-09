@@ -7,6 +7,7 @@ import Container from '@/components/Container'
 import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
+import { AlertTriangleIcon } from '@/components/BrandIcons'
 
 const STATUS_LABELS = {
   pending: 'Pending',
@@ -61,7 +62,9 @@ function BoosterContent() {
   const [confirmReleaseId, setConfirmReleaseId] = useState(null)
   const [releasingId, setReleasingId] = useState(null)
   const [updatingId, setUpdatingId] = useState(null)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState({ text: '', type: 'info' })
+  const [poolError, setPoolError] = useState('')
+  const [mineError, setMineError] = useState('')
   const [poolSearch, setPoolSearch] = useState('')
   const [discordId, setDiscordId] = useState('')
   const [savingDiscord, setSavingDiscord] = useState(false)
@@ -114,25 +117,34 @@ function BoosterContent() {
       const d = await res.json()
       if (d.success) {
         setBooster(b => ({ ...b, discordId: discordId.trim() }))
-        setMsg('Discord ID saved')
-        setTimeout(() => setMsg(''), 3000)
+        setMsg({ text: 'Discord ID saved', type: 'success' })
+        setTimeout(() => setMsg({ text: '', type: 'info' }), 3000)
+      } else {
+        setMsg({ text: d.error || 'Could not save your Discord ID. Please try again.', type: 'error' })
       }
-    } catch {}
+    } catch {
+      setMsg({ text: 'Could not connect to the server. Please try again.', type: 'error' })
+    }
     setSavingDiscord(false)
   }
 
   const fetchPool = useCallback(async () => {
     setLoadingOrders(true)
+    setPoolError('')
     try {
       const res = await authFetch('/api/booster?type=pool')
       if (!res) return
       const d = await res.json()
       if (d.success) setPool(d.data)
-    } catch {}
+      else setPoolError(d.error || 'Could not load available orders.')
+    } catch {
+      setPoolError('Could not connect to the server.')
+    }
     setLoadingOrders(false)
   }, [])
 
   const fetchMine = useCallback(async () => {
+    setMineError('')
     try {
       const res = await authFetch('/api/booster?type=mine')
       if (!res) return
@@ -140,8 +152,12 @@ function BoosterContent() {
       if (d.success) {
         setMine(d.data)
         if (highlightOrderId && d.data.some(order => order.id === highlightOrderId)) setTab('mine')
+      } else {
+        setMineError(d.error || 'Could not load your orders.')
       }
-    } catch {}
+    } catch {
+      setMineError('Could not connect to the server.')
+    }
   }, [highlightOrderId])
 
   useEffect(() => {
@@ -178,17 +194,17 @@ function BoosterContent() {
       if (!res) return
       const d = await res.json()
       if (d.success) {
-        setMsg('Order assigned to you')
+        setMsg({ text: 'Order assigned to you', type: 'success' })
         fetchPool(); fetchMine()
         setTab('mine')
       } else {
-        setMsg(d.error || 'This order is no longer available')
+        setMsg({ text: d.error || 'This order is no longer available', type: 'error' })
         fetchPool()
       }
-    } catch { setMsg('Connection error') }
+    } catch { setMsg({ text: 'Connection error. Please try again.', type: 'error' }) }
     setClaimingId(null)
     setConfirmingId(null)
-    setTimeout(() => setMsg(''), 3000)
+    setTimeout(() => setMsg({ text: '', type: 'info' }), 3000)
   }
 
   async function updateStatus(orderId, status) {
@@ -201,7 +217,10 @@ function BoosterContent() {
       if (!res) return
       const d = await res.json()
       if (d.success) fetchMine()
-    } catch {}
+      else setMsg({ text: d.error || 'Could not update this order. Please try again.', type: 'error' })
+    } catch {
+      setMsg({ text: 'Could not connect to the server. Please try again.', type: 'error' })
+    }
     setUpdatingId(null)
   }
 
@@ -214,10 +233,16 @@ function BoosterContent() {
       })
       if (!res) return
       const d = await res.json()
-      if (d.success) { fetchPool(); fetchMine() }
-    } catch {}
+      if (d.success) {
+        fetchPool(); fetchMine()
+        setConfirmReleaseId(null)
+      } else {
+        setMsg({ text: d.error || 'Could not release this order. Please try again.', type: 'error' })
+      }
+    } catch {
+      setMsg({ text: 'Could not connect to the server. Please try again.', type: 'error' })
+    }
     setReleasingId(null)
-    setConfirmReleaseId(null)
   }
 
   const filteredPool = useMemo(() => {
@@ -260,7 +285,7 @@ function BoosterContent() {
               {fetchError || "This account isn't registered as a booster. Contact an admin if you'd like to become one."}
             </p>
             {fetchError && (
-              <button className="btn-primary" onClick={() => { setBooster(undefined); fetchMe() }}>
+              <button type="button" className="btn-primary" onClick={() => { setBooster(undefined); fetchMe() }}>
                 Try Again
               </button>
             )}
@@ -326,17 +351,20 @@ function BoosterContent() {
             background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44',
           }}>
             <span>💬 Add your Discord ID to get an instant mention when an order is assigned to you.</span>
-            <button onClick={() => setTab('profile')} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}>
+            <button type="button" onClick={() => setTab('profile')} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}>
               Add Now
             </button>
           </div>
         )}
 
-        {msg && (
-          <div style={{
-            background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px',
-            padding: '10px 16px', color: 'var(--gold)', fontSize: '13px', marginBottom: '16px',
-          }}>{msg}</div>
+        {msg.text && (
+          <div role={msg.type === 'error' ? 'alert' : 'status'} style={{
+            background: msg.type === 'error' ? '#2a1a1a' : 'var(--bg-card)',
+            border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : 'var(--border)'}`,
+            borderRadius: '8px', padding: '10px 16px',
+            color: msg.type === 'error' ? '#ff8a8a' : 'var(--gold)',
+            fontSize: '13px', marginBottom: '16px',
+          }}>{msg.text}</div>
         )}
 
         {/* Tabs */}
@@ -346,7 +374,7 @@ function BoosterContent() {
             { key: 'mine', icon: '📦', label: `My Orders (${mine.length})` },
             { key: 'profile', icon: '⚙️', label: 'Profile' },
           ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
+            <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '9px 16px', borderRadius: '20px', fontSize: '13px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
@@ -355,7 +383,7 @@ function BoosterContent() {
               color: tab === t.key ? '#0a0a0a' : 'var(--text-muted)',
               borderColor: tab === t.key ? 'var(--gold)' : 'var(--border)',
             }}>
-              <span>{t.icon}</span>{t.label}
+              <span aria-hidden="true">{t.icon}</span>{t.label}
             </button>
           ))}
         </div>
@@ -380,6 +408,8 @@ function BoosterContent() {
 
             {loadingOrders ? (
               <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
+            ) : poolError ? (
+              <ErrorState text={poolError} onRetry={fetchPool} />
             ) : pool.length === 0 ? (
               <EmptyState icon="📭" text="No available orders right now. New orders will show up here." />
             ) : filteredPool.length === 0 ? (
@@ -390,18 +420,18 @@ function BoosterContent() {
                   <OrderCard key={order.id} order={order} format={format}>
                     {confirmingId === order.id ? (
                       <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px' }}
+                        <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px' }}
                           disabled={claimingId === order.id}
                           onClick={() => claimOrder(order.id)}>
                           {claimingId === order.id ? 'Claiming...' : 'Yes, Claim It'}
                         </button>
-                        <button className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}
+                        <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}
                           onClick={() => setConfirmingId(null)}>
                           Cancel
                         </button>
                       </div>
                     ) : (
-                      <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                      <button type="button" className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
                         onClick={() => setConfirmingId(order.id)}>
                         Claim
                       </button>
@@ -414,9 +444,11 @@ function BoosterContent() {
         )}
 
         {tab === 'mine' && (
-          mine.length === 0 ? (
+          mineError ? (
+            <ErrorState text={mineError} onRetry={fetchMine} />
+          ) : mine.length === 0 ? (
             <EmptyState icon="📦" text="You haven't claimed any orders yet.">
-              <button className="btn-primary" style={{ marginTop: '16px', fontSize: '13px', padding: '9px 18px' }} onClick={() => setTab('pool')}>
+              <button type="button" className="btn-primary" style={{ marginTop: '16px', fontSize: '13px', padding: '9px 18px' }} onClick={() => setTab('pool')}>
                 Browse Available Orders
               </button>
             </EmptyState>
@@ -432,14 +464,14 @@ function BoosterContent() {
                       <OrderCard key={order.id} order={order} format={format} showStatus showMessages highlighted={activeHighlight === order.id}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                           {order.status === 'assigned' && (
-                            <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                            <button type="button" className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
                               disabled={updatingId === order.id}
                               onClick={() => updateStatus(order.id, 'in_progress')}>
                               {updatingId === order.id ? '...' : 'Start'}
                             </button>
                           )}
                           {order.status === 'in_progress' && (
-                            <button className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
+                            <button type="button" className="btn-primary" style={{ fontSize: '13px', padding: '8px 16px' }}
                               disabled={updatingId === order.id}
                               onClick={() => updateStatus(order.id, 'completed')}>
                               {updatingId === order.id ? '...' : 'Mark as Completed'}
@@ -449,17 +481,17 @@ function BoosterContent() {
                           {confirmReleaseId === order.id ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Give up this order?</span>
-                              <button onClick={() => releaseOrder(order.id)} disabled={releasingId === order.id}
+                              <button type="button" onClick={() => releaseOrder(order.id)} disabled={releasingId === order.id}
                                 style={{ fontSize: '12px', color: '#ff6666', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>
                                 {releasingId === order.id ? '...' : 'Yes, release it'}
                               </button>
-                              <button onClick={() => setConfirmReleaseId(null)}
+                              <button type="button" onClick={() => setConfirmReleaseId(null)}
                                 style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>
                                 Never mind
                               </button>
                             </div>
                           ) : (
-                            <button onClick={() => setConfirmReleaseId(order.id)}
+                            <button type="button" onClick={() => setConfirmReleaseId(order.id)}
                               style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>
                               Give up this order
                             </button>
@@ -505,7 +537,7 @@ function BoosterContent() {
                     flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                     borderRadius: '8px', padding: '10px 14px', color: '#fff', fontSize: '13px', outline: 'none',
                   }} />
-                <button className="btn-primary" onClick={saveDiscordId} disabled={savingDiscord} style={{ padding: '10px 18px', fontSize: '13px', flexShrink: 0 }}>
+                <button type="button" className="btn-primary" onClick={saveDiscordId} disabled={savingDiscord} style={{ padding: '10px 18px', fontSize: '13px', flexShrink: 0 }}>
                   {savingDiscord ? 'Saving...' : 'Save'}
                 </button>
               </div>
@@ -602,6 +634,24 @@ function EmptyState({ icon, text, compact, children }) {
   )
 }
 
+function ErrorState({ text, onRetry }) {
+  return (
+    <div role="alert" style={{
+      display: 'flex', alignItems: 'flex-start', gap: '12px',
+      background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '16px',
+      padding: '24px', color: '#ff8a8a',
+    }}>
+      <AlertTriangleIcon size={20} />
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-muted)' }}>{text}</p>
+        <button type="button" className="btn-secondary" onClick={onRetry} style={{ marginTop: '12px', padding: '8px 14px', fontSize: '12px' }}>
+          Try again
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function OrderCard({ order, format, showStatus, muted, showMessages, highlighted, children }) {
   const details = order.details || {}
   const selection = details.selection || {}
@@ -656,6 +706,12 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
                 {STATUS_LABELS[order.status]}
               </span>
             )}
+            {order.issueReport && !order.issueResolved && (
+              <span style={{
+                fontSize: '10px', padding: '2px 8px', borderRadius: '20px', fontWeight: '700',
+                background: '#2a1a1a', border: '1px solid #4a2a2a', color: '#ff6666',
+              }}>⚠️ Issue Reported</span>
+            )}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
             {order.orderNumber}
@@ -666,6 +722,24 @@ function OrderCard({ order, format, showStatus, muted, showMessages, highlighted
           {details.note && (
             <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '4px', fontStyle: 'italic' }}>
               &ldquo;{details.note}&rdquo;
+            </div>
+          )}
+          {order.issueReport && (
+            <div style={{
+              marginTop: '8px', padding: '10px 12px', borderRadius: '8px',
+              background: '#2a1a1a', border: '1px solid #4a2a2a',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '4px' }}>
+                <span style={{ fontSize: '11px', fontWeight: '700', color: '#ff8a8a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Customer reported an issue
+                </span>
+                {order.issueResolved && (
+                  <span style={{ fontSize: '11px', color: 'var(--text-dim)' }}>✓ Resolved</span>
+                )}
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {order.issueReport}
+              </p>
             </div>
           )}
           {order.rating && (
