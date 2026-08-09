@@ -69,6 +69,60 @@ export async function notifyReferralBonus(prisma, { userId, points, role }) {
   }
 }
 
+// Notifies every admin when a creator submits a post for review — there's no
+// other signal that tells them a queue item exists otherwise.
+export async function notifyBlogPendingReview(prisma, { post, authorUsername }) {
+  try {
+    const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } })
+    if (admins.length === 0) return
+    await prisma.notification.createMany({
+      data: admins.map(admin => ({
+        userId: admin.id,
+        type: 'blog_pending_review',
+        title: 'New post awaiting review',
+        body: `"${post.title}" by ${authorUsername}`,
+        link: '/admin',
+      })),
+    })
+  } catch (err) {
+    console.error('notifyBlogPendingReview error:', err)
+  }
+}
+
+// Notifies a content creator that their submitted post was approved and is live.
+export async function notifyBlogApproved(prisma, { userId, title, slug }) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'blog_approved',
+        title: 'Your post was approved and is now live! 🎉',
+        body: title,
+        link: `/blog/${slug}`,
+      },
+    })
+  } catch (err) {
+    console.error('notifyBlogApproved error:', err)
+  }
+}
+
+// Notifies a content creator that their submitted post needs changes.
+export async function notifyBlogRejected(prisma, { userId, title, reviewNote }) {
+  try {
+    await prisma.notification.create({
+      data: {
+        userId,
+        type: 'blog_rejected',
+        title: 'Your post needs changes before it can go live',
+        body: reviewNote || title,
+        link: '/creator',
+      },
+    })
+  } catch (err) {
+    console.error('notifyBlogRejected error:', err)
+  }
+}
+
 // Notifies a content creator when one of their posts crosses a view milestone.
 export async function notifyBlogMilestone(prisma, { userId, title, views }) {
   try {

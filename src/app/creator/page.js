@@ -24,6 +24,20 @@ function toDatetimeLocal(date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+function postStatusBadge(post) {
+  const scheduled = post.isPublished && post.publishedAt && new Date(post.publishedAt) > new Date()
+  if (scheduled) {
+    return {
+      label: `Scheduled for ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
+      bg: 'rgba(245,197,24,0.1)', border: 'var(--gold)', color: 'var(--gold)',
+    }
+  }
+  if (post.isPublished) return { label: 'Published', bg: 'rgba(76,175,80,0.1)', border: '#4caf50', color: '#4caf50' }
+  if (post.reviewStatus === 'pending') return { label: 'Pending Review', bg: 'rgba(245,197,24,0.1)', border: 'var(--gold)', color: 'var(--gold)' }
+  if (post.reviewStatus === 'rejected') return { label: 'Changes Requested', bg: 'rgba(255,102,102,0.1)', border: '#ff6666', color: '#ff6666' }
+  return { label: 'Draft', bg: 'var(--bg-elevated)', border: 'var(--border)', color: 'var(--text-dim)' }
+}
+
 function estimateReadTime(content) {
   const words = (content || '').trim().split(/\s+/).filter(Boolean).length
   return Math.max(1, Math.round(words / READ_WPM))
@@ -229,8 +243,18 @@ export default function CreatorPage() {
     setSaving(true)
     setError('')
     try {
-      const payload = { ...form, isPublished: publish }
+      const isLive = editingId ? (posts.find(p => p.id === editingId)?.isPublished ?? false) : false
+      const payload = { ...form }
       if (!payload.publishedAt) delete payload.publishedAt
+      if (publish) {
+        // Editing an already-live post keeps it live — only a not-yet-live
+        // post needs to go through review.
+        if (isLive) payload.isPublished = true
+        else payload.reviewStatus = 'pending'
+      } else {
+        payload.reviewStatus = 'draft'
+        payload.isPublished = false
+      }
       const res = editingId
         ? await authFetch('/api/blog', {
             method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -276,10 +300,15 @@ export default function CreatorPage() {
   }
 
   async function togglePublish(post) {
+    // Live posts can be self-unpublished. A not-yet-live post has to go
+    // through review instead of being flipped straight to published.
+    const body = post.isPublished
+      ? { id: post.id, isPublished: false }
+      : { id: post.id, reviewStatus: 'pending' }
     try {
       const res = await authFetch('/api/blog', {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: post.id, isPublished: !post.isPublished }),
+        body: JSON.stringify(body),
       })
       if (res) {
         const d = await res.json()
@@ -325,7 +354,9 @@ export default function CreatorPage() {
         const scheduled = p.isPublished && p.publishedAt && new Date(p.publishedAt) > new Date()
         if (postStatusFilter === 'scheduled') return scheduled
         if (postStatusFilter === 'published') return p.isPublished && !scheduled
-        return !p.isPublished
+        if (postStatusFilter === 'pending') return !p.isPublished && p.reviewStatus === 'pending'
+        if (postStatusFilter === 'rejected') return !p.isPublished && p.reviewStatus === 'rejected'
+        return !p.isPublished && p.reviewStatus === 'draft'
       })
     }
     const sorted = [...list]
@@ -342,6 +373,8 @@ export default function CreatorPage() {
   if (!checkedAuth) return null
 
   const isScheduled = form.publishedAt && new Date(form.publishedAt) > new Date()
+  const editingPost = editingId ? posts.find(p => p.id === editingId) : null
+  const isLive = editingPost?.isPublished ?? false
 
   return (
     <main style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -421,6 +454,8 @@ export default function CreatorPage() {
                 <select value={postStatusFilter} onChange={e => { setPostStatusFilter(e.target.value); setPage(1) }} style={{ ...inputStyle, width: 'auto' }}>
                   <option value="all">All statuses</option>
                   <option value="published">Published</option>
+                  <option value="pending">Pending Review</option>
+                  <option value="rejected">Changes Requested</option>
                   <option value="draft">Draft</option>
                   <option value="scheduled">Scheduled</option>
                 </select>
@@ -460,7 +495,7 @@ export default function CreatorPage() {
               <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {pagedPosts.map(post => {
-                  const scheduled = post.isPublished && post.publishedAt && new Date(post.publishedAt) > new Date()
+                  const badge = postStatusBadge(post)
                   return (
                   <div key={post.id} style={{
                     background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -489,16 +524,19 @@ export default function CreatorPage() {
                         }}>{post.title}</span>
                         <span style={{
                           fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                          background: scheduled ? 'rgba(245,197,24,0.1)' : post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
-                          border: `1px solid ${scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--border)'}`,
-                          color: scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--text-dim)',
+                          background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color,
                         }}>
-                          {scheduled ? `Scheduled for ${new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}` : post.isPublished ? 'Published' : 'Draft'}
+                          {badge.label}
                         </span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         {post.category}{post.game ? ` · ${post.game.name}` : ''} · 👁 {post.views} · {estimateReadTime(post.content)} min read
                       </div>
+                      {post.reviewStatus === 'rejected' && post.reviewNote && (
+                        <div style={{ fontSize: '11px', color: '#ff8a8a', marginTop: '4px' }}>
+                          ✏️ {post.reviewNote}
+                        </div>
+                      )}
                     </div>
                     {deleteConfirmId === post.id ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
@@ -513,8 +551,9 @@ export default function CreatorPage() {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                        <button type="button" onClick={() => togglePublish(post)} style={smallBtnStyle}>
-                          {post.isPublished ? 'Unpublish' : 'Publish'}
+                        <button type="button" onClick={() => togglePublish(post)}
+                          disabled={!post.isPublished && post.reviewStatus === 'pending'} style={smallBtnStyle}>
+                          {post.isPublished ? 'Unpublish' : post.reviewStatus === 'pending' ? 'Pending Review' : 'Submit for Review'}
                         </button>
                         <button type="button" onClick={() => startEdit(post)} style={smallBtnStyle}>Edit</button>
                         <button type="button" onClick={() => setDeleteConfirmId(post.id)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Delete</button>
@@ -555,6 +594,18 @@ export default function CreatorPage() {
                     <button type="button" onClick={restoreDraft} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}>Restore</button>
                     <button type="button" onClick={discardDraft} style={{ fontSize: '12px', color: 'var(--text-dim)', background: 'none', border: 'none', cursor: 'pointer' }}>Discard</button>
                   </div>
+                </div>
+              )}
+
+              {editingPost?.reviewStatus === 'rejected' && (
+                <div role="alert" style={{
+                  padding: '12px 16px', borderRadius: '10px', fontSize: '13px',
+                  background: '#2a1a1a', border: '1px solid #4a2a2a', color: '#ff8a8a',
+                }}>
+                  <div style={{ fontWeight: '700', marginBottom: '4px' }}>✏️ Changes requested</div>
+                  <p style={{ color: 'var(--text-muted)', margin: 0, lineHeight: '1.5' }}>
+                    {editingPost.reviewNote || 'An admin asked for changes before this can go live. Update the post and submit it again.'}
+                  </p>
                 </div>
               )}
 
@@ -645,12 +696,17 @@ export default function CreatorPage() {
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button type="button" className="btn-primary" onClick={() => save(true)} disabled={saving}>
-                  {saving ? 'Saving...' : isScheduled ? 'Schedule' : 'Publish'}
+                  {saving ? 'Saving...' : isLive ? (isScheduled ? 'Schedule' : 'Save Changes') : 'Submit for Review'}
                 </button>
                 <button type="button" onClick={() => save(false)} disabled={saving} style={smallBtnStyle}>
                   Save as Draft
                 </button>
               </div>
+              {!isLive && (
+                <p style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '-6px' }}>
+                  An admin reviews new posts before they go live.
+                </p>
+              )}
             </div>
           </div>
         )}

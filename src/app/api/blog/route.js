@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
+import { notifyBlogPendingReview } from '@/lib/notify'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -77,8 +78,9 @@ export async function POST(request) {
     }
 
     const slug = await uniqueSlug(slugify(body.slug?.trim() || title))
-    const isPublished = !!body.isPublished
-    const publishedAt = body.publishedAt ? new Date(body.publishedAt) : (isPublished ? new Date() : null)
+    // Creators can never go live directly on creation — only a submission
+    // that an admin approves can set isPublished. See PATCH for the same rule.
+    const reviewStatus = body.reviewStatus === 'pending' ? 'pending' : 'draft'
 
     const post = await prisma.blogPost.create({
       data: {
@@ -90,10 +92,15 @@ export async function POST(request) {
         category: body.category || 'Guide',
         gameId: body.gameId ? parseInt(body.gameId) : null,
         authorId: user.id,
-        isPublished,
-        publishedAt,
+        isPublished: false,
+        publishedAt: body.publishedAt ? new Date(body.publishedAt) : null,
+        reviewStatus,
       },
     })
+
+    if (reviewStatus === 'pending') {
+      await notifyBlogPendingReview(prisma, { post, authorUsername: user.username })
+    }
 
     return NextResponse.json({ success: true, data: post }, { status: 201 })
   } catch (err) {
@@ -122,9 +129,23 @@ export async function PATCH(request) {
     if (body.coverImage !== undefined) data.coverImage = body.coverImage?.trim() || null
     if (body.category !== undefined) data.category = body.category
     if (body.gameId !== undefined) data.gameId = body.gameId ? parseInt(body.gameId) : null
+
+    // Creators can only take a post down themselves, or re-save one that's
+    // already live. Newly going live requires admin approval (see reviewStatus
+    // below) — a client sending isPublished:true for a not-yet-live post is
+    // either a stale UI or a bypass attempt, so it's rejected outright.
     if (body.isPublished !== undefined) {
+      if (body.isPublished && !existing.isPublished) {
+        return NextResponse.json({ success: false, error: 'Submit this post for review instead of publishing it directly.' }, { status: 403 })
+      }
       data.isPublished = !!body.isPublished
     }
+
+    // Only draft/pending are creator-settable; approved/rejected are admin-only.
+    if (body.reviewStatus === 'draft' || body.reviewStatus === 'pending') {
+      data.reviewStatus = body.reviewStatus
+    }
+
     if (body.publishedAt) {
       data.publishedAt = new Date(body.publishedAt)
     } else if (data.isPublished && !existing.publishedAt) {
@@ -132,6 +153,11 @@ export async function PATCH(request) {
     }
 
     const post = await prisma.blogPost.update({ where: { id }, data })
+
+    if (data.reviewStatus === 'pending' && existing.reviewStatus !== 'pending') {
+      await notifyBlogPendingReview(prisma, { post, authorUsername: user.username })
+    }
+
     return NextResponse.json({ success: true, data: post })
   } catch (err) {
     console.error('Blog PATCH error:', err)

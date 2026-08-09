@@ -6,8 +6,10 @@ export default function AdminBlog({ secret }) {
   const [view, setView] = useState('posts')
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('pending')
   const [msg, setMsg] = useState('')
+  const [rejectingId, setRejectingId] = useState(null)
+  const [rejectNotes, setRejectNotes] = useState({})
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
@@ -34,12 +36,25 @@ export default function AdminBlog({ secret }) {
   }, [fetchPosts])
 
   async function togglePublish(post) {
+    // Publishing (from any state — draft, pending, rejected) also stamps the
+    // post approved server-side, so this doubles as the "approve" action.
     await fetch('/api/admin', {
       method: 'PATCH', headers,
       body: JSON.stringify({ type: 'blogPost', id: post.id, data: { isPublished: !post.isPublished } }),
     })
     setMsg(post.isPublished ? `"${post.title}" yayından kaldırıldı` : `"${post.title}" yayınlandı`)
     fetchPosts()
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  async function rejectPost(post) {
+    await fetch('/api/admin', {
+      method: 'PATCH', headers,
+      body: JSON.stringify({ type: 'blogPost', id: post.id, data: { reviewStatus: 'rejected', reviewNote: rejectNotes[post.id]?.trim() || null, isPublished: false } }),
+    })
+    setMsg(`"${post.title}" için değişiklik istendi`)
+    fetchPosts()
+    setRejectingId(null)
     setTimeout(() => setMsg(''), 3000)
   }
 
@@ -53,7 +68,9 @@ export default function AdminBlog({ secret }) {
 
   const filtered = useMemo(() => {
     if (filter === 'published') return posts.filter(p => p.isPublished)
-    if (filter === 'draft') return posts.filter(p => !p.isPublished)
+    if (filter === 'pending') return posts.filter(p => !p.isPublished && p.reviewStatus === 'pending')
+    if (filter === 'rejected') return posts.filter(p => !p.isPublished && p.reviewStatus === 'rejected')
+    if (filter === 'draft') return posts.filter(p => !p.isPublished && p.reviewStatus === 'draft')
     return posts
   }, [posts, filter])
 
@@ -89,6 +106,8 @@ export default function AdminBlog({ secret }) {
           {[
             { key: 'all', label: 'Tümü' },
             { key: 'published', label: 'Yayında' },
+            { key: 'pending', label: 'Bekleyen' },
+            { key: 'rejected', label: 'Reddedilen' },
             { key: 'draft', label: 'Taslak' },
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)} style={{
@@ -111,6 +130,16 @@ export default function AdminBlog({ secret }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {filtered.map(post => {
             const scheduled = post.isPublished && post.publishedAt && new Date(post.publishedAt) > new Date()
+            const badge = scheduled
+              ? { label: `Zamanlandı: ${new Date(post.publishedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`, bg: 'rgba(245,197,24,0.1)', border: 'var(--gold)', color: 'var(--gold)' }
+              : post.isPublished
+                ? { label: 'Yayında', bg: 'rgba(76,175,80,0.1)', border: '#4caf50', color: '#4caf50' }
+                : post.reviewStatus === 'pending'
+                  ? { label: 'Onay Bekliyor', bg: 'rgba(245,197,24,0.1)', border: 'var(--gold)', color: 'var(--gold)' }
+                  : post.reviewStatus === 'rejected'
+                    ? { label: 'Reddedildi', bg: 'rgba(255,102,102,0.1)', border: '#ff6666', color: '#ff6666' }
+                    : { label: 'Taslak', bg: 'var(--bg-elevated)', border: 'var(--border)', color: 'var(--text-dim)' }
+            const rejecting = rejectingId === post.id
             return (
             <div key={post.id} style={{
               background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -122,33 +151,70 @@ export default function AdminBlog({ secret }) {
                   <span style={{ fontSize: '14px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)' }}>{post.title}</span>
                   <span style={{
                     fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                    background: scheduled ? 'rgba(245,197,24,0.1)' : post.isPublished ? 'rgba(76,175,80,0.1)' : 'var(--bg-elevated)',
-                    border: `1px solid ${scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--border)'}`,
-                    color: scheduled ? 'var(--gold)' : post.isPublished ? '#4caf50' : 'var(--text-dim)',
+                    background: badge.bg, border: `1px solid ${badge.border}`, color: badge.color,
                   }}>
-                    {scheduled ? `Zamanlandı: ${new Date(post.publishedAt).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}` : post.isPublished ? 'Yayında' : 'Taslak'}
+                    {badge.label}
                   </span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                   ✍️ {post.author?.username} · {post.category}{post.game ? ` · ${post.game.name}` : ''} · 👁 {post.views}
                 </div>
+                {post.reviewStatus === 'rejected' && post.reviewNote && (
+                  <div style={{ fontSize: '11px', color: '#ff8a8a', marginTop: '4px' }}>✏️ {post.reviewNote}</div>
+                )}
               </div>
-              <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-                <button onClick={() => togglePublish(post)} style={{
-                  background: 'transparent', border: `1px solid ${post.isPublished ? '#4a2a2a' : 'var(--border)'}`,
-                  borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
-                  color: post.isPublished ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
-                }}>
-                  {post.isPublished ? 'Yayından Kaldır' : 'Yayınla'}
-                </button>
-                <button onClick={() => deletePost(post)} style={{
-                  background: 'transparent', border: '1px solid #4a2a2a',
-                  borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
-                  color: '#ff6666', cursor: 'pointer',
-                }}>
-                  Sil
-                </button>
-              </div>
+              {rejecting ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '240px', flexShrink: 0 }}>
+                  <input
+                    value={rejectNotes[post.id] || ''}
+                    onChange={e => setRejectNotes(prev => ({ ...prev, [post.id]: e.target.value }))}
+                    placeholder="Neden (opsiyonel, yazara gösterilir)"
+                    style={{
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px',
+                      padding: '6px 10px', color: '#fff', fontSize: '12px', outline: 'none',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button onClick={() => rejectPost(post)} style={{
+                      background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px',
+                      padding: '4px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer',
+                    }}>
+                      Reddet
+                    </button>
+                    <button onClick={() => setRejectingId(null)} style={{
+                      background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px',
+                      padding: '4px 10px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer',
+                    }}>
+                      Vazgeç
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+                  <button onClick={() => togglePublish(post)} style={{
+                    background: 'transparent', border: `1px solid ${post.isPublished ? '#4a2a2a' : 'var(--border)'}`,
+                    borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                    color: post.isPublished ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
+                  }}>
+                    {post.isPublished ? 'Yayından Kaldır' : 'Yayınla'}
+                  </button>
+                  {post.reviewStatus === 'pending' && (
+                    <button onClick={() => setRejectingId(post.id)} style={{
+                      background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px',
+                      padding: '4px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer',
+                    }}>
+                      Reddet
+                    </button>
+                  )}
+                  <button onClick={() => deletePost(post)} style={{
+                    background: 'transparent', border: '1px solid #4a2a2a',
+                    borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                    color: '#ff6666', cursor: 'pointer',
+                  }}>
+                    Sil
+                  </button>
+                </div>
+              )}
             </div>
             )
           })}

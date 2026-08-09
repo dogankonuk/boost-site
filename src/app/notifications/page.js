@@ -13,6 +13,9 @@ const TYPE_ICONS = {
   application_status: '📋',
   blog_unpublished: '📄',
   blog_milestone: '📈',
+  blog_pending_review: '📥',
+  blog_approved: '✅',
+  blog_rejected: '✏️',
   referral_bonus: '🎁',
 }
 

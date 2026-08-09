@@ -218,6 +218,8 @@ model BlogPost {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   dailyViews  BlogPostDailyView[]
+  reviewStatus String    @default("draft") // draft | pending | approved | rejected
+  reviewNote   String?
 
   @@index([isPublished, publishedAt])
 }

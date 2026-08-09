@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate, sendBlogUnpublishedEmail, sendApplicationDecisionEmail } from '@/lib/email'
-import { notifyOrderStatus } from '@/lib/notify'
+import { notifyOrderStatus, notifyBlogApproved, notifyBlogRejected } from '@/lib/notify'
 import { maybeAwardReferralBonus } from '@/lib/referral'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
@@ -541,6 +541,18 @@ export async function PATCH(request) {
         where: { id: parseInt(id) },
         include: { author: { select: { email: true, username: true } } },
       })
+
+      // Any path to isPublished:true (the plain publish toggle, or a
+      // dedicated approve action) counts as approving the post — keeps
+      // reviewStatus honest regardless of which admin control was used —
+      // and backfills publishedAt so it's actually visible to the public
+      // queries that filter on it, the same auto-set the creator route does.
+      if (data.isPublished === true) {
+        if (!data.reviewStatus) data.reviewStatus = 'approved'
+        if (data.reviewNote === undefined) data.reviewNote = null
+        if (!existing.publishedAt && !data.publishedAt) data.publishedAt = new Date()
+      }
+
       const post = await prisma.blogPost.update({
         where: { id: parseInt(id) },
         data,
@@ -567,6 +579,14 @@ export async function PATCH(request) {
         } catch (err) {
           console.error('blog unpublish notification error:', err)
         }
+      }
+
+      if (!existing?.isPublished && data.isPublished === true) {
+        await notifyBlogApproved(prisma, { userId: existing.authorId, title: post.title, slug: post.slug })
+      }
+
+      if (data.reviewStatus === 'rejected' && existing?.reviewStatus !== 'rejected') {
+        await notifyBlogRejected(prisma, { userId: existing.authorId, title: post.title, reviewNote: data.reviewNote })
       }
 
       return NextResponse.json({ success: true, data: post })
