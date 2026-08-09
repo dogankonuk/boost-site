@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useRef, Suspense } from 'react'
+import { useState, useEffect, useRef, useId, Suspense } from 'react'
 import { useAutoAnimate } from '@formkit/auto-animate/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -984,7 +984,7 @@ function AccountTab({ username, orders, onRated }) {
           padding: '12px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px',
           background: '#2a2a1a', border: '1px solid #3a3a1a', color: '#ffcc44',
         }}>
-          <span>Please verify your email address to secure your account.{resendMsg && ` ${resendMsg}`}</span>
+          <span role={resendMsg ? 'status' : undefined}>Please verify your email address to secure your account.{resendMsg && ` ${resendMsg}`}</span>
           <button onClick={resendVerification} disabled={resending} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}>
             {resending ? 'Sending...' : 'Resend Email'}
           </button>
@@ -992,7 +992,7 @@ function AccountTab({ username, orders, onRated }) {
       )}
 
       {msg.text && (
-        <div style={{
+        <div role={msg.type === 'error' ? 'alert' : 'status'} style={{
           padding: '10px 16px', borderRadius: '8px', marginBottom: '16px', fontSize: '13px',
           background: msg.type === 'success' ? '#1a2a1a' : '#2a1a1a',
           border: `1px solid ${msg.type === 'success' ? '#2a4a2a' : '#4a2a2a'}`,
@@ -1000,9 +1000,10 @@ function AccountTab({ username, orders, onRated }) {
         }}>{msg.text}</div>
       )}
 
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <div className="account-section-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         {[{ key: 'profile', label: 'Profile' }, { key: 'billing', label: 'Billing' }, { key: 'password', label: 'Password' }].map(s => (
-          <button key={s.key} onClick={() => setActiveSection(s.key)} style={{
+          <button key={s.key} type="button" aria-pressed={activeSection === s.key}
+            onClick={() => setActiveSection(s.key)} style={{
             padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
             fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer',
             border: '1px solid',
@@ -1017,7 +1018,7 @@ function AccountTab({ username, orders, onRated }) {
 
         {activeSection === 'profile' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="account-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <ProfileField label="Username" value={username} disabled autoComplete="username" />
               <ProfileField label="Email" value={profile?.email || ''} disabled autoComplete="email" />
             </div>
@@ -1045,7 +1046,7 @@ function AccountTab({ username, orders, onRated }) {
             <ProfileField label="Address" value={form.billingAddress}
               onChange={v => setForm(f => ({ ...f, billingAddress: v }))}
               placeholder="Street, building number..." autoComplete="street-address" />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="account-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <ProfileField label="City" value={form.billingCity}
                 onChange={v => setForm(f => ({ ...f, billingCity: v }))}
                 placeholder="London" autoComplete="address-level2" />
@@ -1053,7 +1054,7 @@ function AccountTab({ username, orders, onRated }) {
                 onChange={v => setForm(f => ({ ...f, billingPostalCode: v }))}
                 placeholder="SW1A 1AA" autoComplete="postal-code" />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="account-field-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <ProfileField label="Country" value={form.billingCountry}
                 onChange={v => setForm(f => ({ ...f, billingCountry: v }))}
                 placeholder="United Kingdom" autoComplete="country-name" />
@@ -1088,12 +1089,14 @@ function AccountTab({ username, orders, onRated }) {
 }
 
 function ProfileField({ label, value, onChange, type = 'text', placeholder, disabled, autoComplete }) {
+  const fieldId = useId()
+
   return (
     <div>
-      <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
+      <label htmlFor={fieldId} style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
         {label}
       </label>
-      <input type={type} value={value} onChange={e => onChange?.(e.target.value)}
+      <input id={fieldId} type={type} value={value} onChange={e => onChange?.(e.target.value)}
         placeholder={placeholder} disabled={disabled} autoComplete={autoComplete}
         style={{
           width: '100%', background: disabled ? 'var(--bg)' : 'var(--bg-elevated)',

@@ -522,6 +522,18 @@ body, p, span, a, input, textarea {
     flex: 1;
     min-width: 0;
   }
+
+  .account-section-tabs {
+    flex-wrap: wrap;
+  }
+
+  .account-section-tabs > button {
+    flex: 1 1 auto;
+  }
+
+  .account-field-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 .hover-gold-border {
