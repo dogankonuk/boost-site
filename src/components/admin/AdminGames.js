@@ -17,6 +17,14 @@ const PRICING_TYPES = [
   { key: 'options', label: 'Seçenek', hint: 'Müşteri hazır seçeneklerden birini seçer (ör. Bronze/Silver/Gold paketleri), her seçeneğin kendi fiyatı vardır.' },
 ]
 
+const DISCOVERY_GOALS = [
+  { id: 'level', label: 'Seviye atlama' },
+  { id: 'currency', label: 'Para / kaynak kazanma' },
+  { id: 'rank', label: 'Rank yükseltme' },
+  { id: 'activity', label: 'Aktivite tamamlama' },
+  { id: 'unlock', label: 'Ekipman / ödül açma' },
+]
+
 // Parses "60:2\n70:3" style admin input into [{a:60,b:2},{a:70,b:3}], sorted by a.
 function parseTierLines(text) {
   if (!text) return []
@@ -70,6 +78,7 @@ export default function AdminGames({ secret }) {
     pricingType: 'fixed',
     pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' },
     addons: [],
+    discoveryGoals: [],
   })
   const [msg, setMsg] = useState('')
 
@@ -199,12 +208,13 @@ export default function AdminGames({ secret }) {
         serviceCategory: serviceForm.serviceCategory || 'Genel',
         options,
         addons: serviceForm.addons?.length ? serviceForm.addons : null,
+        discoveryGoals: serviceForm.discoveryGoals,
       }),
     })
     const d = await res.json()
     if (d.success) {
       setMsg('Hizmet eklendi')
-      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [] })
+      setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [], discoveryGoals: [] })
       setShowAddService(null)
       fetchGames()
     } else { setMsg(d.error || 'Hata') }
@@ -236,6 +246,7 @@ export default function AdminGames({ secret }) {
           priceType: editForm.pricingType === 'fixed' ? 'fixed' : 'variable',
           options,
           addons: editForm.addons?.length ? editForm.addons : null,
+          discoveryGoals: editForm.discoveryGoals,
         }
       }),
     })
@@ -557,6 +568,11 @@ function SortableGameRow({
               <AddonsEditor addons={serviceForm.addons} onChange={addons => setServiceForm(f => ({ ...f, addons }))} />
             </div>
 
+            <DiscoveryGoalsEditor
+              goals={serviceForm.discoveryGoals}
+              onChange={discoveryGoals => setServiceForm(f => ({ ...f, discoveryGoals }))}
+            />
+
             <div style={{ marginBottom: '10px' }}>
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
               <textarea value={serviceForm.description} onChange={e => setServiceForm(f => ({ ...f, description: e.target.value }))} rows={2}
@@ -605,7 +621,7 @@ function SortableGameRow({
                           <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
-                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, step: s.options.step || 1, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min ?? 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [] })
+                              setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, step: s.options.step || 1, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min ?? 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [], discoveryGoals: Array.isArray(s.discoveryGoals) ? s.discoveryGoals : [] })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
@@ -711,6 +727,11 @@ function SortableGameRow({
                               </label>
                               <AddonsEditor addons={editForm.addons} onChange={addons => setEditForm(f => ({ ...f, addons }))} />
                             </div>
+
+                            <DiscoveryGoalsEditor
+                              goals={editForm.discoveryGoals}
+                              onChange={discoveryGoals => setEditForm(f => ({ ...f, discoveryGoals }))}
+                            />
 
                             <div style={{ marginBottom: '8px' }}>
                               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Açıklama</label>
@@ -891,6 +912,38 @@ function slugifyAddonValue(label) {
 // own choices; a choice's priceDelta is optional so a purely informational
 // toggle (Piloted vs Self-play) and a real paid upsell (Express +15%) share
 // the same mechanism. Fully admin-authored — nothing is pre-filled per game.
+function DiscoveryGoalsEditor({ goals = [], onChange }) {
+  const selectedGoals = Array.isArray(goals) ? goals : []
+
+  function toggleGoal(goalId) {
+    onChange(
+      selectedGoals.includes(goalId)
+        ? selectedGoals.filter(id => id !== goalId)
+        : [...selectedGoals, goalId]
+    )
+  }
+
+  return (
+    <fieldset style={{ margin: '0 0 10px', padding: '12px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--bg)' }}>
+      <legend style={{ padding: '0 6px', color: 'var(--text-muted)', fontSize: '12px' }}>Shadow Route hedefleri</legend>
+      <p style={{ margin: '0 0 9px', color: 'var(--text-dim)', fontSize: '11px', lineHeight: 1.5 }}>
+        Bu hizmetin ana sayfada hangi hedeflerde görüneceğini seçin. Boş bırakırsanız ad ve kategoriye göre otomatik eşleştirilir.
+      </p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+        {DISCOVERY_GOALS.map(goal => {
+          const checked = selectedGoals.includes(goal.id)
+          return (
+            <label key={goal.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '34px', padding: '6px 10px', border: `1px solid ${checked ? 'rgba(245,197,24,.5)' : 'var(--border)'}`, borderRadius: '7px', color: checked ? 'var(--gold)' : 'var(--text-muted)', background: checked ? 'rgba(245,197,24,.07)' : 'var(--bg-elevated)', fontSize: '11px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={checked} onChange={() => toggleGoal(goal.id)} />
+              {goal.label}
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
+  )
+}
+
 function AddonsEditor({ addons, onChange }) {
   const groups = addons || []
 

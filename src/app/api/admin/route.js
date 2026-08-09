@@ -480,6 +480,7 @@ export async function PATCH(request) {
         priceType: data.priceType ?? 'fixed',
         options: data.options ?? null,
         addons: data.addons ?? null,
+        discoveryGoals: Array.isArray(data.discoveryGoals) && data.discoveryGoals.length ? data.discoveryGoals : null,
         ...(data.isActive !== undefined && { isActive: data.isActive }),
       }
     })

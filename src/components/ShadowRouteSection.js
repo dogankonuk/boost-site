@@ -70,6 +70,9 @@ export default function ShadowRouteSection({ games = [] }) {
     if (!selectedGame) return []
     if (!selectedGoal || selectedGoal.id === 'all') return selectedGame.services
     return selectedGame.services.filter(service => {
+      if (Array.isArray(service.discoveryGoals) && service.discoveryGoals.length > 0) {
+        return service.discoveryGoals.includes(selectedGoal.id)
+      }
       const text = serviceText(service)
       return selectedGoal.words.some(word => text.includes(word))
     })

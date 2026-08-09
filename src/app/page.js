@@ -50,6 +50,7 @@ export default async function HomePage() {
               name: true,
               basePrice: true,
               serviceCategory: true,
+              discoveryGoals: true,
             },
           },
         },
