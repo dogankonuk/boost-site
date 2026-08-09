@@ -42,6 +42,11 @@ export default function GamesSlider() {
   function prev() { setOffset(o => Math.max(0, o - 1)) }
   function next() { setOffset(o => Math.min(maxOffset, o + 1)) }
 
+  function buildRoute(gameId) {
+    setPaused(true)
+    window.dispatchEvent(new window.CustomEvent('shadow-route:select-game', { detail: { gameId } }))
+  }
+
   // Auto-advance so the homepage feels alive; pauses while the visitor is
   // hovering or has manually interacted, loops back to the start at the end.
   useEffect(() => {
@@ -72,7 +77,7 @@ export default function GamesSlider() {
               transition: shouldReduceMotion ? 'none' : 'transform 0.3s ease',
             }}>
               {games.map(game => (
-                <Link key={game.id} href={`/games/${game.slug}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
+                <div key={game.id} style={{ flexShrink: 0 }}>
                   <AdaptiveTilt
                     enabled={tiltEnabled}
                     tiltMaxAngleX={8} tiltMaxAngleY={8} scale={1.03} transitionSpeed={1200}
@@ -98,6 +103,11 @@ export default function GamesSlider() {
                     position: 'relative',
                     overflow: 'hidden',
                   }}>
+                    <Link
+                      href={`/games/${game.slug}`}
+                      aria-label={`View ${game.name} services`}
+                      style={{ position: 'absolute', inset: 0, zIndex: 1 }}
+                    />
                     {game.coverImage && (
                       <div style={{
                         position: 'absolute', inset: 0,
@@ -118,11 +128,11 @@ export default function GamesSlider() {
                       fontFamily: 'var(--font-montserrat)',
                       fontSize: '14px', fontWeight: '700',
                       color: '#fff', textAlign: 'center',
-                      lineHeight: '1.3', position: 'relative', zIndex: 1,
+                      lineHeight: '1.3', position: 'relative', zIndex: 2, pointerEvents: 'none',
                     }}>{game.name}</div>
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: '6px',
-                      marginTop: '6px', position: 'relative', zIndex: 1,
+                      marginTop: '6px', position: 'relative', zIndex: 2, pointerEvents: 'none',
                     }}>
                       <span style={{
                         fontSize: '12px', color: 'var(--gold)',
@@ -137,9 +147,18 @@ export default function GamesSlider() {
                         </>
                       )}
                     </div>
+                    <button
+                      type="button"
+                      className="game-route-action"
+                      data-route-game-id={game.id}
+                      onClick={() => buildRoute(game.id)}
+                      aria-label={`Build a route for ${game.name}`}
+                    >
+                      Build route <span aria-hidden="true">→</span>
+                    </button>
                   </div>
                   </AdaptiveTilt>
-                </Link>
+                </div>
               ))}
             </div>
           </div>

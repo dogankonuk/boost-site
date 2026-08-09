@@ -3,6 +3,7 @@ import { getTestimonials } from '@/lib/testimonials'
 import Navbar from '@/components/Navbar'
 import HeroSection from '@/components/HeroSection'
 import GamesSlider from '@/components/GamesSlider'
+import ShadowRouteSection from '@/components/ShadowRouteSection'
 import PopularServicesStrip from '@/components/PopularServicesStrip'
 import FeaturesSection from '@/components/FeaturesSection'
 import TestimonialsSection from '@/components/TestimonialsSection'
@@ -15,6 +16,7 @@ export default async function HomePage() {
   let latestPosts = []
   let hotServices = []
   let testimonials = []
+  let routeGames = []
 
   try {
     const homepageData = await Promise.all([
@@ -33,10 +35,30 @@ export default async function HomePage() {
         take: 10,
       }),
       getTestimonials(8),
+      prisma.game.findMany({
+        where: { isActive: true, services: { some: { isActive: true } } },
+        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          services: {
+            where: { isActive: true },
+            orderBy: [{ isHot: 'desc' }, { name: 'asc' }],
+            select: {
+              id: true,
+              name: true,
+              basePrice: true,
+              serviceCategory: true,
+            },
+          },
+        },
+      }),
     ])
     latestPosts = homepageData[0]
     hotServices = homepageData[1]
     testimonials = homepageData[2]
+    routeGames = homepageData[3]
   } catch (error) {
     console.warn(
       '[homepage] Database-backed sections could not be loaded.',
@@ -49,6 +71,7 @@ export default async function HomePage() {
       <Navbar />
       <HeroSection />
       <GamesSlider />
+      <ShadowRouteSection games={JSON.parse(JSON.stringify(routeGames))} />
       <PopularServicesStrip services={JSON.parse(JSON.stringify(hotServices))} />
       <FeaturesSection />
       <LatestBlogSection posts={JSON.parse(JSON.stringify(latestPosts))} />
