@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AdminOverview from '@/components/admin/AdminOverview'
+import AdminAnalytics from '@/components/admin/AdminAnalytics'
 import AdminGames from '@/components/admin/AdminGames'
 import AdminOrders from '@/components/admin/AdminOrders'
 import AdminBoosters from '@/components/admin/AdminBoosters'
@@ -118,7 +119,7 @@ export default function AdminPage() {
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', display: 'flex' }}>
-          {[{ key: 'overview', label: 'Genel Bakış' }, { key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }, { key: 'users', label: 'Kullanıcılar' }, { key: 'blog', label: 'Blog' }, { key: 'applications', label: 'Başvurular' }, { key: 'promotions', label: 'Kupon & Kampanya' }].map(t => (
+          {[{ key: 'overview', label: 'Genel Bakış' }, { key: 'analytics', label: 'Analitik' }, { key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }, { key: 'users', label: 'Kullanıcılar' }, { key: 'blog', label: 'Blog' }, { key: 'applications', label: 'Başvurular' }, { key: 'promotions', label: 'Kupon & Kampanya' }].map(t => (
             <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} style={{
               padding: '14px 20px', background: 'transparent', border: 'none',
               borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
@@ -133,6 +134,7 @@ export default function AdminPage() {
       {/* Content */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '32px 48px' }}>
         {tab === 'overview' && <AdminOverview secret={token} onNavigate={setTab} />}
+        {tab === 'analytics' && <AdminAnalytics secret={token} />}
         {tab === 'games' && <AdminGames secret={token} />}
         {tab === 'orders' && <AdminOrders secret={token} />}
         {tab === 'boosters' && <AdminBoosters secret={token} />}

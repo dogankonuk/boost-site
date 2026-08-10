@@ -128,7 +128,7 @@ export async function GET(request) {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
       const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
 
-      const [totalUsers, totalBoosters, activeBoosters, orders, games, pendingApplications, usersLast30, usersPrev30] = await Promise.all([
+      const [totalUsers, totalBoosters, activeBoosters, orders, games, boosters, pendingApplications, usersLast30, usersPrev30] = await Promise.all([
         prisma.user.count(),
         prisma.booster.count(),
         prisma.booster.count({ where: { status: 'active' } }),
@@ -136,10 +136,12 @@ export async function GET(request) {
           select: {
             userId: true, status: true, price: true, createdAt: true, rating: true,
             issueReport: true, issueResolved: true, discountAmount: true,
-            service: { select: { game: { select: { id: true, name: true } } } },
+            serviceId: true, boosterId: true,
+            service: { select: { name: true, serviceCategory: true, game: { select: { id: true, name: true } } } },
           },
         }),
         prisma.game.findMany({ select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }),
+        prisma.booster.findMany({ include: { user: { select: { username: true } } } }),
         prisma.application.count({ where: { status: 'pending' } }),
         prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
         prisma.user.count({ where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } } }),
@@ -149,6 +151,9 @@ export async function GET(request) {
       let totalRevenue = 0, last30Revenue = 0, prev30Revenue = 0, totalDiscountGiven = 0
       let openIssues = 0, unratedCompleted = 0
       const gameStats = {}
+      const serviceStats = {}
+      const categoryStats = {}
+      const boosterStats = {}
       const usersWithAnyOrder = new Set()
       const completedCountByUser = {}
 
@@ -170,18 +175,18 @@ export async function GET(request) {
         for (let i = 11; i >= 0; i--) {
           const d = new Date(thisWeekStart); d.setDate(d.getDate() - i * 7)
           const key = d.toISOString().slice(0, 10)
-          buckets.push({ key, date: key, revenue: 0, orders: 0 })
+          buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
         }
       } else if (period === '12m') {
         for (let i = 11; i >= 0; i--) {
           const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-          buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0 })
+          buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0, byGame: {}, byService: {} })
         }
       } else {
         for (let i = 13; i >= 0; i--) {
           const d = new Date(now); d.setDate(d.getDate() - i)
           const key = d.toISOString().slice(0, 10)
-          buckets.push({ key, date: key, revenue: 0, orders: 0 })
+          buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
         }
       }
       const bucketIndex = Object.fromEntries(buckets.map((b, idx) => [b.key, idx]))
@@ -200,10 +205,29 @@ export async function GET(request) {
 
         const gameId = o.service?.game?.id
         const gameName = o.service?.game?.name || 'Unknown'
+        const serviceId = o.serviceId
+        const serviceName = o.service?.name || 'Unknown'
+        const categoryName = o.service?.serviceCategory || 'Genel'
+        const isActiveStatus = ['pending', 'assigned', 'in_progress'].includes(o.status)
+
         if (gameId) {
           if (!gameStats[gameId]) gameStats[gameId] = { name: gameName, orders: 0, activeOrders: 0, revenue: 0 }
           gameStats[gameId].orders++
-          if (['pending', 'assigned', 'in_progress'].includes(o.status)) gameStats[gameId].activeOrders++
+          if (isActiveStatus) gameStats[gameId].activeOrders++
+        }
+        if (serviceId) {
+          if (!serviceStats[serviceId]) serviceStats[serviceId] = { name: serviceName, gameName, orders: 0, activeOrders: 0, completedOrders: 0, revenue: 0 }
+          serviceStats[serviceId].orders++
+          if (isActiveStatus) serviceStats[serviceId].activeOrders++
+          if (o.status === 'completed') serviceStats[serviceId].completedOrders++
+        }
+        if (!categoryStats[categoryName]) categoryStats[categoryName] = { name: categoryName, orders: 0, revenue: 0 }
+        categoryStats[categoryName].orders++
+        if (o.boosterId) {
+          if (!boosterStats[o.boosterId]) boosterStats[o.boosterId] = { ordersHandled: 0, completedOrders: 0, activeOrders: 0, revenue: 0 }
+          boosterStats[o.boosterId].ordersHandled++
+          if (isActiveStatus) boosterStats[o.boosterId].activeOrders++
+          if (o.status === 'completed') boosterStats[o.boosterId].completedOrders++
         }
 
         if (o.status === 'completed') {
@@ -212,10 +236,22 @@ export async function GET(request) {
           if (o.createdAt >= thirtyDaysAgo) last30Revenue += o.price
           else if (o.createdAt >= sixtyDaysAgo) prev30Revenue += o.price
           if (gameId) gameStats[gameId].revenue += o.price
+          if (serviceId) serviceStats[serviceId].revenue += o.price
+          categoryStats[categoryName].revenue += o.price
+          if (o.boosterId) boosterStats[o.boosterId].revenue += o.price
           const bk = bucketKeyFor(o.createdAt)
           if (bucketIndex[bk] !== undefined) {
-            buckets[bucketIndex[bk]].revenue += o.price
-            buckets[bucketIndex[bk]].orders += 1
+            const bucket = buckets[bucketIndex[bk]]
+            bucket.revenue += o.price
+            bucket.orders += 1
+            bucket.byGame[gameName] = (bucket.byGame[gameName] || 0) + o.price
+            // Service names aren't unique across games (many games reuse
+            // generic names like "Battlepass Boost"), so the trend key must
+            // include the game — otherwise two distinct services would
+            // collide under one dataKey and the stacked chart would double
+            // that segment's height.
+            const serviceTrendKey = `${serviceName} · ${gameName}`
+            bucket.byService[serviceTrendKey] = (bucket.byService[serviceTrendKey] || 0) + o.price
           }
         }
       }
@@ -224,6 +260,47 @@ export async function GET(request) {
         if (!gameStats[g.id]) gameStats[g.id] = { name: g.name, orders: 0, activeOrders: 0, revenue: 0 }
       }
       const gameBreakdown = Object.values(gameStats).sort((a, b) => b.revenue - a.revenue || b.orders - a.orders)
+      const serviceBreakdown = Object.values(serviceStats).sort((a, b) => b.revenue - a.revenue || b.orders - a.orders)
+      const categoryBreakdown = Object.values(categoryStats).sort((a, b) => b.revenue - a.revenue || b.orders - a.orders)
+      const boosterBreakdown = boosters.map(b => ({
+        id: b.id,
+        username: b.user?.username || 'Unknown',
+        status: b.status,
+        rating: b.rating,
+        completedCount: b.completedCount,
+        ordersHandled: boosterStats[b.id]?.ordersHandled || 0,
+        completedOrders: boosterStats[b.id]?.completedOrders || 0,
+        activeOrders: boosterStats[b.id]?.activeOrders || 0,
+        revenue: boosterStats[b.id]?.revenue || 0,
+      })).sort((a, b) => b.revenue - a.revenue || b.completedOrders - a.completedOrders)
+
+      // Collapse each bucket's per-key revenue down to the top-5 lifetime
+      // earners (by gameBreakdown/serviceBreakdown, not per-bucket) plus a
+      // "Diğer" catch-all, so the stacked chart has a stable, short legend
+      // instead of one series per game/service that ever sold anything.
+      function buildTrend(breakdown, bucketKey, keyFn = b => b.name) {
+        const topKeys = breakdown.slice(0, 5).map(keyFn)
+        const topSet = new Set(topKeys)
+        const trendBuckets = buckets.map(bucket => {
+          const row = { date: bucket.date }
+          let otherTotal = 0
+          for (const key of topKeys) row[key] = 0
+          for (const [name, revenue] of Object.entries(bucket[bucketKey])) {
+            if (topSet.has(name)) row[name] += revenue
+            else otherTotal += revenue
+          }
+          row['Diğer'] = otherTotal
+          return row
+        })
+        return { topKeys: [...topKeys, 'Diğer'], buckets: trendBuckets }
+      }
+      const trendByGame = buildTrend(gameBreakdown, 'byGame')
+      const trendByService = buildTrend(serviceBreakdown, 'byService', s => `${s.name} · ${s.gameName}`)
+
+      // byGame/byService were only scratch space for building trendByGame/
+      // trendByService above — strip them so the plain revenueTrend payload
+      // (still used by the existing Overview chart) doesn't balloon in size.
+      for (const bucket of buckets) { delete bucket.byGame; delete bucket.byService }
 
       const revenueGrowthPct = prev30Revenue > 0
         ? Math.round(((last30Revenue - prev30Revenue) / prev30Revenue) * 100)
@@ -251,6 +328,7 @@ export async function GET(request) {
           activationRate, repeatCustomerRate,
           statusCounts, gameBreakdown, revenueTrend: buckets, period,
           pendingApplications, openIssues, unratedCompleted,
+          serviceBreakdown, categoryBreakdown, boosterBreakdown, trendByGame, trendByService,
         },
       })
     }
