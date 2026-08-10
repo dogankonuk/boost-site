@@ -18,17 +18,23 @@ export default function AdminApplications({ secret }) {
   const [filter, setFilter] = useState('pending')
   const [expandedId, setExpandedId] = useState(null)
   const [reviewNotes, setReviewNotes] = useState({})
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
   const fetchApplications = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin?type=applications', { headers })
       const d = await res.json()
       if (d.success) setApplications(d.data)
-    } catch {}
+      else setFetchError(d.error || 'Başvurular yüklenemedi')
+    } catch (e) {
+      console.error(e)
+      setFetchError('Başvurular yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -37,7 +43,7 @@ export default function AdminApplications({ secret }) {
       const res = await fetch('/api/games')
       const data = await res.json()
       if (data.success) setGames(data.data)
-    } catch {}
+    } catch (e) { console.error(e) }
   }, [])
 
   useEffect(() => {
@@ -53,15 +59,26 @@ export default function AdminApplications({ secret }) {
     return () => { cancelled = true }
   }, [fetchApplications, fetchGames])
 
+  function flash(text, type = 'success') {
+    setMsg({ text, type })
+    setTimeout(() => setMsg(null), type === 'error' ? 4000 : 3000)
+  }
+
   async function decide(app, status) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'application', id: app.id, data: { status, reviewNote: reviewNotes[app.id] || '' } }),
-    })
-    setMsg(status === 'approved' ? `${app.user?.username} onaylandı` : `${app.user?.username} reddedildi`)
-    fetchApplications()
-    setExpandedId(null)
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'application', id: app.id, data: { status, reviewNote: reviewNotes[app.id] || '' } }),
+      })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'İşlem başarısız', 'error'); return }
+      flash(status === 'approved' ? `${app.user?.username} onaylandı` : `${app.user?.username} reddedildi`)
+      fetchApplications()
+      setExpandedId(null)
+    } catch (e) {
+      console.error(e)
+      flash('İşlem başarısız', 'error')
+    }
   }
 
   function gameNames(ids) {
@@ -79,10 +96,22 @@ export default function AdminApplications({ secret }) {
   return (
     <div>
       {msg && (
-        <div onClick={() => setMsg('')} style={{
-          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
-          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
-        }}>{msg} ✕</div>
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
+      )}
+
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchApplications}>Tekrar Dene</button>
+        </div>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -94,7 +123,7 @@ export default function AdminApplications({ secret }) {
             { key: 'rejected', label: 'Reddedilen' },
             { key: 'all', label: 'Tümü' },
           ].map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)} style={{
+            <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={{
               padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
               cursor: 'pointer', border: '1px solid',
@@ -133,7 +162,9 @@ export default function AdminApplications({ secret }) {
                       {TYPE_LABELS[app.type]} · {app.user?.email} · {new Date(app.createdAt).toLocaleDateString('tr-TR')}
                     </div>
                   </div>
-                  <div style={{ color: 'var(--text-dim)', fontSize: '16px' }}>{expanded ? '▴' : '▾'}</div>
+                  <button type="button" aria-expanded={expanded} aria-label={expanded ? 'Detayları gizle' : 'Detayları göster'}
+                    onClick={e => { e.stopPropagation(); setExpandedId(expanded ? null : app.id) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)', fontSize: '16px' }}>{expanded ? '▴' : '▾'}</button>
                 </div>
 
                 {expanded && (
@@ -178,10 +209,10 @@ export default function AdminApplications({ secret }) {
                           }}
                         />
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-primary" style={{ fontSize: '12px', padding: '7px 16px' }} onClick={() => decide(app, 'approved')}>
+                          <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '7px 16px' }} onClick={() => decide(app, 'approved')}>
                             Onayla
                           </button>
-                          <button onClick={() => decide(app, 'rejected')} style={{
+                          <button type="button" onClick={() => decide(app, 'rejected')} style={{
                             background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '8px',
                             padding: '7px 16px', fontSize: '12px', color: '#ff6666', cursor: 'pointer',
                           }}>

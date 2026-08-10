@@ -12,17 +12,24 @@ export default function AdminUsers({ secret }) {
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
+  const [confirmAdminId, setConfirmAdminId] = useState(null)
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
   const fetchUsers = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin?type=users', { headers })
       const d = await res.json()
       if (d.success) { setUsers(d.data); setViewerIsFounder(!!d.viewerIsFounder) }
-    } catch {}
+      else setFetchError(d.error || 'Kullanıcılar yüklenemedi')
+    } catch (e) {
+      console.error(e)
+      setFetchError('Kullanıcılar yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -38,50 +45,74 @@ export default function AdminUsers({ secret }) {
     return () => { cancelled = true }
   }, [fetchUsers])
 
+  function flash(text, type = 'success') {
+    setMsg({ text, type })
+    setTimeout(() => setMsg(null), type === 'error' ? 4000 : 3000)
+  }
+
   async function toggleActive(user) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'user', id: user.id, data: { isActive: !user.isActive } }),
-    })
-    setMsg(user.isActive ? `${user.username} pasifleştirildi` : `${user.username} aktifleştirildi`)
-    fetchUsers()
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'user', id: user.id, data: { isActive: !user.isActive } }),
+      })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Hata oluştu', 'error'); return }
+      flash(user.isActive ? `${user.username} pasifleştirildi` : `${user.username} aktifleştirildi`)
+      fetchUsers()
+    } catch (e) {
+      console.error(e)
+      flash('Durum güncellenemedi', 'error')
+    }
   }
 
   async function toggleContentCreator(user) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'user', id: user.id, data: { isContentCreator: !user.isContentCreator } }),
-    })
-    setMsg(user.isContentCreator ? `${user.username} icerik ureticiligi kaldirildi` : `${user.username} icerik ureticisi yapildi`)
-    fetchUsers()
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'user', id: user.id, data: { isContentCreator: !user.isContentCreator } }),
+      })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Hata oluştu', 'error'); return }
+      flash(user.isContentCreator ? `${user.username} icerik ureticiligi kaldirildi` : `${user.username} icerik ureticisi yapildi`)
+      fetchUsers()
+    } catch (e) {
+      console.error(e)
+      flash('Durum güncellenemedi', 'error')
+    }
   }
 
   async function toggleBooster(user) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'user', id: user.id, data: { isBooster: !user.isBooster } }),
-    })
-    setMsg(user.isBooster ? `${user.username} booster'likten cikarildi` : `${user.username} booster yapildi`)
-    fetchUsers()
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'user', id: user.id, data: { isBooster: !user.isBooster } }),
+      })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Hata oluştu', 'error'); return }
+      flash(user.isBooster ? `${user.username} booster'likten cikarildi` : `${user.username} booster yapildi`)
+      fetchUsers()
+    } catch (e) {
+      console.error(e)
+      flash('Durum güncellenemedi', 'error')
+    }
   }
 
   async function toggleAdmin(user) {
-    if (!window.confirm(user.isAdmin
-      ? `${user.username} kullanicisinin admin yetkisini kaldirmak istediginden emin misin?`
-      : `${user.username} kullanicisina admin yetkisi vermek istediginden emin misin? Bu kisi site genelinde tam yetkiye sahip olacak.`
-    )) return
-    const res = await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'user', id: user.id, data: { isAdmin: !user.isAdmin } }),
-    })
-    const d = await res.json()
-    if (!d.success) { setMsg(d.error || 'Hata olustu'); setTimeout(() => setMsg(''), 4000); return }
-    setMsg(user.isAdmin ? `${user.username} admin yetkisi kaldirildi` : `${user.username} admin yapildi`)
-    fetchUsers()
-    setTimeout(() => setMsg(''), 3000)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'user', id: user.id, data: { isAdmin: !user.isAdmin } }),
+      })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Hata oluştu', 'error'); setConfirmAdminId(null); return }
+      flash(user.isAdmin ? `${user.username} admin yetkisi kaldirildi` : `${user.username} admin yapildi`)
+      fetchUsers()
+    } catch (e) {
+      console.error(e)
+      flash('İşlem başarısız', 'error')
+    }
+    setConfirmAdminId(null)
   }
 
   const filtered = useMemo(() => {
@@ -99,10 +130,22 @@ export default function AdminUsers({ secret }) {
   return (
     <div>
       {msg && (
-        <div onClick={() => setMsg('')} style={{
-          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
-          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
-        }}>{msg} ✕</div>
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
+      )}
+
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchUsers}>Tekrar Dene</button>
+        </div>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
@@ -114,7 +157,7 @@ export default function AdminUsers({ secret }) {
             { key: 'inactive', label: 'Pasif' },
             { key: 'boosters', label: 'Boosterlar' },
           ].map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)} style={{
+            <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={{
               padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
               cursor: 'pointer', border: '1px solid',
@@ -176,8 +219,9 @@ export default function AdminUsers({ secret }) {
                     }}>{u.isActive ? 'Aktif' : 'Pasif'}</span>
                   </td>
                   <td style={{ padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                       <button
+                        type="button" aria-pressed={u.isActive}
                         onClick={() => toggleActive(u)}
                         style={{
                           background: 'transparent', border: `1px solid ${u.isActive ? '#4a2a2a' : 'var(--border)'}`,
@@ -187,6 +231,7 @@ export default function AdminUsers({ secret }) {
                         {u.isActive ? 'Pasifleştir' : 'Aktifleştir'}
                       </button>
                       <button
+                        type="button" aria-pressed={u.isContentCreator}
                         onClick={() => toggleContentCreator(u)}
                         style={{
                           background: 'transparent', border: `1px solid ${u.isContentCreator ? 'var(--violet)' : 'var(--border)'}`,
@@ -196,6 +241,7 @@ export default function AdminUsers({ secret }) {
                         {u.isContentCreator ? 'Yazarlığı Kaldır' : 'Yazar Yap'}
                       </button>
                       <button
+                        type="button" aria-pressed={u.isBooster}
                         onClick={() => toggleBooster(u)}
                         style={{
                           background: 'transparent', border: `1px solid ${u.isBooster ? 'var(--gold)' : 'var(--border)'}`,
@@ -205,15 +251,32 @@ export default function AdminUsers({ secret }) {
                         {u.isBooster ? 'Booster\'likten Çıkar' : 'Booster Yap'}
                       </button>
                       {viewerIsFounder && (
-                        <button
-                          onClick={() => toggleAdmin(u)}
-                          style={{
-                            background: 'transparent', border: `1px solid ${u.isAdmin ? '#ff6666' : 'var(--border)'}`,
-                            borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
-                            color: u.isAdmin ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
-                          }}>
-                          {u.isAdmin ? 'Admin Yetkisini Kaldır' : 'Admin Yap'}
-                        </button>
+                        confirmAdminId === u.id ? (
+                          <span role="alert" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span style={{ fontSize: '11px', color: '#ff6666' }}>
+                              {u.isAdmin ? 'Yetkiyi kaldır?' : 'Admin yap? Tam yetki verilecek.'}
+                            </span>
+                            <button type="button" onClick={() => toggleAdmin(u)} style={{
+                              background: 'transparent', border: '1px solid #ff6666', borderRadius: '5px',
+                              padding: '4px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer',
+                            }}>Evet</button>
+                            <button type="button" onClick={() => setConfirmAdminId(null)} style={{
+                              background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px',
+                              padding: '4px 10px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer',
+                            }}>İptal</button>
+                          </span>
+                        ) : (
+                          <button
+                            type="button" aria-pressed={u.isAdmin}
+                            onClick={() => setConfirmAdminId(u.id)}
+                            style={{
+                              background: 'transparent', border: `1px solid ${u.isAdmin ? '#ff6666' : 'var(--border)'}`,
+                              borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                              color: u.isAdmin ? '#ff6666' : 'var(--text-muted)', cursor: 'pointer',
+                            }}>
+                            {u.isAdmin ? 'Admin Yetkisini Kaldır' : 'Admin Yap'}
+                          </button>
+                        )
                       )}
                     </div>
                   </td>

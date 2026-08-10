@@ -17,7 +17,8 @@ export default function AdminBoosters({ secret }) {
   const [games, setGames] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
   const [editGamesFor, setEditGamesFor] = useState(null)
   const [editGamesSelection, setEditGamesSelection] = useState([])
   const [expandedId, setExpandedId] = useState(null)
@@ -26,11 +27,16 @@ export default function AdminBoosters({ secret }) {
 
   const fetchBoosters = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin?type=boosters', { headers })
       const d = await res.json()
       if (d.success) setBoosters(d.data)
-    } catch (e) { console.error(e) }
+      else setFetchError(d.error || 'Boosterlar yüklenemedi')
+    } catch (e) {
+      console.error(e)
+      setFetchError('Boosterlar yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -39,7 +45,7 @@ export default function AdminBoosters({ secret }) {
       const res = await fetch('/api/admin?type=games', { headers })
       const d = await res.json()
       if (d.success) setGames(d.data)
-    } catch {}
+    } catch (e) { console.error(e) }
   }, [headers])
 
   useEffect(() => {
@@ -56,11 +62,18 @@ export default function AdminBoosters({ secret }) {
   }, [fetchBoosters, fetchGames])
 
   async function toggleStatus(booster) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'booster', id: booster.id, data: { status: booster.status === 'active' ? 'inactive' : 'active' } }),
-    })
-    fetchBoosters()
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'booster', id: booster.id, data: { status: booster.status === 'active' ? 'inactive' : 'active' } }),
+      })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Durum güncellenemedi', type: 'error' }); return }
+      fetchBoosters()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Durum güncellenemedi', type: 'error' })
+    }
   }
 
   function startEditGames(booster) {
@@ -69,12 +82,19 @@ export default function AdminBoosters({ secret }) {
   }
 
   async function saveGames(boosterId) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'booster', id: boosterId, data: { games: editGamesSelection.length > 0 ? editGamesSelection : null } }),
-    })
-    setEditGamesFor(null)
-    fetchBoosters()
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'booster', id: boosterId, data: { games: editGamesSelection.length > 0 ? editGamesSelection : null } }),
+      })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Oyunlar kaydedilemedi', type: 'error' }); return }
+      setEditGamesFor(null)
+      fetchBoosters()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Oyunlar kaydedilemedi', type: 'error' })
+    }
   }
 
   function gameNames(ids) {
@@ -87,19 +107,31 @@ export default function AdminBoosters({ secret }) {
   return (
     <div>
       {msg && (
-        <div onClick={() => setMsg('')} style={{
-          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
-          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
-        }}>{msg} ✕</div>
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Boosterlar ({boosters.length})</h2>
-        <button className="btn-primary" onClick={() => setShowAdd(v => !v)}>+ Booster Ekle</button>
+        <button type="button" className="btn-primary" onClick={() => setShowAdd(v => !v)}>+ Booster Ekle</button>
       </div>
 
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchBoosters}>Tekrar Dene</button>
+        </div>
+      )}
+
       {showAdd && (
-        <AddBoosterForm headers={headers} games={games} onDone={() => { setShowAdd(false); fetchBoosters(); setMsg('Booster eklendi') }} />
+        <AddBoosterForm headers={headers} games={games} onDone={() => { setShowAdd(false); fetchBoosters(); setMsg({ text: 'Booster eklendi', type: 'success' }) }} />
       )}
 
       {boosters.length === 0 ? (
@@ -150,15 +182,15 @@ export default function AdminBoosters({ secret }) {
                   </div>
 
                   <div style={{ display: 'flex', gap: '6px' }}>
-                    <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+                    <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }} aria-expanded={expanded}
                       onClick={() => setExpandedId(expanded ? null : b.id)}>
                       {expanded ? 'Detayları Gizle' : 'Detaylar'}
                     </button>
-                    <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+                    <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }} aria-expanded={editGamesFor === b.id}
                       onClick={() => editGamesFor === b.id ? setEditGamesFor(null) : startEditGames(b)}>
                       Oyunlar
                     </button>
-                    <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+                    <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }} aria-pressed={b.status === 'active'}
                       onClick={() => toggleStatus(b)}>
                       {b.status === 'active' ? 'Pasifleştir' : 'Aktifleştir'}
                     </button>
@@ -182,7 +214,7 @@ export default function AdminBoosters({ secret }) {
                       {games.map(g => {
                         const selected = editGamesSelection.includes(g.id)
                         return (
-                          <button key={g.id} type="button"
+                          <button key={g.id} type="button" aria-pressed={selected}
                             onClick={() => setEditGamesSelection(sel => selected ? sel.filter(id => id !== g.id) : [...sel, g.id])}
                             style={{
                               padding: '5px 12px', borderRadius: '20px', fontSize: '12px',
@@ -195,8 +227,8 @@ export default function AdminBoosters({ secret }) {
                       })}
                     </div>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => saveGames(b.id)}>Kaydet</button>
-                      <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => setEditGamesFor(null)}>İptal</button>
+                      <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => saveGames(b.id)}>Kaydet</button>
+                      <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => setEditGamesFor(null)}>İptal</button>
                     </div>
                   </div>
                 )}
@@ -316,7 +348,11 @@ function AddBoosterForm({ headers, games, onDone }) {
         const res = await fetch(`/api/admin?type=userSearch&q=${encodeURIComponent(v.trim())}`, { headers })
         const d = await res.json()
         if (d.success) setResults(d.data)
-      } catch {}
+        else setError(d.error || 'Arama başarısız')
+      } catch (e) {
+        console.error(e)
+        setError('Arama başarısız')
+      }
       setSearching(false)
     }, 300)
   }
@@ -324,13 +360,18 @@ function AddBoosterForm({ headers, games, onDone }) {
   async function submit() {
     if (!selectedUser) { setError('Bir kullanıcı seç'); return }
     setError('')
-    const res = await fetch('/api/admin', {
-      method: 'POST', headers,
-      body: JSON.stringify({ type: 'booster', data: { userId: selectedUser.id, games: selectedGames } }),
-    })
-    const d = await res.json()
-    if (d.success) onDone()
-    else setError(d.error || 'Hata')
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST', headers,
+        body: JSON.stringify({ type: 'booster', data: { userId: selectedUser.id, games: selectedGames } }),
+      })
+      const d = await res.json()
+      if (d.success) onDone()
+      else setError(d.error || 'Hata')
+    } catch (e) {
+      console.error(e)
+      setError('Booster eklenemedi')
+    }
   }
 
   return (
@@ -346,7 +387,7 @@ function AddBoosterForm({ headers, games, onDone }) {
           <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(245,197,24,0.1)', border: '1px solid var(--gold)', borderRadius: '6px', padding: '6px 10px' }}>
             <span style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>{selectedUser.username}</span>
             <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>({selectedUser.email})</span>
-            <button onClick={() => setSelectedUser(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>×</button>
+            <button type="button" onClick={() => setSelectedUser(null)} aria-label="Seçimi kaldır" style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>×</button>
           </div>
         ) : results.length > 0 && (
           <div style={{ marginTop: '6px', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden' }}>
@@ -374,7 +415,7 @@ function AddBoosterForm({ headers, games, onDone }) {
           {games.map(g => {
             const selected = selectedGames.includes(g.id)
             return (
-              <button key={g.id} type="button"
+              <button key={g.id} type="button" aria-pressed={selected}
                 onClick={() => setSelectedGames(sel => selected ? sel.filter(id => id !== g.id) : [...sel, g.id])}
                 style={{
                   padding: '5px 12px', borderRadius: '20px', fontSize: '12px',
@@ -388,11 +429,11 @@ function AddBoosterForm({ headers, games, onDone }) {
         </div>
       </div>
 
-      {error && <p style={{ color: '#ff6666', fontSize: '12px', marginBottom: '10px' }}>{error}</p>}
+      {error && <p role="alert" style={{ color: '#ff6666', fontSize: '12px', marginBottom: '10px' }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: '8px' }}>
-        <button className="btn-primary" onClick={submit}>Kaydet</button>
-        <button className="btn-secondary" onClick={onDone}>İptal</button>
+        <button type="button" className="btn-primary" onClick={submit}>Kaydet</button>
+        <button type="button" className="btn-secondary" onClick={onDone}>İptal</button>
       </div>
     </div>
   )

@@ -15,7 +15,10 @@ export default function AdminPromotions({ secret }) {
   const [showCampaignForm, setShowCampaignForm] = useState(false)
   const [couponForm, setCouponForm] = useState(emptyCoupon)
   const [campaignForm, setCampaignForm] = useState(emptyCampaign)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
+  const [confirmDeleteCoupon, setConfirmDeleteCoupon] = useState(null)
+  const [confirmDeleteCampaign, setConfirmDeleteCampaign] = useState(null)
   const [couponListRef] = useAutoAnimate()
   const [campaignListRef] = useAutoAnimate()
 
@@ -23,16 +26,21 @@ export default function AdminPromotions({ secret }) {
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const [cRes, kRes] = await Promise.all([
         fetch('/api/coupons', { headers }),
         fetch('/api/campaigns', { headers }),
       ])
       const cd = await cRes.json()
-      if (cd.success) setCoupons(cd.data)
       const kd = await kRes.json()
+      if (cd.success) setCoupons(cd.data)
       if (kd.success) setCampaigns(kd.data)
-    } catch {}
+      if (!cd.success || !kd.success) setFetchError(cd.error || kd.error || 'Veriler yüklenemedi')
+    } catch (e) {
+      console.error(e)
+      setFetchError('Veriler yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -41,7 +49,7 @@ export default function AdminPromotions({ secret }) {
       const res = await fetch('/api/games')
       const data = await res.json()
       if (data.success) setGames(data.data)
-    } catch {}
+    } catch (e) { console.error(e) }
   }, [])
 
   useEffect(() => {
@@ -57,67 +65,105 @@ export default function AdminPromotions({ secret }) {
     return () => { cancelled = true }
   }, [fetchAll, fetchGames])
 
-  function flash(text) {
-    setMsg(text)
-    setTimeout(() => setMsg(''), 3000)
+  function flash(text, type = 'success') {
+    setMsg({ text, type })
+    setTimeout(() => setMsg(null), 3000)
   }
 
   async function createCoupon() {
     if (!couponForm.code.trim() || !couponForm.value) {
-      flash('Kod ve değer zorunlu')
+      flash('Kod ve değer zorunlu', 'error')
       return
     }
-    const res = await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...couponForm }) })
-    const d = await res.json()
-    if (d.success) {
-      setShowCouponForm(false)
-      setCouponForm(emptyCoupon)
-      flash(`${d.data.code} oluşturuldu`)
-      fetchAll()
-    } else {
-      flash(d.error || 'Bir hata oluştu')
+    try {
+      const res = await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...couponForm }) })
+      const d = await res.json()
+      if (d.success) {
+        setShowCouponForm(false)
+        setCouponForm(emptyCoupon)
+        flash(`${d.data.code} oluşturuldu`)
+        fetchAll()
+      } else {
+        flash(d.error || 'Bir hata oluştu', 'error')
+      }
+    } catch (e) {
+      console.error(e)
+      flash('Kupon oluşturulamadı', 'error')
     }
   }
 
   async function toggleCoupon(c) {
-    await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
-    fetchAll()
+    try {
+      const res = await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Durum güncellenemedi', 'error'); return }
+      fetchAll()
+    } catch (e) {
+      console.error(e)
+      flash('Durum güncellenemedi', 'error')
+    }
   }
 
   async function deleteCoupon(c) {
-    if (!confirm(`"${c.code}" kuponunu silmek istediğine emin misin?`)) return
-    await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
-    flash(`${c.code} silindi`)
-    fetchAll()
+    try {
+      const res = await fetch('/api/coupons', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Kupon silinemedi', 'error'); setConfirmDeleteCoupon(null); return }
+      flash(`${c.code} silindi`)
+      fetchAll()
+    } catch (e) {
+      console.error(e)
+      flash('Kupon silinemedi', 'error')
+    }
+    setConfirmDeleteCoupon(null)
   }
 
   async function createCampaign() {
     if (!campaignForm.name.trim() || !campaignForm.discountPct || !campaignForm.startsAt || !campaignForm.endsAt) {
-      flash('Ad, indirim yüzdesi, başlangıç ve bitiş tarihi zorunlu')
+      flash('Ad, indirim yüzdesi, başlangıç ve bitiş tarihi zorunlu', 'error')
       return
     }
-    const res = await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...campaignForm }) })
-    const d = await res.json()
-    if (d.success) {
-      setShowCampaignForm(false)
-      setCampaignForm(emptyCampaign)
-      flash(`${d.data.name} oluşturuldu`)
-      fetchAll()
-    } else {
-      flash(d.error || 'Bir hata oluştu')
+    try {
+      const res = await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'create', ...campaignForm }) })
+      const d = await res.json()
+      if (d.success) {
+        setShowCampaignForm(false)
+        setCampaignForm(emptyCampaign)
+        flash(`${d.data.name} oluşturuldu`)
+        fetchAll()
+      } else {
+        flash(d.error || 'Bir hata oluştu', 'error')
+      }
+    } catch (e) {
+      console.error(e)
+      flash('Kampanya oluşturulamadı', 'error')
     }
   }
 
   async function toggleCampaign(c) {
-    await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
-    fetchAll()
+    try {
+      const res = await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'update', id: c.id, isActive: !c.isActive }) })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Durum güncellenemedi', 'error'); return }
+      fetchAll()
+    } catch (e) {
+      console.error(e)
+      flash('Durum güncellenemedi', 'error')
+    }
   }
 
   async function deleteCampaign(c) {
-    if (!confirm(`"${c.name}" kampanyasını silmek istediğine emin misin?`)) return
-    await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
-    flash(`${c.name} silindi`)
-    fetchAll()
+    try {
+      const res = await fetch('/api/campaigns', { method: 'POST', headers, body: JSON.stringify({ action: 'delete', id: c.id }) })
+      const d = await res.json()
+      if (!d.success) { flash(d.error || 'Kampanya silinemedi', 'error'); setConfirmDeleteCampaign(null); return }
+      flash(`${c.name} silindi`)
+      fetchAll()
+    } catch (e) {
+      console.error(e)
+      flash('Kampanya silinemedi', 'error')
+    }
+    setConfirmDeleteCampaign(null)
   }
 
   function isCampaignLive(c) {
@@ -130,16 +176,28 @@ export default function AdminPromotions({ secret }) {
   return (
     <div>
       {msg && (
-        <div onClick={() => setMsg('')} style={{
-          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
-          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
-        }}>{msg} ✕</div>
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
+      )}
+
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchAll}>Tekrar Dene</button>
+        </div>
       )}
 
       {/* Kuponlar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Kupon Kodları ({coupons.length})</h2>
-        <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCouponForm(v => !v)}>
+        <button type="button" className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCouponForm(v => !v)}>
           {showCouponForm ? 'Vazgeç' : '+ Yeni Kupon'}
         </button>
       </div>
@@ -168,7 +226,7 @@ export default function AdminPromotions({ secret }) {
             </div>
             <Field label="Son Kullanma Tarihi" type="date" value={couponForm.expiresAt} onChange={v => setCouponForm(f => ({ ...f, expiresAt: v }))} />
           </div>
-          <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCoupon}>Oluştur</button>
+          <button type="button" className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCoupon}>Oluştur</button>
         </div>
       )}
 
@@ -200,9 +258,19 @@ export default function AdminPromotions({ secret }) {
                     color: c.isActive ? '#4caf50' : '#ff6666',
                   }}>{c.isActive ? 'Aktif' : 'Pasif'}</span>
                 </td>
-                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px' }}>
-                  <button onClick={() => toggleCoupon(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
-                  <button onClick={() => deleteCoupon(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {confirmDeleteCoupon === c.id ? (
+                    <span role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: '#ff6666' }}>Emin misin?</span>
+                      <button type="button" onClick={() => deleteCoupon(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Evet, Sil</button>
+                      <button type="button" onClick={() => setConfirmDeleteCoupon(null)} style={smallBtnStyle}>İptal</button>
+                    </span>
+                  ) : (
+                    <>
+                      <button type="button" aria-pressed={c.isActive} onClick={() => toggleCoupon(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
+                      <button type="button" onClick={() => setConfirmDeleteCoupon(c.id)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -213,7 +281,7 @@ export default function AdminPromotions({ secret }) {
       {/* Kampanyalar */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Kampanyalar ({campaigns.length})</h2>
-        <button className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCampaignForm(v => !v)}>
+        <button type="button" className="btn-primary" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => setShowCampaignForm(v => !v)}>
           {showCampaignForm ? 'Vazgeç' : '+ Yeni Kampanya'}
         </button>
       </div>
@@ -236,7 +304,7 @@ export default function AdminPromotions({ secret }) {
             <Field label="Başlangıç *" type="date" value={campaignForm.startsAt} onChange={v => setCampaignForm(f => ({ ...f, startsAt: v }))} />
             <Field label="Bitiş *" type="date" value={campaignForm.endsAt} onChange={v => setCampaignForm(f => ({ ...f, endsAt: v }))} />
           </div>
-          <button className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCampaign}>Oluştur</button>
+          <button type="button" className="btn-primary" style={{ padding: '8px 20px', fontSize: '13px' }} onClick={createCampaign}>Oluştur</button>
         </div>
       )}
 
@@ -267,9 +335,19 @@ export default function AdminPromotions({ secret }) {
                     color: isCampaignLive(c) ? '#4caf50' : '#ff6666',
                   }}>{isCampaignLive(c) ? 'Yayında' : c.isActive ? 'Pasif tarih dışı' : 'Pasif'}</span>
                 </td>
-                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px' }}>
-                  <button onClick={() => toggleCampaign(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
-                  <button onClick={() => deleteCampaign(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                <td style={{ padding: '10px 8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {confirmDeleteCampaign === c.id ? (
+                    <span role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: '#ff6666' }}>Emin misin?</span>
+                      <button type="button" onClick={() => deleteCampaign(c)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Evet, Sil</button>
+                      <button type="button" onClick={() => setConfirmDeleteCampaign(null)} style={smallBtnStyle}>İptal</button>
+                    </span>
+                  ) : (
+                    <>
+                      <button type="button" aria-pressed={c.isActive} onClick={() => toggleCampaign(c)} style={smallBtnStyle}>{c.isActive ? 'Pasife Al' : 'Aktif Et'}</button>
+                      <button type="button" onClick={() => setConfirmDeleteCampaign(c.id)} style={{ ...smallBtnStyle, color: '#ff6666' }}>Sil</button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}

@@ -26,6 +26,8 @@ export default function AdminOrders({ secret }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [expanded, setExpanded] = useState(null)
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
   const [listRef] = useAutoAnimate()
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
@@ -35,17 +37,20 @@ export default function AdminOrders({ secret }) {
       const res = await fetch('/api/admin?type=boosters', { headers })
       const d = await res.json()
       if (d.success) setBoosters(d.data.filter(b => b.status === 'active'))
-    } catch {}
+    } catch (e) { console.error(e) }
   }, [headers])
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin?type=orders', { headers })
       const d = await res.json()
       if (d.success) setOrders(d.data)
+      else setFetchError(d.error || 'Siparişler yüklenemedi')
     } catch (error) {
       console.error(error)
+      setFetchError('Siparişler yüklenemedi')
     } finally {
       setLoading(false)
     }
@@ -65,28 +70,49 @@ export default function AdminOrders({ secret }) {
   }, [fetchBoosters, fetchOrders])
 
   async function assignBooster(orderId, boosterId) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'order', id: orderId, data: { boosterId: boosterId ? parseInt(boosterId) : null } }),
-    })
-    fetchOrders()
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'order', id: orderId, data: { boosterId: boosterId ? parseInt(boosterId) : null } }),
+      })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Booster atanamadı', type: 'error' }); return }
+      fetchOrders()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Booster atanamadı', type: 'error' })
+    }
   }
 
   async function resolveIssue(orderId) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'order', id: orderId, data: { issueResolved: true } }),
-    })
-    fetchOrders()
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'order', id: orderId, data: { issueResolved: true } }),
+      })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'İşlem başarısız', type: 'error' }); return }
+      fetchOrders()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'İşlem başarısız', type: 'error' })
+    }
   }
 
   async function updateStatus(id, status) {
-    await fetch('/api/admin', {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ type: 'order', id, data: { status } }),
-    })
-    fetchOrders()
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ type: 'order', id, data: { status } }),
+      })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Durum güncellenemedi', type: 'error' }); return }
+      fetchOrders()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Durum güncellenemedi', type: 'error' })
+    }
   }
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
@@ -95,11 +121,30 @@ export default function AdminOrders({ secret }) {
 
   return (
     <div>
+      {msg && (
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
+      )}
+
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchOrders}>Tekrar Dene</button>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Siparişler ({filtered.length})</h2>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {['all', 'pending', 'assigned', 'in_progress', 'completed', 'cancelled'].map(s => (
-            <button key={s} onClick={() => setFilter(s)} style={{
+            <button key={s} type="button" aria-pressed={filter === s} onClick={() => setFilter(s)} style={{
               padding: '6px 14px', borderRadius: '20px', fontSize: '12px',
               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
               cursor: 'pointer', border: '1px solid',
@@ -176,11 +221,14 @@ export default function AdminOrders({ secret }) {
                         <option key={val} value={val}>{label}</option>
                       ))}
                     </select>
-                    <div style={{
-                      color: 'var(--text-dim)', fontSize: '18px',
-                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
-                      transition: 'transform 0.2s',
-                    }}>▾</div>
+                    <button type="button" aria-expanded={isExpanded} aria-label={isExpanded ? 'Detayları gizle' : 'Detayları göster'}
+                      onClick={e => { e.stopPropagation(); setExpanded(isExpanded ? null : order.id) }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--text-dim)', fontSize: '18px',
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)',
+                        transition: 'transform 0.2s',
+                      }}>▾</button>
                   </div>
                 </div>
 
@@ -267,7 +315,7 @@ export default function AdminOrders({ secret }) {
                         {Object.entries(STATUS_LABELS).map(([val, label]) => {
                           const c = STATUS_COLORS[val]
                           return (
-                            <button key={val} onClick={() => updateStatus(order.id, val)}
+                            <button key={val} type="button" aria-pressed={order.status === val} onClick={() => updateStatus(order.id, val)}
                               style={{
                                 padding: '6px 12px', borderRadius: '8px', fontSize: '12px',
                                 fontFamily: 'var(--font-montserrat)', fontWeight: '600',
@@ -291,7 +339,7 @@ export default function AdminOrders({ secret }) {
                           {order.issueResolved ? (
                             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>✓ Çözüldü</span>
                           ) : (
-                            <button onClick={() => resolveIssue(order.id)} style={{
+                            <button type="button" onClick={() => resolveIssue(order.id)} style={{
                               padding: '5px 12px', borderRadius: '8px', fontSize: '12px',
                               fontFamily: 'var(--font-montserrat)', fontWeight: '600',
                               cursor: 'pointer', border: '1px solid #4a2a2a',

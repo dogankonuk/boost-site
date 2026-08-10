@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import AdminOverview from '@/components/admin/AdminOverview'
@@ -14,41 +14,45 @@ import AdminPromotions from '@/components/admin/AdminPromotions'
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState('overview')
-  const [status, setStatus] = useState('loading') // loading | no-token | not-admin | ok
+  const [status, setStatus] = useState('loading') // loading | no-token | not-admin | error | ok
   const [token, setToken] = useState(null)
+
+  const verifyAdmin = useCallback(async () => {
+    const stored = localStorage.getItem('token')
+    if (!stored) {
+      setStatus('no-token')
+      return
+    }
+
+    setStatus('loading')
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored}` },
+        body: JSON.stringify({ action: 'getProfile' }),
+      })
+      const data = await res.json()
+
+      if (data.success && data.data?.isAdmin) {
+        setToken(stored)
+        setStatus('ok')
+      } else {
+        setStatus('not-admin')
+      }
+    } catch (e) {
+      console.error(e)
+      setStatus('error')
+    }
+  }, [])
 
   useEffect(() => {
     let cancelled = false
-
-    async function verifyAdmin() {
-      const stored = localStorage.getItem('token')
-      if (!stored) {
-        if (!cancelled) setStatus('no-token')
-        return
-      }
-
-      try {
-        const res = await fetch('/api/auth', {
-          method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${stored}` },
-          body: JSON.stringify({ action: 'getProfile' }),
-        })
-        const data = await res.json()
-        if (cancelled) return
-
-        if (data.success && data.data?.isAdmin) {
-          setToken(stored)
-          setStatus('ok')
-        } else {
-          setStatus('not-admin')
-        }
-      } catch {
-        if (!cancelled) setStatus('no-token')
-      }
+    async function run() {
+      await Promise.resolve()
+      if (!cancelled) await verifyAdmin()
     }
-
-    verifyAdmin()
+    run()
     return () => { cancelled = true }
-  }, [])
+  }, [verifyAdmin])
 
   function logout() {
     localStorage.removeItem('token')
@@ -58,7 +62,7 @@ export default function AdminPage() {
 
   if (status === 'loading') return null
 
-  if (status === 'no-token' || status === 'not-admin') {
+  if (status === 'no-token' || status === 'not-admin' || status === 'error') {
     return (
       <div style={{
         minHeight: '100vh', background: 'var(--bg)',
@@ -68,18 +72,24 @@ export default function AdminPage() {
           background: 'var(--bg-card)', border: '1px solid var(--border)',
           borderRadius: '16px', padding: '40px', width: '360px', textAlign: 'center',
         }}>
-          <h2 className="h2" style={{ color: '#fff', marginBottom: '10px' }}>Admin Girişi</h2>
-          <p className="body-small" style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+          <h2 className="h2" style={{ color: '#fff', marginBottom: '10px' }}>
+            {status === 'error' ? 'Bağlantı Hatası' : 'Admin Girişi'}
+          </h2>
+          <p className="body-small" role={status === 'error' ? 'alert' : undefined} style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
             {status === 'no-token'
               ? 'Bu paneli görüntülemek için yönetici yetkisi olan bir hesapla giriş yapman gerekiyor.'
-              : 'Bu hesabın yönetici yetkisi yok.'}
+              : status === 'not-admin'
+              ? 'Bu hesabın yönetici yetkisi yok.'
+              : 'Yetki doğrulanamadı, bağlantını kontrol edip tekrar dene.'}
           </p>
           {status === 'no-token' ? (
             <Link href="/login" className="btn-primary" style={{ width: '100%' }}>
               Giriş Yap
             </Link>
+          ) : status === 'error' ? (
+            <button type="button" className="btn-primary" style={{ width: '100%' }} onClick={verifyAdmin}>Tekrar Dene</button>
           ) : (
-            <button className="btn-secondary" style={{ width: '100%' }} onClick={logout}>Çıkış Yap</button>
+            <button type="button" className="btn-secondary" style={{ width: '100%' }} onClick={logout}>Çıkış Yap</button>
           )}
         </div>
       </div>
@@ -98,7 +108,7 @@ export default function AdminPage() {
             <Link href="/" className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               🏠 Anasayfaya Git
             </Link>
-            <button className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
+            <button type="button" className="btn-secondary" style={{ fontSize: '13px', padding: '6px 14px' }} onClick={logout}>
               Çıkış
             </button>
           </div>
@@ -109,7 +119,7 @@ export default function AdminPage() {
       <div style={{ borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', display: 'flex' }}>
           {[{ key: 'overview', label: 'Genel Bakış' }, { key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }, { key: 'users', label: 'Kullanıcılar' }, { key: 'blog', label: 'Blog' }, { key: 'applications', label: 'Başvurular' }, { key: 'promotions', label: 'Kupon & Kampanya' }].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
+            <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} style={{
               padding: '14px 20px', background: 'transparent', border: 'none',
               borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
               color: tab === t.key ? 'var(--gold)' : 'var(--text-muted)',

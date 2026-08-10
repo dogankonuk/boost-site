@@ -59,6 +59,8 @@ export default function AdminOverview({ secret, onNavigate }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('14d')
+  const [fetchError, setFetchError] = useState('')
+  const [retryToken, setRetryToken] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -67,6 +69,7 @@ export default function AdminOverview({ secret, onNavigate }) {
       await Promise.resolve()
       if (controller.signal.aborted) return
       setLoading(true)
+      setFetchError('')
 
       try {
         const res = await fetch(`/api/admin?type=stats&period=${period}`, {
@@ -74,9 +77,14 @@ export default function AdminOverview({ secret, onNavigate }) {
           signal: controller.signal,
         })
         const data = await res.json()
-        if (!controller.signal.aborted && data.success) setStats(data.data)
+        if (controller.signal.aborted) return
+        if (data.success) setStats(data.data)
+        else setFetchError(data.error || 'Veri yüklenemedi')
       } catch (error) {
-        if (error.name !== 'AbortError') console.error(error)
+        if (error.name !== 'AbortError') {
+          console.error(error)
+          setFetchError('Veri yüklenemedi')
+        }
       } finally {
         if (!controller.signal.aborted) setLoading(false)
       }
@@ -84,10 +92,21 @@ export default function AdminOverview({ secret, onNavigate }) {
 
     fetchStats()
     return () => controller.abort()
-  }, [period, secret])
+  }, [period, secret, retryToken])
 
   if (loading) return <OverviewSkeleton />
-  if (!stats) return <p style={{ color: 'var(--text-muted)' }}>Veri yüklenemedi.</p>
+  if (!stats) {
+    return (
+      <div role="alert" style={{
+        background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+        padding: '10px 16px', color: '#ff6666', fontSize: '13px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+      }}>
+        <span>{fetchError || 'Veri yüklenemedi.'}</span>
+        <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={() => setRetryToken(t => t + 1)}>Tekrar Dene</button>
+      </div>
+    )
+  }
 
   const totalStatusOrders = Object.values(stats.statusCounts).reduce((a, b) => a + b, 0)
   const maxGameRevenue = Math.max(1, ...stats.gameBreakdown.map(g => g.revenue))
@@ -134,7 +153,7 @@ export default function AdminOverview({ secret, onNavigate }) {
           </h3>
           <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
             {PERIODS.map(p => (
-              <button key={p.key} onClick={() => setPeriod(p.key)} style={{
+              <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)} style={{
                 padding: '5px 12px', borderRadius: '6px', fontSize: '12px',
                 fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: 'none',
                 background: period === p.key ? 'var(--gold)' : 'transparent',
@@ -296,7 +315,7 @@ function StatCard({ icon, label, value, accent, growth, growthLabel, countTo, de
 
 function AlertCard({ icon, count, label, onClick }) {
   return (
-    <button onClick={onClick} style={{
+    <button type="button" onClick={onClick} style={{
       display: 'flex', alignItems: 'center', gap: '10px',
       background: '#2a2a1a', border: '1px solid #3a3a1a', borderRadius: '10px',
       padding: '10px 16px', cursor: 'pointer', textAlign: 'left',

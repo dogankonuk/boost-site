@@ -80,7 +80,10 @@ export default function AdminGames({ secret }) {
     addons: [],
     discoveryGoals: [],
   })
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [gamesError, setGamesError] = useState('')
+  const [confirmDeleteGame, setConfirmDeleteGame] = useState(null)
+  const [confirmDeleteService, setConfirmDeleteService] = useState(null)
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
@@ -91,11 +94,16 @@ export default function AdminGames({ secret }) {
 
   const fetchGames = useCallback(async () => {
     setLoading(true)
+    setGamesError('')
     try {
       const res = await fetch('/api/admin?type=games', { headers })
       const d = await res.json()
       if (d.success) setGames(d.data)
-    } catch (e) { console.error(e) }
+      else setGamesError(d.error || 'Oyunlar yüklenemedi')
+    } catch (e) {
+      console.error(e)
+      setGamesError('Oyunlar yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -104,7 +112,7 @@ export default function AdminGames({ secret }) {
       const res = await fetch('/api/admin?type=gameCategories', { headers })
       const d = await res.json()
       if (d.success) setGameCategories(d.data)
-    } catch {}
+    } catch (e) { console.error(e) }
   }, [headers])
 
   useEffect(() => {
@@ -126,18 +134,29 @@ export default function AdminGames({ secret }) {
     const oldIndex = games.findIndex(g => g.id === active.id)
     const newIndex = games.findIndex(g => g.id === over.id)
     const newGames = arrayMove(games, oldIndex, newIndex)
+    const previousGames = games
     setGames(newGames)
-    await Promise.all(newGames.map((game, index) =>
-      fetch('/api/admin', {
-        method: 'PATCH', headers,
-        body: JSON.stringify({ type: 'game', id: parseInt(game.id), data: { sortOrder: index + 1 } }),
-      })
-    ))
+    try {
+      const results = await Promise.all(newGames.map((game, index) =>
+        fetch('/api/admin', {
+          method: 'PATCH', headers,
+          body: JSON.stringify({ type: 'game', id: parseInt(game.id), data: { sortOrder: index + 1 } }),
+        }).then(res => res.json())
+      ))
+      if (results.some(d => !d.success)) {
+        setGames(previousGames)
+        setMsg({ text: 'Sıralama kaydedilemedi', type: 'error' })
+      }
+    } catch (e) {
+      console.error(e)
+      setGames(previousGames)
+      setMsg({ text: 'Sıralama kaydedilemedi', type: 'error' })
+    }
   }
 
   async function addGame() {
     if (!gameForm.name || !gameForm.slug || gameForm.categories.length === 0) {
-      setMsg('Zorunlu alanları doldurun'); return
+      setMsg({ text: 'Zorunlu alanları doldurun', type: 'error' }); return
     }
     const res = await fetch('/api/games', {
       method: 'POST',
@@ -150,11 +169,11 @@ export default function AdminGames({ secret }) {
     })
     const d = await res.json()
     if (d.success) {
-      setMsg('Oyun eklendi')
+      setMsg({ text: 'Oyun eklendi', type: 'success' })
       setGameForm({ name: '', slug: '', categories: [], sortOrder: 0 })
       setShowAddGame(false)
       fetchGames()
-    } else { setMsg(d.error || 'Hata') }
+    } else { setMsg({ text: d.error || 'Hata', type: 'error' }) }
   }
 
   async function saveEditGame() {
@@ -174,13 +193,13 @@ export default function AdminGames({ secret }) {
       }),
     })
     const d = await res.json()
-    if (d.success) { setMsg('Oyun güncellendi'); setEditGame(null); fetchGames() }
-    else { setMsg('Hata: ' + (d.error || 'bilinmiyor')) }
+    if (d.success) { setMsg({ text: 'Oyun güncellendi', type: 'success' }); setEditGame(null); fetchGames() }
+    else { setMsg({ text: 'Hata: ' + (d.error || 'bilinmiyor'), type: 'error' }) }
   }
 
   async function addService(gameId) {
     if (!serviceForm.name || !serviceForm.slug || !serviceForm.basePrice) {
-      setMsg('Zorunlu alanları doldurun'); return
+      setMsg({ text: 'Zorunlu alanları doldurun', type: 'error' }); return
     }
     let options = null
     if (serviceForm.pricingType === 'quantity') {
@@ -213,11 +232,11 @@ export default function AdminGames({ secret }) {
     })
     const d = await res.json()
     if (d.success) {
-      setMsg('Hizmet eklendi')
+      setMsg({ text: 'Hizmet eklendi', type: 'success' })
       setServiceForm({ name: '', slug: '', basePrice: '', description: '', features: '', imageUrl: '', isHot: false, serviceCategory: '', pricingType: 'fixed', pricingOptions: { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: [], discoveryGoals: [] })
       setShowAddService(null)
       fetchGames()
-    } else { setMsg(d.error || 'Hata') }
+    } else { setMsg({ text: d.error || 'Hata', type: 'error' }) }
   }
 
   async function saveEditService() {
@@ -251,34 +270,58 @@ export default function AdminGames({ secret }) {
       }),
     })
     const d = await res.json()
-    if (d.success) { setMsg('Hizmet güncellendi'); setEditService(null); fetchGames() }
-    else { setMsg('Hata: ' + (d.error || 'bilinmiyor')) }
+    if (d.success) { setMsg({ text: 'Hizmet güncellendi', type: 'success' }); setEditService(null); fetchGames() }
+    else { setMsg({ text: 'Hata: ' + (d.error || 'bilinmiyor'), type: 'error' }) }
   }
 
   async function toggleGame(id, isActive) {
-    await fetch('/api/admin', { method: 'PATCH', headers, body: JSON.stringify({ type: 'game', id: parseInt(id), data: { isActive: !isActive } }) })
-    fetchGames()
+    try {
+      const res = await fetch('/api/admin', { method: 'PATCH', headers, body: JSON.stringify({ type: 'game', id: parseInt(id), data: { isActive: !isActive } }) })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Durum güncellenemedi', type: 'error' }); return }
+      fetchGames()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Durum güncellenemedi', type: 'error' })
+    }
   }
 
   async function toggleService(id, isActive) {
-    await fetch('/api/admin', { method: 'PATCH', headers, body: JSON.stringify({ type: 'service', id: parseInt(id), data: { isActive: !isActive } }) })
-    fetchGames()
+    try {
+      const res = await fetch('/api/admin', { method: 'PATCH', headers, body: JSON.stringify({ type: 'service', id: parseInt(id), data: { isActive: !isActive } }) })
+      const d = await res.json()
+      if (!d.success) { setMsg({ text: d.error || 'Durum güncellenemedi', type: 'error' }); return }
+      fetchGames()
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Durum güncellenemedi', type: 'error' })
+    }
   }
 
-  async function deleteGame(id, name) {
-    if (!window.confirm(`"${name}" oyununu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return
-    const res = await fetch(`/api/admin?type=game&id=${id}`, { method: 'DELETE', headers })
-    const d = await res.json()
-    if (d.success) { setMsg('Oyun silindi'); fetchGames() }
-    else setMsg(d.error || 'Hata')
+  async function deleteGame(id) {
+    try {
+      const res = await fetch(`/api/admin?type=game&id=${id}`, { method: 'DELETE', headers })
+      const d = await res.json()
+      if (d.success) { setMsg({ text: 'Oyun silindi', type: 'success' }); fetchGames() }
+      else setMsg({ text: d.error || 'Hata', type: 'error' })
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Oyun silinemedi', type: 'error' })
+    }
+    setConfirmDeleteGame(null)
   }
 
-  async function deleteService(id, name) {
-    if (!window.confirm(`"${name}" hizmetini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) return
-    const res = await fetch(`/api/admin?type=service&id=${id}`, { method: 'DELETE', headers })
-    const d = await res.json()
-    if (d.success) { setMsg('Hizmet silindi'); fetchGames() }
-    else setMsg(d.error || 'Hata')
+  async function deleteService(id) {
+    try {
+      const res = await fetch(`/api/admin?type=service&id=${id}`, { method: 'DELETE', headers })
+      const d = await res.json()
+      if (d.success) { setMsg({ text: 'Hizmet silindi', type: 'success' }); fetchGames() }
+      else setMsg({ text: d.error || 'Hata', type: 'error' })
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Hizmet silinemedi', type: 'error' })
+    }
+    setConfirmDeleteService(null)
   }
 
   if (loading) return <AdminSkeleton rows={6} />
@@ -286,18 +329,30 @@ export default function AdminGames({ secret }) {
   return (
     <div>
       {msg && (
-        <div onClick={() => setMsg('')} style={{
-          background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
-          padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
-        }}>{msg} ✕</div>
+        <div onClick={() => setMsg(null)} role={msg.type === 'error' ? 'alert' : 'status'} style={{
+          background: msg.type === 'error' ? '#2a1a1a' : '#1a2a1a',
+          border: `1px solid ${msg.type === 'error' ? '#4a2a2a' : '#2a4a2a'}`, borderRadius: '8px',
+          padding: '10px 16px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
+        }}>{msg.text} ✕</div>
       )}
 
       <GameCategories secret={secret} onCategoriesChange={setGameCategories} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 className="h3" style={{ color: '#fff' }}>Oyunlar ({games.length})</h2>
-        <button className="btn-primary" onClick={() => setShowAddGame(v => !v)}>+ Oyun Ekle</button>
+        <button type="button" className="btn-primary" onClick={() => setShowAddGame(v => !v)}>+ Oyun Ekle</button>
       </div>
+
+      {gamesError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '10px 16px', color: '#ff6666', fontSize: '13px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{gamesError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '5px 12px' }} onClick={fetchGames}>Tekrar Dene</button>
+        </div>
+      )}
 
       {showAddGame && (
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', marginBottom: '16px' }}>
@@ -319,8 +374,8 @@ export default function AdminGames({ secret }) {
             </div>
           </div>
           <div style={{ display: 'flex', gap: '8px' }}>
-            <button className="btn-primary" onClick={addGame}>Kaydet</button>
-            <button className="btn-secondary" onClick={() => setShowAddGame(false)}>İptal</button>
+            <button type="button" className="btn-primary" onClick={addGame}>Kaydet</button>
+            <button type="button" className="btn-secondary" onClick={() => setShowAddGame(false)}>İptal</button>
           </div>
         </div>
       )}
@@ -345,6 +400,8 @@ export default function AdminGames({ secret }) {
                 addService={addService} toggleGame={toggleGame} toggleService={toggleService}
                 deleteGame={deleteGame} deleteService={deleteService}
                 gameCategories={gameCategories}
+                confirmDeleteGame={confirmDeleteGame} setConfirmDeleteGame={setConfirmDeleteGame}
+                confirmDeleteService={confirmDeleteService} setConfirmDeleteService={setConfirmDeleteService}
               />
             ))}
           </div>
@@ -362,6 +419,7 @@ function SortableGameRow({
   serviceForm, setServiceForm,
   saveEditGame, saveEditService, addService, toggleGame, toggleService,
   deleteGame, deleteService,
+  confirmDeleteGame, setConfirmDeleteGame, confirmDeleteService, setConfirmDeleteService,
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: game.id })
   const catInputRef = useRef(null)
@@ -380,7 +438,7 @@ function SortableGameRow({
           </div>
 
           {/* Sürükle ikonu */}
-          <div {...attributes} {...listeners} style={{ cursor: 'grab', color: 'var(--text-dim)', fontSize: '16px', userSelect: 'none', flexShrink: 0 }}>⠿</div>
+          <div {...attributes} {...listeners} role="button" tabIndex={0} aria-label={`${game.name} sırasını değiştir`} style={{ cursor: 'grab', color: 'var(--text-dim)', fontSize: '16px', userSelect: 'none', flexShrink: 0 }}>⠿</div>
 
           {/* Cover image küçük */}
           <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: 'var(--bg-elevated)', backgroundImage: game.coverImage ? `url(${game.coverImage})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0, border: '1px solid var(--border)' }} />
@@ -402,25 +460,38 @@ function SortableGameRow({
           </div>
 
           {/* Butonlar */}
+          {confirmDeleteGame === game.id ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }} role="alert">
+              <span style={{ fontSize: '11px', color: '#ff6666' }}>Silinsin mi?</span>
+              <button type="button" onClick={() => deleteGame(game.id)}
+                style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}>
+                Evet, Sil
+              </button>
+              <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }} onClick={() => setConfirmDeleteGame(null)}>
+                İptal
+              </button>
+            </div>
+          ) : (
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-            <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+            <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
               onClick={() => { setEditGame(editGame === game.id ? null : game.id); setEditGameForm({ name: game.name, categories: game.category ? game.category.split(', ') : [], bannerImage: game.bannerImage || '', coverImage: game.coverImage || '', description: game.description || '', sortOrder: game.sortOrder || 0, serviceCategories: game.serviceCategories || [] }) }}>
               {editGame === game.id ? 'Kapat' : 'Düzenle'}
             </button>
-            <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
-              onClick={() => { setShowAddService(showAddService === game.id ? null : game.id); if (expandedGame !== game.id) onToggleExpand() }}>
+            <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+              onClick={() => { setShowAddService(showAddService === game.id ? null : game.id); if (!isExpanded) onToggleExpand() }}>
               + Hizmet
             </button>
-            <button className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }}
+            <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '5px 10px' }} aria-pressed={game.isActive}
               onClick={() => toggleGame(game.id, game.isActive)}>
               {game.isActive ? 'Pasif' : 'Aktif'}
             </button>
-            <button style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
-              onClick={() => deleteGame(game.id, game.name)}>
+            <button type="button" style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
+              onClick={() => setConfirmDeleteGame(game.id)}>
               Sil
             </button>
-            <button onClick={onToggleExpand} style={{ width: '28px', height: '28px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▾</button>
+            <button type="button" onClick={onToggleExpand} aria-expanded={isExpanded} aria-label={isExpanded ? 'Hizmetleri gizle' : 'Hizmetleri göster'} style={{ width: '28px', height: '28px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}>▾</button>
           </div>
+          )}
         </div>
 
         {/* Düzenle formu */}
@@ -435,7 +506,7 @@ function SortableGameRow({
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Oyun Kategorileri</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {gameCategories.map(cat => (
-                  <button key={cat} type="button"
+                  <button key={cat} type="button" aria-pressed={(editGameForm.categories || []).includes(cat)}
                     onClick={() => setEditGameForm(f => ({ ...f, categories: (f.categories || []).includes(cat) ? (f.categories || []).filter(c => c !== cat) : [...(f.categories || []), cat] }))}
                     style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid', background: (editGameForm.categories || []).includes(cat) ? 'var(--gold)' : 'transparent', color: (editGameForm.categories || []).includes(cat) ? '#0a0a0a' : 'var(--text-muted)', borderColor: (editGameForm.categories || []).includes(cat) ? 'var(--gold)' : 'var(--border)' }}>{cat}</button>
                 ))}
@@ -469,8 +540,8 @@ function SortableGameRow({
                 style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={saveEditGame}>Kaydet</button>
-              <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => setEditGame(null)}>İptal</button>
+              <button type="button" className="btn-primary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={saveEditGame}>Kaydet</button>
+              <button type="button" className="btn-secondary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => setEditGame(null)}>İptal</button>
             </div>
           </div>
         )}
@@ -505,7 +576,7 @@ function SortableGameRow({
               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Fiyatlandırma Tipi</label>
               <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
                 {PRICING_TYPES.map(t => (
-                  <button key={t.key} type="button" onClick={() => setServiceForm(f => ({ ...f, pricingType: t.key }))}
+                  <button key={t.key} type="button" aria-pressed={serviceForm.pricingType === t.key} onClick={() => setServiceForm(f => ({ ...f, pricingType: t.key }))}
                     style={{ padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid', background: serviceForm.pricingType === t.key ? 'var(--gold)' : 'transparent', color: serviceForm.pricingType === t.key ? '#0a0a0a' : 'var(--text-muted)', borderColor: serviceForm.pricingType === t.key ? 'var(--gold)' : 'var(--border)' }}>{t.label}</button>
                 ))}
               </div>
@@ -584,8 +655,8 @@ function SortableGameRow({
                 placeholder={'Tüm seviyelerde boost\nHesap güvenliği garantili'} style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <button className="btn-primary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => addService(game.id)}>Kaydet</button>
-              <button className="btn-secondary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => setShowAddService(null)}>İptal</button>
+              <button type="button" className="btn-primary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => addService(game.id)}>Kaydet</button>
+              <button type="button" className="btn-secondary" style={{ fontSize: '13px', padding: '7px 16px' }} onClick={() => setShowAddService(null)}>İptal</button>
             </div>
           </div>
         )}
@@ -617,23 +688,37 @@ function SortableGameRow({
                         <span style={{ fontSize: '10px', padding: '2px 7px', borderRadius: '20px', background: s.isActive ? '#1a2a1a' : '#2a1a1a', color: s.isActive ? '#4caf50' : '#ff6666', border: `1px solid ${s.isActive ? '#2a4a2a' : '#4a2a2a'}` }}>{s.isActive ? 'Aktif' : 'Pasif'}</span>
                       </td>
                       <td style={{ padding: '8px' }}>
+                        {confirmDeleteService === s.id ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} role="alert">
+                            <span style={{ fontSize: '11px', color: '#ff6666' }}>Silinsin mi?</span>
+                            <button type="button" onClick={() => deleteService(s.id)}
+                              style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}>
+                              Evet
+                            </button>
+                            <button type="button" onClick={() => setConfirmDeleteService(null)}
+                              style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                              İptal
+                            </button>
+                          </div>
+                        ) : (
                         <div style={{ display: 'flex', gap: '4px' }}>
-                          <button style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
+                          <button type="button" style={{ background: 'transparent', border: '1px solid var(--gold)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--gold)', cursor: 'pointer' }}
                             onClick={() => {
                               setEditService(editService === s.id ? null : s.id)
                               setEditForm({ name: s.name, basePrice: s.basePrice, description: s.description || '', features: (s.features || []).join('\n'), imageUrl: s.imageUrl || '', isHot: s.isHot || false, serviceCategory: s.serviceCategory || '', pricingType: s.options?.type || 'fixed', pricingOptions: s.options ? { unitName: s.options.unitName || '', unitPrice: s.options.unitPrice || '', minQty: s.options.minQty || 1, maxQty: s.options.maxQty || 999, step: s.options.step || 1, pricePerUnit: s.options.pricePerUnit || '', min: s.options.min ?? 1, max: s.options.max || 100, choices: s.options.choices || [], tiers: s.options.tiers || [], volumeText: tiersToLines(s.options.volumeDiscounts, 'minQty', 'discountPct') } : { unitName: '', unitPrice: '', minQty: 1, maxQty: 999, step: 1, pricePerUnit: '', min: 1, max: 100, choices: [], tiers: [], volumeText: '' }, addons: s.addons || [], discoveryGoals: Array.isArray(s.discoveryGoals) ? s.discoveryGoals : [] })
                             }}>
                             {editService === s.id ? 'Kapat' : 'Düzenle'}
                           </button>
-                          <button style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}
+                          <button type="button" aria-pressed={s.isActive} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}
                             onClick={() => toggleService(s.id, s.isActive)}>
                             {s.isActive ? 'Pasif' : 'Aktif'}
                           </button>
-                          <button style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
-                            onClick={() => deleteService(s.id, s.name)}>
+                          <button type="button" style={{ background: 'transparent', border: '1px solid #4a2a2a', borderRadius: '5px', padding: '3px 8px', fontSize: '11px', color: '#ff6666', cursor: 'pointer' }}
+                            onClick={() => setConfirmDeleteService(s.id)}>
                             Sil
                           </button>
                         </div>
+                        )}
                       </td>
                     </tr>
                     
@@ -665,7 +750,7 @@ function SortableGameRow({
                               <label style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Fiyatlandırma Tipi</label>
                               <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
                                 {PRICING_TYPES.map(t => (
-                                  <button key={t.key} type="button" onClick={() => setEditForm(f => ({ ...f, pricingType: t.key }))}
+                                  <button key={t.key} type="button" aria-pressed={editForm.pricingType === t.key} onClick={() => setEditForm(f => ({ ...f, pricingType: t.key }))}
                                     style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: '1px solid', background: editForm.pricingType === t.key ? 'var(--gold)' : 'transparent', color: editForm.pricingType === t.key ? '#0a0a0a' : 'var(--text-muted)', borderColor: editForm.pricingType === t.key ? 'var(--gold)' : 'var(--border)' }}>{t.label}</button>
                                 ))}
                               </div>
@@ -744,8 +829,8 @@ function SortableGameRow({
                                 style={{ width: '100%', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '7px 10px', color: '#fff', fontSize: '13px', fontFamily: 'var(--font-inter)', outline: 'none', resize: 'vertical' }} />
                             </div>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={saveEditService}>Kaydet</button>
-                              <button className="btn-secondary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => setEditService(null)}>İptal</button>
+                              <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={saveEditService}>Kaydet</button>
+                              <button type="button" className="btn-secondary" style={{ fontSize: '12px', padding: '6px 14px' }} onClick={() => setEditService(null)}>İptal</button>
                             </div>
                           </div>
                         </td>
@@ -773,12 +858,14 @@ function GameCategories({ secret, onCategoriesChange }) {
   const [manualCategories, setManualCategories] = useState([])
   const [newCat, setNewCat] = useState('')
   const [loading, setLoading] = useState(true)
-  const [msg, setMsg] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [fetchError, setFetchError] = useState('')
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
 
   const fetchCategories = useCallback(async () => {
     setLoading(true)
+    setFetchError('')
     try {
       const res = await fetch('/api/admin?type=gameCategories', { headers })
       const d = await res.json()
@@ -786,8 +873,13 @@ function GameCategories({ secret, onCategoriesChange }) {
         setCategories(d.data)
         setManualCategories(d.manual || [])
         onCategoriesChange(d.data)
+      } else {
+        setFetchError(d.error || 'Kategoriler yüklenemedi')
       }
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      console.error(e)
+      setFetchError('Kategoriler yüklenemedi')
+    }
     setLoading(false)
   }, [headers, onCategoriesChange])
 
@@ -805,23 +897,34 @@ function GameCategories({ secret, onCategoriesChange }) {
 
   async function addCategory() {
     if (!newCat.trim()) return
-    const res = await fetch('/api/admin', {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ type: 'gameCategories', action: 'add', value: newCat.trim() }),
-    })
-    const d = await res.json()
-    if (d.success) { setMsg('Kategori eklendi'); setNewCat(''); fetchCategories() }
-    else setMsg(d.error || 'Hata')
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ type: 'gameCategories', action: 'add', value: newCat.trim() }),
+      })
+      const d = await res.json()
+      if (d.success) { setMsg({ text: 'Kategori eklendi', type: 'success' }); setNewCat(''); fetchCategories() }
+      else setMsg({ text: d.error || 'Hata', type: 'error' })
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Kategori eklenemedi', type: 'error' })
+    }
   }
 
   async function removeCategory(cat) {
-    const res = await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'gameCategories', action: 'remove', value: cat }),
-    })
-    const d = await res.json()
-    if (d.success) { setMsg('Kategori silindi'); fetchCategories() }
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'gameCategories', action: 'remove', value: cat }),
+      })
+      const d = await res.json()
+      if (d.success) { setMsg({ text: 'Kategori silindi', type: 'success' }); fetchCategories() }
+      else setMsg({ text: d.error || 'Hata', type: 'error' })
+    } catch (e) {
+      console.error(e)
+      setMsg({ text: 'Kategori silinemedi', type: 'error' })
+    }
   }
 
   return (
@@ -833,8 +936,21 @@ function GameCategories({ secret, onCategoriesChange }) {
         <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600' }}>
           Oyun Kategorileri
         </h3>
-        {msg && <span style={{ fontSize: '12px', color: '#4caf50', cursor: 'pointer' }} onClick={() => setMsg('')}>{msg} ✕</span>}
+        {msg && (
+          <span role={msg.type === 'error' ? 'alert' : 'status'} style={{ fontSize: '12px', color: msg.type === 'error' ? '#ff6666' : '#4caf50', cursor: 'pointer' }} onClick={() => setMsg(null)}>{msg.text} ✕</span>
+        )}
       </div>
+
+      {fetchError && (
+        <div role="alert" style={{
+          background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px',
+          padding: '8px 12px', color: '#ff6666', fontSize: '12px', marginBottom: '10px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <span>{fetchError}</span>
+          <button type="button" className="btn-secondary" style={{ fontSize: '11px', padding: '4px 10px' }} onClick={fetchCategories}>Tekrar Dene</button>
+        </div>
+      )}
 
       {loading ? (
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Yükleniyor...</span>
