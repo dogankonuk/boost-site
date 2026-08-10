@@ -17,10 +17,10 @@ import { buildCheckoutError } from '@/lib/cartCheckout'
 import { round2 } from '@/lib/pricing'
 import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
 
-function discountBadge(source) {
-  if (source === 'campaign') return { bg: 'rgba(147,51,234,0.15)', color: 'var(--violet)', icon: '🔥' }
-  if (source === 'loyalty') return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', icon: '⭐' }
-  return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', icon: '🏷️' }
+function discountBadge(source, label, couponCode) {
+  if (source === 'campaign') return { bg: 'rgba(147,51,234,0.15)', color: 'var(--violet)', label: `🔥 ${label || 'Campaign'}` }
+  if (source === 'loyalty') return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', label: `⭐ ${label || 'Loyalty'}` }
+  return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', label: `🏷️ ${couponCode || 'Coupon'}` }
 }
 
 function subscribeToAuth(onChange) {
@@ -64,7 +64,7 @@ export default function CartPage() {
         discountSource: 'coupon',
       }
     }
-    return { price: item.price, originalPrice: item.originalPrice, discountAmount: existingDiscount, discountSource: item.discountSource }
+    return { price: item.price, originalPrice: item.originalPrice, discountAmount: existingDiscount, discountSource: item.discountSource, discountLabel: item.discountLabel }
   }
 
   const displayTotal = items.reduce((sum, item) => sum + itemDisplay(item).price, 0)
@@ -197,7 +197,8 @@ export default function CartPage() {
             <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {items.map(item => {
                 const display = itemDisplay(item)
-                const badge = display.discountAmount > 0 ? discountBadge(display.discountSource) : null
+                const badge = display.discountAmount > 0 ? discountBadge(display.discountSource, display.discountLabel, couponPreview?.code) : null
+                const discountPct = display.discountAmount > 0 ? Math.round((display.discountAmount / display.originalPrice) * 100) : 0
                 return (
                 <div key={item.cartId} style={{
                   background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -247,8 +248,9 @@ export default function CartPage() {
                     {badge && (
                       <span style={{
                         fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '20px',
+                        whiteSpace: 'nowrap',
                         background: badge.bg, color: badge.color,
-                      }}>{badge.icon} -{format(display.discountAmount)}</span>
+                      }}>{badge.label} -{discountPct}%</span>
                     )}
                     <button type="button" aria-label={`Remove ${item.serviceName} from cart`}
                       onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{

@@ -168,6 +168,16 @@ export function isCouponEligible(coupon, { gameId, subtotal, userRedemptionCount
   return { ok: true }
 }
 
+// Convenience for list/card price displays (game service grids, homepage
+// strips, nav search/menu): finds the eligible campaign (if any) for a price
+// shown for the given game and returns what to render — original price only
+// present when a discount actually applies.
+export function applyCampaignDiscount(basePrice, gameId, campaigns) {
+  const campaign = (campaigns || []).find(c => isCampaignEligible(c, gameId))
+  if (!campaign) return { price: basePrice, originalPrice: null, campaign: null }
+  return { price: round2(basePrice * (1 - campaign.discountPct / 100)), originalPrice: basePrice, campaign }
+}
+
 // Picks the single best-for-the-customer discount among loyalty tier, an
 // active campaign, and a validated coupon — deliberately never stacks them.
 // Comparing resulting discount *amount* (not just %) makes percent and

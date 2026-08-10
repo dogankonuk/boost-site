@@ -4,6 +4,9 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useReducedMotion } from 'framer-motion'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useActiveCampaigns } from '@/lib/useActiveCampaigns'
+import { applyCampaignDiscount } from '@/lib/pricing'
+import CampaignBadge from './CampaignBadge'
 
 const GOALS = [
   { id: 'level', label: 'Level up', hint: 'Levels, XP and progression', words: ['level', 'leveling', 'power', 'xp', 'progress'] },
@@ -60,6 +63,7 @@ function RouteLine({ activeStep, reduceMotion }) {
 export default function ShadowRouteSection({ games = [] }) {
   const { format } = useCurrency()
   const reduceMotion = useReducedMotion()
+  const campaigns = useActiveCampaigns()
   const [gameId, setGameId] = useState('')
   const [goalId, setGoalId] = useState('')
   const [serviceId, setServiceId] = useState('')
@@ -87,6 +91,9 @@ export default function ShadowRouteSection({ games = [] }) {
     matchingServices.length === 0
   )
   const selectedService = visibleServices.find(service => String(service.id) === serviceId)
+  const serviceDiscount = selectedService
+    ? applyCampaignDiscount(selectedService.basePrice, selectedGame?.id, campaigns)
+    : null
   const activeStep = selectedService ? 3 : goalId ? 2 : 1
 
   function chooseGame(value) {
@@ -190,7 +197,19 @@ export default function ShadowRouteSection({ games = [] }) {
                   <strong>{selectedService ? selectedService.name : 'Waiting for your destination'}</strong>
                   <span>{selectedGame?.name || 'Game'} · {selectedGoal?.label || 'Goal'}</span>
                 </div>
-                {selectedService && <b>From {format(selectedService.basePrice)}</b>}
+                {selectedService && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {serviceDiscount?.campaign && (
+                      <>
+                        <span style={{ fontSize: '11px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                          {format(serviceDiscount.originalPrice)}
+                        </span>
+                        <CampaignBadge pct={serviceDiscount.campaign.discountPct} />
+                      </>
+                    )}
+                    <b>From {format(serviceDiscount ? serviceDiscount.price : selectedService.basePrice)}</b>
+                  </div>
+                )}
               </div>
 
               {selectedService ? (

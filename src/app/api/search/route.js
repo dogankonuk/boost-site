@@ -48,6 +48,7 @@ export async function GET(request) {
         type: 'service',
         name: s.name,
         gameName: s.game?.name,
+        gameId: s.gameId,
         basePriceUSD: s.basePrice,
         image: s.imageUrl || s.game?.coverImage,
         url: `/order/${s.id}`,

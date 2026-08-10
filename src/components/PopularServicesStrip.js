@@ -4,14 +4,18 @@ import Image from 'next/image'
 import { useReducedMotion } from 'framer-motion'
 import { useCurrency } from '@/context/CurrencyContext'
 import useFinePointer from '@/hooks/useFinePointer'
+import { useActiveCampaigns } from '@/lib/useActiveCampaigns'
+import { applyCampaignDiscount } from '@/lib/pricing'
 import Reveal from './motion/Reveal'
 import AdaptiveTilt from './AdaptiveTilt'
+import CampaignBadge from './CampaignBadge'
 import { FlameIcon, GamepadIcon } from './BrandIcons'
 
 export default function PopularServicesStrip({ services }) {
   const { format } = useCurrency()
   const shouldReduceMotion = useReducedMotion()
   const tiltEnabled = useFinePointer() && !shouldReduceMotion
+  const campaigns = useActiveCampaigns()
   if (!services || services.length === 0) return null
 
   return (
@@ -26,7 +30,9 @@ export default function PopularServicesStrip({ services }) {
           display: 'flex', gap: '14px', overflowX: 'auto', overflowY: 'hidden',
           paddingBottom: '8px', WebkitOverflowScrolling: 'touch',
         }}>
-          {services.map((service, i) => (
+          {services.map((service, i) => {
+            const discount = applyCampaignDiscount(service.basePrice, service.gameId, campaigns)
+            return (
             <Reveal key={service.id} delay={i * 0.05} y={12} style={{ flexShrink: 0 }}>
             <Link href={`/order/${service.id}`} style={{ textDecoration: 'none', flexShrink: 0 }}>
               <AdaptiveTilt
@@ -77,15 +83,24 @@ export default function PopularServicesStrip({ services }) {
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                   }}>{service.name}</div>
                   <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>from</div>
+                  {discount.campaign && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1px' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                        {format(discount.originalPrice)}
+                      </span>
+                      <CampaignBadge pct={discount.campaign.discountPct} />
+                    </div>
+                  )}
                   <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                    {format(service.basePrice)}
+                    {format(discount.price)}
                   </div>
                 </div>
               </div>
               </AdaptiveTilt>
             </Link>
             </Reveal>
-          ))}
+            )
+          })}
         </div>
       </div>
     </section>

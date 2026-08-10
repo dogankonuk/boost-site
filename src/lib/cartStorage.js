@@ -15,7 +15,7 @@ export function sanitizeCartItems(value) {
     const hasDiscount = Number.isFinite(originalPrice) && originalPrice >= price
       && Number.isFinite(discountAmount) && discountAmount > 0
 
-    const { originalPrice: _op, discountAmount: _da, discountSource: _ds, ...rest } = item
+    const { originalPrice: _op, discountAmount: _da, discountSource: _ds, discountLabel: _dl, ...rest } = item
 
     return [{
       ...rest,
@@ -25,6 +25,7 @@ export function sanitizeCartItems(value) {
         originalPrice,
         discountAmount,
         ...(typeof item.discountSource === 'string' && { discountSource: item.discountSource }),
+        ...(typeof item.discountLabel === 'string' && item.discountLabel && { discountLabel: item.discountLabel }),
       }),
       cartId: typeof item.cartId === 'string' && item.cartId
         ? item.cartId

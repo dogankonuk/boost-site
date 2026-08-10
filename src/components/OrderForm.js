@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
-import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, isCampaignEligible, round2 } from '@/lib/pricing'
+import { calculatePrice, calculateAddonsCost, calculateVolumeDiscountPct, resolveAddonsSnapshot, isCampaignEligible, round2 } from '@/lib/pricing'
 import { trackEvent } from '@/lib/analytics'
 import CouponInput from './CouponInput'
 
@@ -65,6 +65,7 @@ export default function OrderForm({ service }) {
   const servicePrice = calculatePrice(options, service.basePrice, selection)
   const addonsCost = calculateAddonsCost(service.addons, selectedAddons, servicePrice)
   const price = round2(servicePrice + addonsCost)
+  const volumeDiscountPct = options?.type === 'quantity' ? calculateVolumeDiscountPct(options, selection.quantity) : 0
 
   // Same three sources the server compares in resolveBestDiscount (never
   // stacked, highest amount wins) — kept in the same loyalty/campaign/coupon
@@ -174,6 +175,9 @@ export default function OrderForm({ service }) {
     // reapply automatically, are safe to bake into the stored cart price.
     const cartCandidates = discountCandidates.filter(c => c.source !== 'coupon')
     const cartDiscount = cartCandidates.reduce((a, b) => (b.amount > a.amount ? b : a), { source: null, amount: 0 })
+    const cartDiscountLabel = cartDiscount.source === 'campaign' ? campaign?.name
+      : cartDiscount.source === 'loyalty' ? tier?.name
+      : null
 
     addItem({
       serviceId: service.id,
@@ -189,6 +193,7 @@ export default function OrderForm({ service }) {
       originalPrice: price,
       discountAmount: cartDiscount.amount,
       discountSource: cartDiscount.source,
+      discountLabel: cartDiscountLabel,
     })
     setAddedToCart(true)
     toast.success('Added to cart')
@@ -250,8 +255,23 @@ export default function OrderForm({ service }) {
             </div>
           )}
           {options?.type === 'quantity' && (
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-              {selection.quantity} × {format(price / Math.max(1, selection.quantity))}
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+              <span>
+                {selection.quantity} ×{' '}
+                {volumeDiscountPct > 0 && (
+                  <span style={{ textDecoration: 'line-through', opacity: 0.6, marginRight: '4px' }}>
+                    {format(options.unitPrice)}
+                  </span>
+                )}
+                {format(price / Math.max(1, selection.quantity))}
+              </span>
+              {volumeDiscountPct > 0 && (
+                <span style={{
+                  fontSize: '10px', fontWeight: '700', padding: '2px 7px', borderRadius: '20px',
+                  background: 'rgba(245,197,24,0.15)', color: 'var(--gold)', whiteSpace: 'nowrap',
+                  fontFamily: 'var(--font-montserrat)',
+                }}>📦 Bulk -{volumeDiscountPct}%</span>
+              )}
             </div>
           )}
         </div>

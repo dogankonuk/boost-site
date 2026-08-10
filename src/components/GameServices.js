@@ -3,7 +3,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useCurrency } from '@/context/CurrencyContext'
+import { useActiveCampaigns } from '@/lib/useActiveCampaigns'
+import { applyCampaignDiscount } from '@/lib/pricing'
 import { GamepadIcon, ServiceTypeIcon } from './BrandIcons'
+import CampaignBadge from './CampaignBadge'
 
 const ICON_RULES = [
   { keywords: ['level', 'leveling', 'xp', 'prestige'], type: 'level' },
@@ -32,6 +35,7 @@ export default function GameServices({ services, game }) {
     : derivedCategories
 
   const [active, setActive] = useState('All')
+  const campaigns = useActiveCampaigns()
 
   const filtered = active === 'All'
     ? services
@@ -88,7 +92,7 @@ export default function GameServices({ services, game }) {
             gap: '16px',
           }}>
             {filtered.map(service => (
-              <ServiceCard key={service.id} service={service} />
+              <ServiceCard key={service.id} service={service} campaigns={campaigns} />
             ))}
           </div>
         )}
@@ -116,7 +120,7 @@ function CategoryItem({ label, active, onClick }) {
   )
 }
 
-function ServiceCard({ service }) {
+function ServiceCard({ service, campaigns }) {
   const { format } = useCurrency()
   const features = service.features || []
   const options = service.options
@@ -139,6 +143,7 @@ function ServiceCard({ service }) {
   }
 
   const price = getPriceInfo()
+  const discount = applyCampaignDiscount(price.amount, service.gameId, campaigns)
 
   return (
     <Link href={`/order/${service.id}`} style={{ textDecoration: 'none' }}>
@@ -225,11 +230,19 @@ function ServiceCard({ service }) {
                 fontFamily: 'var(--font-montserrat)', fontWeight: '700',
               }}>From</div>
             )}
+            {discount.campaign && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                  {format(discount.originalPrice)}
+                </span>
+                <CampaignBadge pct={discount.campaign.discountPct} />
+              </div>
+            )}
             <div style={{
               fontSize: '20px', fontWeight: '700',
               fontFamily: 'var(--font-montserrat)', color: 'var(--gold)',
             }}>
-              {format(price.amount)}
+              {format(discount.price)}
               {price.suffix && (
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'var(--font-inter)' }}>
                   {' '}{price.suffix}

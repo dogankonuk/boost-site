@@ -6,6 +6,9 @@ import { useCurrency, CURRENCY_SYMBOLS } from '@/context/CurrencyContext'
 import { useCart } from '@/context/CartContext'
 import { getServiceIcon } from '@/components/GameServices'
 import { ArticleIcon, FlameIcon, GamepadIcon } from '@/components/BrandIcons'
+import { useActiveCampaigns } from '@/lib/useActiveCampaigns'
+import { applyCampaignDiscount } from '@/lib/pricing'
+import CampaignBadge from '@/components/CampaignBadge'
 
 const AUTH_CHANGE_EVENT = 'shadowboosting-auth-change'
 
@@ -40,6 +43,7 @@ function formatTimeAgo(dateStr, now) {
 }
 
 export default function Navbar() {
+  const campaigns = useActiveCampaigns()
   const [search, setSearch] = useState('')
   const authSnapshot = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, getServerAuthSnapshot)
   const [token, username] = JSON.parse(authSnapshot)
@@ -243,6 +247,7 @@ export default function Navbar() {
               gamesSearch={gamesSearch}
               setGamesSearch={setGamesSearch}
               format={format}
+              campaigns={campaigns}
               onClose={() => setGamesMenuOpen(false)}
             />
           )}
@@ -315,7 +320,11 @@ export default function Navbar() {
             </div>
           ) : (
             <div>
-              {searchResults.map((result, i) => (
+              {searchResults.map((result, i) => {
+                const discount = result.type === 'service'
+                  ? applyCampaignDiscount(result.basePriceUSD, result.gameId, campaigns)
+                  : null
+                return (
                 <a key={i} href={result.url} onClick={() => { setSearchOpen(false); setSearch('') }}
                   style={{ textDecoration: 'none', display: 'block' }}>
                   <div style={{
@@ -346,8 +355,18 @@ export default function Navbar() {
                       <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', fontFamily: 'var(--font-montserrat)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {result.name}
                       </div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                        {result.type === 'game' || result.type === 'post' ? result.category : `${result.gameName} · ${format(result.basePriceUSD)}`}
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        {result.type === 'game' || result.type === 'post' ? result.category : (
+                          <>
+                            <span>{result.gameName} ·</span>
+                            {discount?.campaign && (
+                              <span style={{ textDecoration: 'line-through', opacity: 0.7 }}>{format(discount.originalPrice)}</span>
+                            )}
+                            <span style={discount?.campaign ? { color: 'var(--violet)', fontWeight: '700' } : undefined}>
+                              {format(discount ? discount.price : result.basePriceUSD)}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <span style={{
@@ -361,7 +380,8 @@ export default function Navbar() {
                     </span>
                   </div>
                 </a>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -702,7 +722,7 @@ function gameOrderCount(g) {
   return (g.services || []).reduce((sum, s) => sum + (s._count?.orders || 0), 0)
 }
 
-function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesSearch, setGamesSearch, format, onClose }) {
+function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesSearch, setGamesSearch, format, campaigns, onClose }) {
   const filteredGames = navGames.filter(g => g.name.toLowerCase().includes(gamesSearch.trim().toLowerCase()))
 
   const popularGames = [...filteredGames]
@@ -876,7 +896,9 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
               <div style={{ color: 'var(--text-dim)', fontSize: '12px' }}>No services listed yet for this game.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-                {productsOfTheDay.map(s => (
+                {productsOfTheDay.map(s => {
+                  const discount = applyCampaignDiscount(s.basePrice, s.gameId ?? selectedGame?.id, campaigns)
+                  return (
                   <Link key={s.id} href={`/order/${s.id}`} onClick={onClose} style={{ textDecoration: 'none' }}>
                     <div style={{
                       borderRadius: '14px', overflow: 'hidden',
@@ -913,13 +935,22 @@ function GamesMegaMenu({ navGames, selectedGameSlug, setSelectedGameSlug, gamesS
                           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                         }}>{s.name}</div>
                         <div style={{ fontSize: '10px', color: 'var(--text-dim)' }}>from</div>
+                        {discount.campaign && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '1px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                              {format(discount.originalPrice)}
+                            </span>
+                            <CampaignBadge pct={discount.campaign.discountPct} />
+                          </div>
+                        )}
                         <div style={{ fontSize: '16px', color: 'var(--gold)', fontWeight: '700', fontFamily: 'var(--font-montserrat)' }}>
-                          {format(s.basePrice)}
+                          {format(discount.price)}
                         </div>
                       </div>
                     </div>
                   </Link>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
