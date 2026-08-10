@@ -8,7 +8,10 @@ export default function AdminBlog({ secret }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('pending')
   const [msg, setMsg] = useState('')
+  const [error, setError] = useState('')
   const [rejectingId, setRejectingId] = useState(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null)
+  const [workingId, setWorkingId] = useState(null)
   const [rejectNotes, setRejectNotes] = useState({})
 
   const headers = useMemo(() => ({ 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` }), [secret])
@@ -18,8 +21,11 @@ export default function AdminBlog({ secret }) {
     try {
       const res = await fetch('/api/admin?type=blogPosts', { headers })
       const d = await res.json()
-      if (d.success) setPosts(d.data)
-    } catch {}
+      if (!res.ok || !d.success) throw new Error(d.error || 'Blog yazıları yüklenemedi')
+      setPosts(d.data)
+    } catch (err) {
+      setError(err.message || 'Blog yazıları yüklenemedi')
+    }
     setLoading(false)
   }, [headers])
 
@@ -38,32 +44,52 @@ export default function AdminBlog({ secret }) {
   async function togglePublish(post) {
     // Publishing (from any state — draft, pending, rejected) also stamps the
     // post approved server-side, so this doubles as the "approve" action.
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'blogPost', id: post.id, data: { isPublished: !post.isPublished } }),
+    await runMutation(post.id, async () => {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'blogPost', id: post.id, data: { isPublished: !post.isPublished } }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Yayın durumu güncellenemedi')
+      setMsg(post.isPublished ? `"${post.title}" yayından kaldırıldı` : `"${post.title}" yayınlandı`)
     })
-    setMsg(post.isPublished ? `"${post.title}" yayından kaldırıldı` : `"${post.title}" yayınlandı`)
-    fetchPosts()
-    setTimeout(() => setMsg(''), 3000)
   }
 
   async function rejectPost(post) {
-    await fetch('/api/admin', {
-      method: 'PATCH', headers,
-      body: JSON.stringify({ type: 'blogPost', id: post.id, data: { reviewStatus: 'rejected', reviewNote: rejectNotes[post.id]?.trim() || null, isPublished: false } }),
+    await runMutation(post.id, async () => {
+      const res = await fetch('/api/admin', {
+        method: 'PATCH', headers,
+        body: JSON.stringify({ type: 'blogPost', id: post.id, data: { reviewStatus: 'rejected', reviewNote: rejectNotes[post.id]?.trim() || null, isPublished: false } }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Yazı reddedilemedi')
+      setMsg(`"${post.title}" için değişiklik istendi`)
+      setRejectingId(null)
     })
-    setMsg(`"${post.title}" için değişiklik istendi`)
-    fetchPosts()
-    setRejectingId(null)
-    setTimeout(() => setMsg(''), 3000)
   }
 
   async function deletePost(post) {
-    if (!confirm(`"${post.title}" silinsin mi? Bu işlem geri alınamaz.`)) return
-    await fetch(`/api/admin?type=blogPost&id=${post.id}`, { method: 'DELETE', headers })
-    setMsg(`"${post.title}" silindi`)
-    fetchPosts()
-    setTimeout(() => setMsg(''), 3000)
+    await runMutation(post.id, async () => {
+      const res = await fetch(`/api/admin?type=blogPost&id=${post.id}`, { method: 'DELETE', headers })
+      const data = await res.json()
+      if (!res.ok || !data.success) throw new Error(data.error || 'Yazı silinemedi')
+      setMsg(`"${post.title}" silindi`)
+      setConfirmDeleteId(null)
+    })
+  }
+
+  async function runMutation(postId, action) {
+    setWorkingId(postId)
+    setError('')
+    try {
+      await action()
+      await fetchPosts()
+      setTimeout(() => setMsg(''), 3000)
+    } catch (err) {
+      setError(err.message || 'İşlem tamamlanamadı')
+    } finally {
+      setWorkingId(null)
+    }
   }
 
   const filtered = useMemo(() => {
@@ -81,6 +107,11 @@ export default function AdminBlog({ secret }) {
           background: '#1a2a1a', border: '1px solid #2a4a2a', borderRadius: '8px',
           padding: '10px 16px', color: '#4caf50', fontSize: '13px', marginBottom: '16px', cursor: 'pointer',
         }}>{msg} ✕</div>
+      )}
+      {error && (
+        <div role="alert" style={{ background: 'rgba(255,102,102,0.08)', border: '1px solid rgba(255,102,102,0.25)', borderRadius: '8px', padding: '10px 16px', color: 'var(--error)', fontSize: '13px', marginBottom: '16px' }}>
+          {error} <button type="button" onClick={fetchPosts} className="btn-secondary" style={{ marginLeft: '8px', padding: '4px 8px' }}>Tekrar Dene</button>
+        </div>
       )}
 
       <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
@@ -206,13 +237,21 @@ export default function AdminBlog({ secret }) {
                       Reddet
                     </button>
                   )}
-                  <button onClick={() => deletePost(post)} style={{
-                    background: 'transparent', border: '1px solid #4a2a2a',
-                    borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
-                    color: '#ff6666', cursor: 'pointer',
-                  }}>
-                    Sil
-                  </button>
+                  {confirmDeleteId === post.id ? (
+                    <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                      <span style={{ color: 'var(--error)', fontSize: '11px' }}>Emin misin?</span>
+                      <button type="button" disabled={workingId === post.id} onClick={() => deletePost(post)} style={{ background: 'var(--error-strong)', border: 'none', borderRadius: '5px', padding: '4px 8px', fontSize: '11px', color: '#fff', cursor: 'pointer' }}>Evet</button>
+                      <button type="button" onClick={() => setConfirmDeleteId(null)} style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '5px', padding: '4px 8px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}>İptal</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setConfirmDeleteId(post.id)} style={{
+                      background: 'transparent', border: '1px solid #4a2a2a',
+                      borderRadius: '5px', padding: '4px 10px', fontSize: '11px',
+                      color: '#ff6666', cursor: 'pointer',
+                    }}>
+                      Sil
+                    </button>
+                  )}
                 </div>
               )}
             </div>

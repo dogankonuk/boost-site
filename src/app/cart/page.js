@@ -81,7 +81,7 @@ export default function CartPage() {
         try {
           const res = await authFetch('/api/coupons', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'validate', code, serviceId: item.serviceId, selection: item.selection }),
+            body: JSON.stringify({ action: 'validate', code, serviceId: item.serviceId, selection: item.selection, selectedAddons: item.selectedAddons }),
           })
           if (!res) return { cartId: item.cartId, ok: false, error: 'Could not connect to the server.' }
           const d = await res.json()

@@ -2,9 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import {
+  calculateAddonsCost,
   calculatePrice,
   normalizeSelection,
 } from '../src/lib/pricing.js'
+import { buildPeriodBuckets } from '../src/lib/adminAnalyticsPeriods.js'
 import { buildCheckoutError } from '../src/lib/cartCheckout.js'
 import { sanitizeCartItems } from '../src/lib/cartStorage.js'
 import { buildDashboardTabUrl } from '../src/lib/dashboardNavigation.js'
@@ -71,6 +73,25 @@ test('range price sums configured price bands after normalization', () => {
   }
 
   assert.equal(calculatePrice(options, 0, { from: 5, to: 25 }), 40)
+})
+
+test('paid add-ons are included in coupon-preview subtotal calculations', () => {
+  const addons = [{
+    key: 'priority', type: 'select', choices: [
+      { value: 'standard', priceType: 'flat', priceDelta: 0 },
+      { value: 'express', priceType: 'percent', priceDelta: 15 },
+    ],
+  }]
+  assert.equal(calculateAddonsCost(addons, { priority: 'express' }, 25), 3.75)
+})
+
+test('custom analytics dates remain stable in UTC and cap at 92 days', () => {
+  const range = buildPeriodBuckets('custom', '2026-08-01', '2026-08-03', new Date('2026-08-10T10:00:00Z'))
+  assert.deepEqual(range.buckets.map(bucket => bucket.date), ['2026-08-01', '2026-08-02', '2026-08-03'])
+
+  const capped = buildPeriodBuckets('custom', '2026-01-01', '2026-12-31', new Date('2026-08-10T10:00:00Z'))
+  assert.equal(capped.buckets.length, 92)
+  assert.equal(capped.buckets.at(-1).date, '2026-04-02')
 })
 
 test('checkout error explains when no orders were placed', () => {

@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { authFetch } from '@/lib/authFetch'
 import { trackEvent } from '@/lib/analytics'
 
-export default function CouponInput({ serviceId, selection, applied, onApplied, onRemoved }) {
+export default function CouponInput({ serviceId, selection, selectedAddons, applied, onApplied, onRemoved }) {
   const [code, setCode] = useState('')
   const [applying, setApplying] = useState(false)
   const [error, setError] = useState('')
@@ -17,7 +17,7 @@ export default function CouponInput({ serviceId, selection, applied, onApplied, 
       const res = await authFetch('/api/coupons', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'validate', code: code.trim(), serviceId, selection }),
+        body: JSON.stringify({ action: 'validate', code: code.trim(), serviceId, selection, selectedAddons }),
       })
       if (!res) return
       const d = await res.json()

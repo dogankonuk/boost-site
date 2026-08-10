@@ -286,6 +286,7 @@ export default function OrderForm({ service }) {
         <CouponInput
           serviceId={service.id}
           selection={selection}
+          selectedAddons={selectedAddons}
           applied={couponPreview}
           onApplied={data => setCouponPreview(data)}
           onRemoved={() => setCouponPreview(null)}

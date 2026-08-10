@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { calculatePrice, isCouponEligible, round2 } from '@/lib/pricing'
+import { calculateAddonsCost, calculatePrice, isCouponEligible, normalizeSelection, round2 } from '@/lib/pricing'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -48,7 +48,7 @@ export async function POST(request) {
       if (!user) {
         return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
       }
-      const { code, serviceId, selection } = body
+      const { code, serviceId, selection, selectedAddons } = body
       if (!code || !serviceId) {
         return NextResponse.json({ success: false, error: 'Missing code or service' }, { status: 400 })
       }
@@ -58,7 +58,10 @@ export async function POST(request) {
         return NextResponse.json({ success: false, error: 'Service not found' }, { status: 404 })
       }
 
-      const basePrice = calculatePrice(service.options, service.basePrice, selection || {})
+      const normalizedSelection = normalizeSelection(service.options, selection)
+      const servicePrice = calculatePrice(service.options, service.basePrice, normalizedSelection)
+      const addonsCost = calculateAddonsCost(service.addons, selectedAddons || {}, servicePrice)
+      const basePrice = round2(servicePrice + addonsCost)
       const coupon = await prisma.coupon.findUnique({ where: { code: code.trim().toUpperCase() } })
       const userRedemptionCount = coupon
         ? await prisma.order.count({ where: { userId: user.userId, couponId: coupon.id } })
