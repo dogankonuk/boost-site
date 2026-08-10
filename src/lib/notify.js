@@ -140,6 +140,46 @@ export async function notifyBlogMilestone(prisma, { userId, title, views }) {
   }
 }
 
+// Notifies every admin when a customer reports a problem with an order — the
+// booster-only notification this used to be paired with isn't enough when an
+// order has no booster assigned yet, or the booster is the source of the issue.
+export async function notifyAdminsOrderIssue(prisma, { order, message }) {
+  try {
+    const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } })
+    if (admins.length === 0) return
+    await prisma.notification.createMany({
+      data: admins.map(admin => ({
+        userId: admin.id,
+        type: 'order_issue',
+        title: `Issue reported — order ${order.orderNumber}`,
+        body: message.slice(0, 200),
+        link: '/admin',
+      })),
+    })
+  } catch (err) {
+    console.error('notifyAdminsOrderIssue error:', err)
+  }
+}
+
+// Notifies every admin when someone submits the public contact form.
+export async function notifyAdminsContactMessage(prisma, { name, orderNumber }) {
+  try {
+    const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } })
+    if (admins.length === 0) return
+    await prisma.notification.createMany({
+      data: admins.map(admin => ({
+        userId: admin.id,
+        type: 'contact_message',
+        title: 'New contact form message',
+        body: orderNumber ? `${name} — order ${orderNumber}` : name,
+        link: '/admin',
+      })),
+    })
+  } catch (err) {
+    console.error('notifyAdminsContactMessage error:', err)
+  }
+}
+
 // Notifies a user that they've received a new message on an order's chat thread.
 export async function notifyNewMessage(prisma, { recipientUserId, senderUsername, orderNumber, link }) {
   try {

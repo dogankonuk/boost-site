@@ -438,6 +438,108 @@ export async function sendApplicationDecisionEmail({ to, username, type, decisio
   }
 }
 
+// Alerts the team inbox when a customer reports a problem with an order —
+// mirrors sendNewApplicationAdminEmail's pattern of an ADMIN_EMAIL-gated,
+// silent-no-op alert so it's safe to call from a request path unconditionally.
+export async function sendOrderIssueAdminEmail({ orderNumber, gameName, serviceName, username, message }) {
+  if (!ADMIN_EMAIL) return
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: ADMIN_EMAIL,
+      subject: `Issue reported — order ${orderNumber}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;">
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#fff;">Customer reported an issue</h1>
+              <p style="color:#777;margin:0 0 20px;font-size:14px;">${username} needs help with order ${orderNumber}.</p>
+
+              <table style="width:100%;border-collapse:collapse;background:#0a0a0a;border-radius:10px;padding:16px;margin-bottom:16px;">
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Order #</td><td style="padding:6px 16px;color:#f5c518;font-size:13px;font-weight:700;text-align:right;">${orderNumber}</td></tr>
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Game</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${gameName || '—'}</td></tr>
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Service</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${serviceName || '—'}</td></tr>
+              </table>
+
+              <div style="background:#0a0a0a;border-left:3px solid #ff6666;border-radius:6px;padding:12px 16px;">
+                <p style="color:#ccc;font-size:13px;margin:0;white-space:pre-wrap;">${escapeHtml(message)}</p>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:20px;">
+              <a href="https://shadowboosting.co/admin" style="display:inline-block;background:#f5c518;color:#0a0a0a;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Open Admin Panel →</a>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}
+
+// Alerts the team inbox when someone submits the public contact form.
+export async function sendContactFormAdminEmail({ name, email, orderNumber, message }) {
+  if (!ADMIN_EMAIL) return
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to: ADMIN_EMAIL,
+      replyTo: email,
+      subject: orderNumber ? `Contact form — order ${orderNumber}` : `Contact form — ${name}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"></head>
+        <body style="background:#0a0a0a;color:#fff;font-family:system-ui,sans-serif;margin:0;padding:0;">
+          <div style="max-width:560px;margin:0 auto;padding:40px 24px;">
+            <div style="text-align:center;margin-bottom:32px;">
+              <div style="display:inline-block;background:#f5c518;border-radius:10px;padding:10px 20px;">
+                <span style="font-size:18px;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px;">ShadowBoosting</span>
+              </div>
+            </div>
+
+            <div style="background:#111;border:1px solid #222;border-radius:16px;padding:28px;margin-bottom:20px;">
+              <h1 style="font-size:20px;font-weight:700;margin:0 0 6px;color:#fff;">New contact form message</h1>
+
+              <table style="width:100%;border-collapse:collapse;background:#0a0a0a;border-radius:10px;padding:16px;margin-bottom:16px;">
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Name</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${escapeHtml(name)}</td></tr>
+                <tr><td style="padding:6px 16px;color:#555;font-size:13px;">Email</td><td style="padding:6px 16px;color:#fff;font-size:13px;text-align:right;">${escapeHtml(email)}</td></tr>
+                ${orderNumber ? `<tr><td style="padding:6px 16px;color:#555;font-size:13px;">Order #</td><td style="padding:6px 16px;color:#f5c518;font-size:13px;font-weight:700;text-align:right;">${escapeHtml(orderNumber)}</td></tr>` : ''}
+              </table>
+
+              <div style="background:#0a0a0a;border-left:3px solid #f5c518;border-radius:6px;padding:12px 16px;">
+                <p style="color:#ccc;font-size:13px;margin:0;white-space:pre-wrap;">${escapeHtml(message)}</p>
+              </div>
+            </div>
+
+            <p style="text-align:center;color:#333;font-size:12px;margin:0;">
+              © ${new Date().getFullYear()} ShadowBoosting.co — Forge Your Power in the Shadows
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
+    })
+  } catch (err) {
+    console.error('Failed to send email:', err)
+  }
+}
+
 // Fires on every new order-thread message — previously in-app only, so the
 // recipient only found out if they happened to be logged in and looking.
 function escapeHtml(str) {

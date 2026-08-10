@@ -17,6 +17,8 @@ const TYPE_ICONS = {
   blog_approved: '✅',
   blog_rejected: '✏️',
   referral_bonus: '🎁',
+  order_issue: '⚠️',
+  contact_message: '✉️',
 }
 
 export default function NotificationsPage() {

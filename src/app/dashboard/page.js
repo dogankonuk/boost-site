@@ -14,7 +14,7 @@ import { useCurrency } from '@/context/CurrencyContext'
 import { authFetch } from '@/lib/authFetch'
 import MessageThread from '@/components/MessageThread'
 import OrderTimeline from '@/components/OrderTimeline'
-import { AlertTriangleIcon, GamepadIcon, XIcon } from '@/components/BrandIcons'
+import { AlertTriangleIcon, GamepadIcon } from '@/components/BrandIcons'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
@@ -155,10 +155,6 @@ function DashboardContent() {
 
   function handleOrderRated(orderId, rating, review) {
     setOrders(prev => prev.map(o => o.id === orderId ? { ...o, rating, review } : o))
-  }
-
-  function handleOrderCancelled(orderId) {
-    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'cancelled' } : o))
   }
 
   function handleIssueReported(orderId, message) {
@@ -302,10 +298,10 @@ function DashboardContent() {
             <OverviewTab username={username} orders={orders} loading={loading} onNavigate={navigateToTab} tier={tier} profile={profile} />
           )}
           {!ordersError && tab === 'orders' && (
-            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
+            <OrdersTab orders={orders} loading={loading} title="All Orders" onRated={handleOrderRated} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
           {!ordersError && tab === 'active' && (
-            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onCancelled={handleOrderCancelled} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
+            <OrdersTab orders={activeOrders} loading={loading} title="Active Orders" emptyText="No active orders." onRated={handleOrderRated} onIssueReported={handleIssueReported} highlightOrderId={highlightOrderId} unreadMessageOrderIds={unreadMessageOrderIds} onMessagesSeen={clearUnreadMessages} />
           )}
           {tab === 'account' && (
             <AccountTab username={username} orders={orders} onRated={handleOrderRated} />
@@ -687,7 +683,7 @@ function OrderDetails({ order }) {
   )
 }
 
-function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, onIssueReported, highlightOrderId, unreadMessageOrderIds, onMessagesSeen }) {
+function OrdersTab({ orders, loading, title, emptyText, onRated, onIssueReported, highlightOrderId, unreadMessageOrderIds, onMessagesSeen }) {
   const { format } = useCurrency()
   const [listRef] = useAutoAnimate()
   const [activeHighlight, setActiveHighlight] = useState(highlightOrderId || null)
@@ -807,14 +803,9 @@ function OrdersTab({ orders, loading, title, emptyText, onRated, onCancelled, on
 
                 {order.status !== 'cancelled' && (
                   <div style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
                     flexWrap: 'wrap', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '12px',
                   }}>
-                    <div style={{ flex: 1 }}>
-                      {['pending', 'assigned'].includes(order.status) && (
-                        <CancelOrderButton order={order} onCancelled={onCancelled} />
-                      )}
-                    </div>
                     <ReportIssueButton order={order} onReported={onIssueReported} />
                   </div>
                 )}
@@ -1205,77 +1196,6 @@ function ReportIssueButton({ order, onReported }) {
           Cancel
         </button>
       </div>
-    </div>
-  )
-}
-
-function CancelOrderButton({ order, onCancelled }) {
-  const [confirming, setConfirming] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-
-  async function cancel() {
-    setLoading(true)
-    setError('')
-    try {
-      const res = await authFetch('/api/orders', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id, action: 'cancel' }),
-      })
-      if (res) {
-        const d = await res.json()
-        if (d.success) {
-          onCancelled(order.id)
-          setConfirming(false)
-        } else setError(d.error || 'We could not cancel this order. Please try again.')
-      }
-    } catch {
-      setError('Could not connect to the server. Please try again.')
-    }
-    setLoading(false)
-  }
-
-  if (confirming) {
-    return (
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-        padding: '8px 10px', borderRadius: '9px', background: 'rgba(255,68,68,0.06)',
-        border: '1px solid rgba(255,68,68,0.2)',
-      }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Cancel this order?</span>
-        <button type="button" onClick={cancel} disabled={loading} style={{
-          fontSize: '11px', color: 'var(--error-strong)', background: 'transparent',
-          border: 'none', cursor: 'pointer', fontWeight: '700', padding: '4px 2px',
-        }}>
-          {loading ? '...' : 'Yes, cancel it'}
-        </button>
-        <button type="button" onClick={() => { setConfirming(false); setError('') }} style={{
-          fontSize: '11px', color: 'var(--text-dim)', background: 'none',
-          border: 'none', cursor: 'pointer', padding: '4px 2px',
-        }}>
-          Never mind
-        </button>
-        {error && (
-          <span role="alert" style={{ width: '100%', color: '#ff8a8a', fontSize: '11px', lineHeight: '1.5' }}>
-            {error}
-          </span>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      <button onClick={() => setConfirming(true)} style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-        minHeight: '32px', padding: '6px 10px', borderRadius: '8px',
-        fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)',
-        background: 'transparent', border: '1px solid var(--border)', cursor: 'pointer',
-        fontFamily: 'var(--font-montserrat)',
-      }}>
-        <XIcon size={13} />
-        Cancel order
-      </button>
     </div>
   )
 }

@@ -1,11 +1,10 @@
 import { prisma } from '@/lib/prisma'
 import { NextResponse } from 'next/server'
 import jwt from 'jsonwebtoken'
-import { sendOrderConfirmation } from '@/lib/email'
+import { sendOrderConfirmation, sendOrderIssueAdminEmail } from '@/lib/email'
 import { calculatePrice, calculateAddonsCost, normalizeSelection, resolveAddonsSnapshot, resolveBestDiscount, isCampaignEligible, isCouponEligible, round2 } from '@/lib/pricing'
 import { getLoyaltyTier, pointsFromSpend } from '@/lib/loyalty'
-
-const CANCELLABLE_STATUSES = ['pending', 'assigned']
+import { notifyAdminsOrderIssue } from '@/lib/notify'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -240,41 +239,16 @@ export async function PATCH(request) {
 
     const body = await request.json()
 
+    // Customers can no longer cancel their own orders directly — a cancellation
+    // means a refund, which needs a booster/admin decision, not a customer
+    // self-service action. Kept as an explicit rejection (rather than removing
+    // the branch) so any stale client still sending this action gets a clear
+    // explanation instead of a generic 400.
     if (body.action === 'cancel') {
-      const orderId = parseInt(body.orderId)
-      const order = await prisma.order.findUnique({
-        where: { id: orderId },
-        include: { service: { include: { game: true } }, booster: { include: { user: true } } },
-      })
-      if (!order || order.userId !== user.userId) {
-        return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
-      }
-      if (!CANCELLABLE_STATUSES.includes(order.status)) {
-        return NextResponse.json({ success: false, error: 'This order can no longer be cancelled' }, { status: 400 })
-      }
-
-      const updated = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: 'cancelled', cancelledAt: new Date() },
-      })
-
-      if (order.booster?.user) {
-        try {
-          await prisma.notification.create({
-            data: {
-              userId: order.booster.user.id,
-              type: 'order_status',
-              title: 'An order was cancelled by the customer',
-              body: `${order.service?.game?.name || ''} — ${order.service?.name || ''}`.trim(),
-              link: '/booster',
-            },
-          })
-        } catch (err) {
-          console.error('cancel notification error:', err)
-        }
-      }
-
-      return NextResponse.json({ success: true, data: updated })
+      return NextResponse.json({
+        success: false,
+        error: 'Orders can no longer be cancelled directly. Please use "Report a problem" and our team will help.',
+      }, { status: 403 })
     }
 
     if (body.action === 'reportIssue') {
@@ -287,7 +261,11 @@ export async function PATCH(request) {
 
       const order = await prisma.order.findUnique({
         where: { id: orderId },
-        include: { service: { include: { game: true } }, booster: { include: { user: true } } },
+        include: {
+          service: { include: { game: true } },
+          booster: { include: { user: true } },
+          user: { select: { username: true } },
+        },
       })
       if (!order || order.userId !== user.userId) {
         return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 })
@@ -312,6 +290,19 @@ export async function PATCH(request) {
         } catch (err) {
           console.error('issue report notification error:', err)
         }
+      }
+
+      await notifyAdminsOrderIssue(prisma, { order, message })
+      try {
+        await sendOrderIssueAdminEmail({
+          orderNumber: order.orderNumber,
+          gameName: order.service?.game?.name,
+          serviceName: order.service?.name,
+          username: order.user?.username,
+          message,
+        })
+      } catch (err) {
+        console.error('issue report admin email error:', err)
       }
 
       return NextResponse.json({ success: true, data: updated })

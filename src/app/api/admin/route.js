@@ -388,6 +388,14 @@ export async function PATCH(request) {
 
     if (type === 'order') {
       const existingOrder = await prisma.order.findUnique({ where: { id: parseInt(id) } })
+
+      // Assigning a booster from the dropdown only sends { boosterId }, with no
+      // explicit status — without this, the order stayed "pending" until the
+      // admin also remembered to flip the status dropdown separately.
+      if ('boosterId' in data && data.boosterId && !('status' in data) && existingOrder?.status === 'pending') {
+        data.status = 'assigned'
+      }
+
       const timelineData = {}
       if ('boosterId' in data && data.boosterId) timelineData.assignedAt = new Date()
       if (data.status === 'in_progress' && !existingOrder?.startedAt) timelineData.startedAt = new Date()
