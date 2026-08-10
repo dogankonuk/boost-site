@@ -122,28 +122,42 @@ export async function PATCH(request) {
     }
 
     const data = {}
-    if (body.title !== undefined) data.title = body.title.trim()
+    if (body.title !== undefined) {
+      if (!body.title.trim()) return NextResponse.json({ success: false, error: 'Title is required' }, { status: 400 })
+      data.title = body.title.trim()
+    }
     if (body.slug !== undefined && body.slug.trim()) data.slug = await uniqueSlug(slugify(body.slug.trim()), id)
     if (body.excerpt !== undefined) data.excerpt = body.excerpt?.trim() || null
-    if (body.content !== undefined) data.content = body.content.trim()
+    if (body.content !== undefined) {
+      if (!body.content.trim()) return NextResponse.json({ success: false, error: 'Content is required' }, { status: 400 })
+      data.content = body.content.trim()
+    }
     if (body.coverImage !== undefined) data.coverImage = body.coverImage?.trim() || null
     if (body.category !== undefined) data.category = body.category
     if (body.gameId !== undefined) data.gameId = body.gameId ? parseInt(body.gameId) : null
 
-    // Creators can only take a post down themselves, or re-save one that's
-    // already live. Newly going live requires admin approval (see reviewStatus
-    // below) — a client sending isPublished:true for a not-yet-live post is
-    // either a stale UI or a bypass attempt, so it's rejected outright.
+    // Creators can take a post down, but can never set isPublished:true. This
+    // includes edits to already-live posts: reviewed public content must not
+    // be replaced without another admin approval.
     if (body.isPublished !== undefined) {
-      if (body.isPublished && !existing.isPublished) {
+      if (body.isPublished) {
         return NextResponse.json({ success: false, error: 'Submit this post for review instead of publishing it directly.' }, { status: 403 })
       }
-      data.isPublished = !!body.isPublished
+      data.isPublished = false
     }
 
     // Only draft/pending are creator-settable; approved/rejected are admin-only.
     if (body.reviewStatus === 'draft' || body.reviewStatus === 'pending') {
       data.reviewStatus = body.reviewStatus
+      if (body.reviewStatus === 'pending') data.isPublished = false
+    }
+
+    const editorialFields = ['title', 'slug', 'excerpt', 'content', 'coverImage', 'category', 'gameId', 'publishedAt']
+    const editsReviewedContent = existing.isPublished && editorialFields.some(field => body[field] !== undefined)
+    if (editsReviewedContent) {
+      data.isPublished = false
+      data.reviewStatus = body.reviewStatus === 'draft' ? 'draft' : 'pending'
+      data.reviewNote = null
     }
 
     if (body.publishedAt) {

@@ -247,10 +247,11 @@ export default function CreatorPage() {
       const payload = { ...form }
       if (!payload.publishedAt) delete payload.publishedAt
       if (publish) {
-        // Editing an already-live post keeps it live — only a not-yet-live
-        // post needs to go through review.
-        if (isLive) payload.isPublished = true
-        else payload.reviewStatus = 'pending'
+        // New posts and edits to live posts both pass through review. For a
+        // live post, the current version is unpublished until the edit is
+        // approved; this avoids silently replacing reviewed public content.
+        payload.reviewStatus = 'pending'
+        if (isLive) payload.isPublished = false
       } else {
         payload.reviewStatus = 'draft'
         payload.isPublished = false
@@ -372,7 +373,6 @@ export default function CreatorPage() {
 
   if (!checkedAuth) return null
 
-  const isScheduled = form.publishedAt && new Date(form.publishedAt) > new Date()
   const editingPost = editingId ? posts.find(p => p.id === editingId) : null
   const isLive = editingPost?.isPublished ?? false
 
@@ -696,7 +696,7 @@ export default function CreatorPage() {
 
               <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
                 <button type="button" className="btn-primary" onClick={() => save(true)} disabled={saving}>
-                  {saving ? 'Saving...' : isLive ? (isScheduled ? 'Schedule' : 'Save Changes') : 'Submit for Review'}
+                  {saving ? 'Saving...' : isLive ? 'Submit Changes for Review' : 'Submit for Review'}
                 </button>
                 <button type="button" onClick={() => save(false)} disabled={saving} style={smallBtnStyle}>
                   Save as Draft
