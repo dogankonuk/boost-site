@@ -82,6 +82,29 @@ function SortableTh({ label, sortKey, sort, onSort, align = 'left' }) {
   )
 }
 
+function formatRangeDate(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+}
+
+function DrillTooltip({ active, payload, label, period }) {
+  if (!active || !payload?.length) return null
+  const point = payload[0].payload
+  const d = new Date(label)
+  const dateLabel = period === '12m'
+    ? d.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+    : period === '12w'
+      ? `${d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} haftası`
+      : d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
+  return (
+    <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 12px', fontSize: '12px' }}>
+      <div style={{ color: 'var(--text-dim)', marginBottom: '2px' }}>{dateLabel}</div>
+      <div style={{ color: 'var(--gold)', fontWeight: '700' }}>{money(payload[0].value)}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '2px' }}>{point.orders} sipariş</div>
+    </div>
+  )
+}
+
 export default function AdminAnalytics({ secret }) {
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -91,6 +114,28 @@ export default function AdminAnalytics({ secret }) {
   const [retryToken, setRetryToken] = useState(0)
   const [serviceSort, setServiceSort] = useState({ key: 'revenue', dir: 'desc' })
   const [boosterSort, setBoosterSort] = useState({ key: 'revenue', dir: 'desc' })
+
+  const [showCustomPicker, setShowCustomPicker] = useState(false)
+  const [customStart, setCustomStart] = useState('')
+  const [customEnd, setCustomEnd] = useState('')
+  const [appliedRange, setAppliedRange] = useState(null) // { start, end } once "Uygula" is clicked
+
+  const [drill, setDrill] = useState(null) // { type: 'service'|'booster', id, label }
+  const [drillData, setDrillData] = useState(null)
+  const [drillLoading, setDrillLoading] = useState(false)
+  const [drillError, setDrillError] = useState('')
+
+  function selectPreset(key) {
+    setPeriod(key)
+    setShowCustomPicker(false)
+  }
+
+  function applyCustomRange() {
+    if (!customStart || !customEnd) return
+    setAppliedRange({ start: customStart, end: customEnd })
+    setPeriod('custom')
+    setShowCustomPicker(false)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -102,7 +147,12 @@ export default function AdminAnalytics({ secret }) {
       setFetchError('')
 
       try {
-        const res = await fetch(`/api/admin?type=stats&period=${period}`, {
+        const params = new URLSearchParams({ type: 'stats', period })
+        if (period === 'custom' && appliedRange) {
+          params.set('startDate', appliedRange.start)
+          params.set('endDate', appliedRange.end)
+        }
+        const res = await fetch(`/api/admin?${params}`, {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
           signal: controller.signal,
         })
@@ -122,7 +172,49 @@ export default function AdminAnalytics({ secret }) {
 
     fetchStats()
     return () => controller.abort()
-  }, [period, secret, retryToken])
+  }, [period, appliedRange, secret, retryToken])
+
+  useEffect(() => {
+    if (!drill) return
+    const controller = new AbortController()
+
+    async function fetchDrill() {
+      await Promise.resolve()
+      if (controller.signal.aborted) return
+      setDrillData(null)
+      setDrillLoading(true)
+      setDrillError('')
+      try {
+        const params = new URLSearchParams({
+          type: drill.type === 'service' ? 'serviceTrend' : 'boosterTrend',
+          period,
+        })
+        params.set(drill.type === 'service' ? 'serviceId' : 'boosterId', drill.id)
+        if (period === 'custom' && appliedRange) {
+          params.set('startDate', appliedRange.start)
+          params.set('endDate', appliedRange.end)
+        }
+        const res = await fetch(`/api/admin?${params}`, {
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret}` },
+          signal: controller.signal,
+        })
+        const data = await res.json()
+        if (controller.signal.aborted) return
+        if (data.success) setDrillData(data.data)
+        else setDrillError(data.error || 'Veri yüklenemedi')
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error(error)
+          setDrillError('Veri yüklenemedi')
+        }
+      } finally {
+        if (!controller.signal.aborted) setDrillLoading(false)
+      }
+    }
+
+    fetchDrill()
+    return () => controller.abort()
+  }, [drill, period, appliedRange, secret])
 
   if (loading) return <AnalyticsSkeleton />
   if (!stats) {
@@ -143,6 +235,13 @@ export default function AdminAnalytics({ secret }) {
   const sortedServices = sortRows(stats.serviceBreakdown, serviceSort)
   const sortedBoosters = sortRows(stats.boosterBreakdown, boosterSort)
   const maxCategoryRevenue = Math.max(1, ...stats.categoryBreakdown.map(c => c.revenue))
+  const heading = period === 'custom'
+    ? `${formatRangeDate(stats.rangeStart)} – ${formatRangeDate(stats.rangeEnd)}`
+    : PERIODS.find(p => p.key === period)?.heading
+  const requestedSpanDays = appliedRange
+    ? Math.round((new Date(appliedRange.end) - new Date(appliedRange.start)) / 86400000)
+    : 0
+  const wasClamped = period === 'custom' && requestedSpanDays > 92
 
   return (
     <div>
@@ -151,7 +250,7 @@ export default function AdminAnalytics({ secret }) {
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: 0 }}>
-            {PERIODS.find(p => p.key === period)?.heading} — Satış Trendi ({activeDimension.label} Kırılımı)
+            {heading} — Satış Trendi ({activeDimension.label} Kırılımı)
           </h3>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
@@ -166,16 +265,46 @@ export default function AdminAnalytics({ secret }) {
             </div>
             <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '3px' }}>
               {PERIODS.map(p => (
-                <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => setPeriod(p.key)} style={{
+                <button key={p.key} type="button" aria-pressed={period === p.key} onClick={() => selectPreset(p.key)} style={{
                   padding: '5px 12px', borderRadius: '6px', fontSize: '12px',
                   fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: 'none',
                   background: period === p.key ? 'var(--gold)' : 'transparent',
                   color: period === p.key ? '#0a0a0a' : 'var(--text-muted)',
                 }}>{p.label}</button>
               ))}
+              <button type="button" aria-pressed={period === 'custom'} onClick={() => setShowCustomPicker(v => !v)} style={{
+                padding: '5px 12px', borderRadius: '6px', fontSize: '12px',
+                fontFamily: 'var(--font-montserrat)', fontWeight: '600', cursor: 'pointer', border: 'none',
+                background: period === 'custom' ? 'var(--gold)' : 'transparent',
+                color: period === 'custom' ? '#0a0a0a' : 'var(--text-muted)',
+              }}>Özel</button>
             </div>
           </div>
         </div>
+
+        {showCustomPicker && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', flexWrap: 'wrap', marginBottom: '16px', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+            <div>
+              <label htmlFor="analytics-range-start" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Başlangıç</label>
+              <input id="analytics-range-start" type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', outline: 'none' }} />
+            </div>
+            <div>
+              <label htmlFor="analytics-range-end" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Bitiş</label>
+              <input id="analytics-range-end" type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+                style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '12px', outline: 'none' }} />
+            </div>
+            <button type="button" className="btn-primary" style={{ fontSize: '12px', padding: '7px 16px' }} disabled={!customStart || !customEnd} onClick={applyCustomRange}>
+              Uygula
+            </button>
+          </div>
+        )}
+        {wasClamped && (
+          <p role="status" style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '-6px', marginBottom: '14px' }}>
+            92 günden uzun aralıklar 92 güne kısaltılır — gösterilen: {formatRangeDate(stats.rangeStart)} – {formatRangeDate(stats.rangeEnd)}
+          </p>
+        )}
+
         <div style={{ height: '260px' }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trend.buckets} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
@@ -196,6 +325,41 @@ export default function AdminAnalytics({ secret }) {
         </div>
       </div>
 
+      {drill && (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--gold)', borderRadius: '12px', padding: '20px', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', margin: 0 }}>
+              Detay: {drill.label}
+            </h3>
+            <button type="button" onClick={() => setDrill(null)} style={{
+              background: 'none', border: '1px solid var(--border)', borderRadius: '6px',
+              padding: '4px 10px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer',
+            }}>× Kapat</button>
+          </div>
+          {drillLoading ? (
+            <Skeleton height={140} borderRadius={8} />
+          ) : drillError ? (
+            <p role="alert" style={{ color: '#ff6666', fontSize: '13px' }}>{drillError}</p>
+          ) : drillData && (
+            <div style={{ height: '160px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={drillData.buckets} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: 'var(--text-dim)', fontSize: 9 }}
+                    tickFormatter={d => formatBucketLabel(d, period)}
+                  />
+                  <Tooltip content={<DrillTooltip period={period} />} cursor={{ fill: 'rgba(245,197,24,0.08)' }} />
+                  <Bar dataKey="revenue" fill="var(--gold)" radius={[3, 3, 0, 0]} maxBarSize={28} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', overflowX: 'auto' }}>
           <h3 style={{ color: '#fff', fontSize: '14px', fontFamily: 'var(--font-montserrat)', fontWeight: '600', marginBottom: '14px' }}>
@@ -214,7 +378,10 @@ export default function AdminAnalytics({ secret }) {
               </thead>
               <tbody>
                 {sortedServices.map(s => (
-                  <tr key={s.name + s.gameName} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={s.id} onClick={() => setDrill({ type: 'service', id: s.id, label: `${s.name} — ${s.gameName}` })}
+                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                     <td style={{ padding: '8px 10px', color: '#fff' }}>
                       {s.name}
                       <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{s.gameName}</div>
@@ -246,7 +413,10 @@ export default function AdminAnalytics({ secret }) {
               </thead>
               <tbody>
                 {sortedBoosters.map(b => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={b.id} onClick={() => setDrill({ type: 'booster', id: b.id, label: b.username })}
+                    style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-elevated)' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                     <td style={{ padding: '8px 10px', color: '#fff' }}>
                       {b.username}
                       <span style={{

@@ -56,6 +56,74 @@ async function pingBoosterOnDiscord(order, booster) {
   }
 }
 
+const MAX_CUSTOM_RANGE_DAYS = 92
+
+function startOfWeek(d) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  const day = date.getDay()
+  const diff = (day === 0 ? -6 : 1) - day
+  date.setDate(date.getDate() + diff)
+  return date
+}
+function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
+
+// Builds the day/week/month buckets shared by the stats trend chart and the
+// per-entity drill-down endpoints below, so all three agree on exactly which
+// dates are "in range" and how a given order's createdAt maps to a bucket.
+function buildPeriodBuckets(period, startDateParam, endDateParam) {
+  const now = new Date()
+  const buckets = []
+  let rangeStart
+
+  if (period === 'custom' && startDateParam && endDateParam) {
+    let start = new Date(startDateParam); start.setHours(0, 0, 0, 0)
+    let end = new Date(endDateParam); end.setHours(0, 0, 0, 0)
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      start = new Date(now); start.setDate(start.getDate() - 13)
+      end = new Date(now)
+    }
+    if (end < start) { const tmp = start; start = end; end = tmp }
+    const spanDays = Math.round((end - start) / 86400000)
+    if (spanDays > MAX_CUSTOM_RANGE_DAYS) end = new Date(start.getTime() + MAX_CUSTOM_RANGE_DAYS * 86400000)
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const key = d.toISOString().slice(0, 10)
+      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
+    }
+    rangeStart = start
+  } else if (period === '12w') {
+    const thisWeekStart = startOfWeek(now)
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(thisWeekStart); d.setDate(d.getDate() - i * 7)
+      const key = d.toISOString().slice(0, 10)
+      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
+    }
+    rangeStart = new Date(buckets[0].date)
+  } else if (period === '12m') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0, byGame: {}, byService: {} })
+    }
+    rangeStart = new Date(buckets[0].date)
+  } else {
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(now); d.setDate(d.getDate() - i)
+      const key = d.toISOString().slice(0, 10)
+      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
+    }
+    rangeStart = new Date(buckets[0].date)
+  }
+
+  const bucketIndex = Object.fromEntries(buckets.map((b, idx) => [b.key, idx]))
+  function bucketKeyFor(date) {
+    if (period === '12w') return startOfWeek(date).toISOString().slice(0, 10)
+    if (period === '12m') return monthKey(date)
+    return date.toISOString().slice(0, 10)
+  }
+
+  return { buckets, bucketIndex, bucketKeyFor, rangeStart }
+}
+
 export async function GET(request) {
   const adminUser = await requireAdmin(request)
   if (!adminUser) {
@@ -157,44 +225,9 @@ export async function GET(request) {
       const usersWithAnyOrder = new Set()
       const completedCountByUser = {}
 
-      const now = new Date()
-
-      function startOfWeek(d) {
-        const date = new Date(d)
-        date.setHours(0, 0, 0, 0)
-        const day = date.getDay()
-        const diff = (day === 0 ? -6 : 1) - day
-        date.setDate(date.getDate() + diff)
-        return date
-      }
-      function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
-
-      const buckets = []
-      if (period === '12w') {
-        const thisWeekStart = startOfWeek(now)
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date(thisWeekStart); d.setDate(d.getDate() - i * 7)
-          const key = d.toISOString().slice(0, 10)
-          buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
-        }
-      } else if (period === '12m') {
-        for (let i = 11; i >= 0; i--) {
-          const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-          buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0, byGame: {}, byService: {} })
-        }
-      } else {
-        for (let i = 13; i >= 0; i--) {
-          const d = new Date(now); d.setDate(d.getDate() - i)
-          const key = d.toISOString().slice(0, 10)
-          buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
-        }
-      }
-      const bucketIndex = Object.fromEntries(buckets.map((b, idx) => [b.key, idx]))
-      function bucketKeyFor(date) {
-        if (period === '12w') return startOfWeek(date).toISOString().slice(0, 10)
-        if (period === '12m') return monthKey(date)
-        return date.toISOString().slice(0, 10)
-      }
+      const { buckets, bucketIndex, bucketKeyFor, rangeStart } = buildPeriodBuckets(
+        period, searchParams.get('startDate'), searchParams.get('endDate')
+      )
 
       for (const o of orders) {
         if (statusCounts[o.status] !== undefined) statusCounts[o.status]++
@@ -216,7 +249,7 @@ export async function GET(request) {
           if (isActiveStatus) gameStats[gameId].activeOrders++
         }
         if (serviceId) {
-          if (!serviceStats[serviceId]) serviceStats[serviceId] = { name: serviceName, gameName, orders: 0, activeOrders: 0, completedOrders: 0, revenue: 0 }
+          if (!serviceStats[serviceId]) serviceStats[serviceId] = { id: serviceId, name: serviceName, gameName, orders: 0, activeOrders: 0, completedOrders: 0, revenue: 0 }
           serviceStats[serviceId].orders++
           if (isActiveStatus) serviceStats[serviceId].activeOrders++
           if (o.status === 'completed') serviceStats[serviceId].completedOrders++
@@ -327,9 +360,73 @@ export async function GET(request) {
           usersLast30, userGrowthPct,
           activationRate, repeatCustomerRate,
           statusCounts, gameBreakdown, revenueTrend: buckets, period,
+          rangeStart: rangeStart.toISOString().slice(0, 10),
+          rangeEnd: buckets[buckets.length - 1]?.date,
           pendingApplications, openIssues, unratedCompleted,
           serviceBreakdown, categoryBreakdown, boosterBreakdown, trendByGame, trendByService,
         },
+      })
+    }
+
+    if (type === 'serviceTrend') {
+      const serviceId = parseInt(searchParams.get('serviceId'))
+      if (!serviceId) return NextResponse.json({ success: false, error: 'serviceId is required' }, { status: 400 })
+
+      const { buckets, bucketIndex, bucketKeyFor, rangeStart } = buildPeriodBuckets(
+        searchParams.get('period') || '14d', searchParams.get('startDate'), searchParams.get('endDate')
+      )
+      const [service, orders] = await Promise.all([
+        prisma.service.findUnique({ where: { id: serviceId }, select: { name: true, game: { select: { name: true } } } }),
+        prisma.order.findMany({
+          where: { serviceId, status: 'completed', createdAt: { gte: rangeStart } },
+          select: { price: true, createdAt: true },
+        }),
+      ])
+      if (!service) return NextResponse.json({ success: false, error: 'Service not found' }, { status: 404 })
+
+      for (const o of orders) {
+        const bk = bucketKeyFor(o.createdAt)
+        if (bucketIndex[bk] !== undefined) {
+          buckets[bucketIndex[bk]].revenue += o.price
+          buckets[bucketIndex[bk]].orders += 1
+        }
+      }
+      for (const b of buckets) { delete b.byGame; delete b.byService }
+
+      return NextResponse.json({
+        success: true,
+        data: { name: service.name, gameName: service.game?.name, buckets },
+      })
+    }
+
+    if (type === 'boosterTrend') {
+      const boosterId = parseInt(searchParams.get('boosterId'))
+      if (!boosterId) return NextResponse.json({ success: false, error: 'boosterId is required' }, { status: 400 })
+
+      const { buckets, bucketIndex, bucketKeyFor, rangeStart } = buildPeriodBuckets(
+        searchParams.get('period') || '14d', searchParams.get('startDate'), searchParams.get('endDate')
+      )
+      const [booster, orders] = await Promise.all([
+        prisma.booster.findUnique({ where: { id: boosterId }, select: { user: { select: { username: true } } } }),
+        prisma.order.findMany({
+          where: { boosterId, status: 'completed', createdAt: { gte: rangeStart } },
+          select: { price: true, createdAt: true },
+        }),
+      ])
+      if (!booster) return NextResponse.json({ success: false, error: 'Booster not found' }, { status: 404 })
+
+      for (const o of orders) {
+        const bk = bucketKeyFor(o.createdAt)
+        if (bucketIndex[bk] !== undefined) {
+          buckets[bucketIndex[bk]].revenue += o.price
+          buckets[bucketIndex[bk]].orders += 1
+        }
+      }
+      for (const b of buckets) { delete b.byGame; delete b.byService }
+
+      return NextResponse.json({
+        success: true,
+        data: { username: booster.user?.username || 'Unknown', buckets },
       })
     }
 
