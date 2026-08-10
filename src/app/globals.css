@@ -2,6 +2,12 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (max-width: 760px) {
+  .admin-contact-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 .shadow-route-section {
   padding: 10px 0 64px;
   position: relative;

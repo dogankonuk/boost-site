@@ -162,7 +162,7 @@ export async function notifyAdminsOrderIssue(prisma, { order, message }) {
 }
 
 // Notifies every admin when someone submits the public contact form.
-export async function notifyAdminsContactMessage(prisma, { name, orderNumber }) {
+export async function notifyAdminsContactMessage(prisma, { id, name, orderNumber }) {
   try {
     const admins = await prisma.user.findMany({ where: { isAdmin: true }, select: { id: true } })
     if (admins.length === 0) return
@@ -172,7 +172,7 @@ export async function notifyAdminsContactMessage(prisma, { name, orderNumber }) 
         type: 'contact_message',
         title: 'New contact form message',
         body: orderNumber ? `${name} — order ${orderNumber}` : name,
-        link: '/admin',
+        link: `/admin?tab=contact&contactId=${id}`,
       })),
     })
   } catch (err) {

@@ -11,12 +11,27 @@ import AdminUsers from '@/components/admin/AdminUsers'
 import AdminBlog from '@/components/admin/AdminBlog'
 import AdminApplications from '@/components/admin/AdminApplications'
 import AdminPromotions from '@/components/admin/AdminPromotions'
+import AdminContactMessages from '@/components/admin/AdminContactMessages'
 
 export default function AdminPage() {
   const router = useRouter()
   const [tab, setTab] = useState('overview')
   const [status, setStatus] = useState('loading') // loading | no-token | not-admin | error | ok
   const [token, setToken] = useState(null)
+  const [initialContactId, setInitialContactId] = useState(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function applyDeepLink() {
+      await Promise.resolve()
+      if (cancelled) return
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('tab') === 'contact') setTab('contact')
+      setInitialContactId(parseInt(params.get('contactId')) || null)
+    }
+    applyDeepLink()
+    return () => { cancelled = true }
+  }, [])
 
   const verifyAdmin = useCallback(async () => {
     const stored = localStorage.getItem('token')
@@ -119,7 +134,7 @@ export default function AdminPage() {
       {/* Tabs */}
       <div style={{ borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 48px', display: 'flex' }}>
-          {[{ key: 'overview', label: 'Genel Bakış' }, { key: 'analytics', label: 'Analitik' }, { key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }, { key: 'users', label: 'Kullanıcılar' }, { key: 'blog', label: 'Blog' }, { key: 'applications', label: 'Başvurular' }, { key: 'promotions', label: 'Kupon & Kampanya' }].map(t => (
+          {[{ key: 'overview', label: 'Genel Bakış' }, { key: 'analytics', label: 'Analitik' }, { key: 'games', label: 'Oyunlar & Hizmetler' }, { key: 'orders', label: 'Siparişler' }, { key: 'boosters', label: 'Boosterlar' }, { key: 'users', label: 'Kullanıcılar' }, { key: 'blog', label: 'Blog' }, { key: 'applications', label: 'Başvurular' }, { key: 'contact', label: 'Mesajlar' }, { key: 'promotions', label: 'Kupon & Kampanya' }].map(t => (
             <button key={t.key} type="button" aria-pressed={tab === t.key} onClick={() => setTab(t.key)} style={{
               padding: '14px 20px', background: 'transparent', border: 'none',
               borderBottom: tab === t.key ? '2px solid var(--gold)' : '2px solid transparent',
@@ -141,6 +156,7 @@ export default function AdminPage() {
         {tab === 'users' && <AdminUsers secret={token} />}
         {tab === 'blog' && <AdminBlog secret={token} />}
         {tab === 'applications' && <AdminApplications secret={token} />}
+        {tab === 'contact' && <AdminContactMessages secret={token} initialMessageId={initialContactId} />}
         {tab === 'promotions' && <AdminPromotions secret={token} />}
       </div>
     </div>

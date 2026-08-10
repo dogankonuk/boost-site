@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import { sendOrderStatusUpdate, sendBlogUnpublishedEmail, sendApplicationDecisionEmail } from '@/lib/email'
 import { notifyOrderStatus, notifyBlogApproved, notifyBlogRejected } from '@/lib/notify'
 import { maybeAwardReferralBonus } from '@/lib/referral'
+import { buildPeriodBuckets } from '@/lib/adminAnalyticsPeriods'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'gizli-anahtar'
 
@@ -56,74 +57,6 @@ async function pingBoosterOnDiscord(order, booster) {
   }
 }
 
-const MAX_CUSTOM_RANGE_DAYS = 92
-
-function startOfWeek(d) {
-  const date = new Date(d)
-  date.setHours(0, 0, 0, 0)
-  const day = date.getDay()
-  const diff = (day === 0 ? -6 : 1) - day
-  date.setDate(date.getDate() + diff)
-  return date
-}
-function monthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
-
-// Builds the day/week/month buckets shared by the stats trend chart and the
-// per-entity drill-down endpoints below, so all three agree on exactly which
-// dates are "in range" and how a given order's createdAt maps to a bucket.
-function buildPeriodBuckets(period, startDateParam, endDateParam) {
-  const now = new Date()
-  const buckets = []
-  let rangeStart
-
-  if (period === 'custom' && startDateParam && endDateParam) {
-    let start = new Date(startDateParam); start.setHours(0, 0, 0, 0)
-    let end = new Date(endDateParam); end.setHours(0, 0, 0, 0)
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-      start = new Date(now); start.setDate(start.getDate() - 13)
-      end = new Date(now)
-    }
-    if (end < start) { const tmp = start; start = end; end = tmp }
-    const spanDays = Math.round((end - start) / 86400000)
-    if (spanDays > MAX_CUSTOM_RANGE_DAYS) end = new Date(start.getTime() + MAX_CUSTOM_RANGE_DAYS * 86400000)
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10)
-      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
-    }
-    rangeStart = start
-  } else if (period === '12w') {
-    const thisWeekStart = startOfWeek(now)
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(thisWeekStart); d.setDate(d.getDate() - i * 7)
-      const key = d.toISOString().slice(0, 10)
-      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
-    }
-    rangeStart = new Date(buckets[0].date)
-  } else if (period === '12m') {
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-      buckets.push({ key: monthKey(d), date: d.toISOString().slice(0, 10), revenue: 0, orders: 0, byGame: {}, byService: {} })
-    }
-    rangeStart = new Date(buckets[0].date)
-  } else {
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date(now); d.setDate(d.getDate() - i)
-      const key = d.toISOString().slice(0, 10)
-      buckets.push({ key, date: key, revenue: 0, orders: 0, byGame: {}, byService: {} })
-    }
-    rangeStart = new Date(buckets[0].date)
-  }
-
-  const bucketIndex = Object.fromEntries(buckets.map((b, idx) => [b.key, idx]))
-  function bucketKeyFor(date) {
-    if (period === '12w') return startOfWeek(date).toISOString().slice(0, 10)
-    if (period === '12m') return monthKey(date)
-    return date.toISOString().slice(0, 10)
-  }
-
-  return { buckets, bucketIndex, bucketKeyFor, rangeStart }
-}
-
 export async function GET(request) {
   const adminUser = await requireAdmin(request)
   if (!adminUser) {
@@ -144,6 +77,17 @@ export async function GET(request) {
         orderBy: { createdAt: 'desc' }
       })
       return NextResponse.json({ success: true, data: orders })
+    }
+
+    if (type === 'contactMessages') {
+      const status = searchParams.get('status')
+      const messages = await prisma.contactMessage.findMany({
+        where: status && status !== 'all' ? { status } : undefined,
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+      })
+      const unreadCount = await prisma.contactMessage.count({ where: { status: 'new' } })
+      return NextResponse.json({ success: true, data: messages, unreadCount })
     }
 
     if (type === 'games') {
@@ -561,6 +505,18 @@ export async function PATCH(request) {
     const body = await request.json()
     const { type, id, data } = body
 
+    if (type === 'contactMessage') {
+      const nextStatus = data?.status
+      if (!['new', 'read', 'resolved'].includes(nextStatus)) {
+        return NextResponse.json({ success: false, error: 'Invalid contact message status' }, { status: 400 })
+      }
+      const message = await prisma.contactMessage.update({
+        where: { id: parseInt(id) },
+        data: { status: nextStatus },
+      })
+      return NextResponse.json({ success: true, data: message })
+    }
+
     if (type === 'order') {
       const existingOrder = await prisma.order.findUnique({ where: { id: parseInt(id) } })
 
@@ -724,6 +680,9 @@ export async function PATCH(request) {
         where: { id: parseInt(id) },
         include: { author: { select: { email: true, username: true } } },
       })
+      if (!existing) {
+        return NextResponse.json({ success: false, error: 'Blog post not found' }, { status: 404 })
+      }
 
       // Any path to isPublished:true (the plain publish toggle, or a
       // dedicated approve action) counts as approving the post — keeps
