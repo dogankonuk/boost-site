@@ -7,7 +7,7 @@ import { useCart } from '@/context/CartContext'
 import { authFetch } from '@/lib/authFetch'
 import { getLoyaltyTier } from '@/lib/loyalty'
 import { celebrate } from '@/lib/celebrate'
-import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, round2 } from '@/lib/pricing'
+import { calculatePrice, calculateAddonsCost, resolveAddonsSnapshot, isCampaignEligible, round2 } from '@/lib/pricing'
 import { trackEvent } from '@/lib/analytics'
 import CouponInput from './CouponInput'
 
@@ -49,6 +49,7 @@ export default function OrderForm({ service }) {
   const [mounted, setMounted] = useState(false)
   const [addedToCart, setAddedToCart] = useState(false)
   const [tier, setTier] = useState(null)
+  const [campaigns, setCampaigns] = useState([])
   const [couponPreview, setCouponPreview] = useState(null)
   const [selection, setSelection] = useState({
     quantity: service.options?.minQty ?? 1,
@@ -64,12 +65,23 @@ export default function OrderForm({ service }) {
   const servicePrice = calculatePrice(options, service.basePrice, selection)
   const addonsCost = calculateAddonsCost(service.addons, selectedAddons, servicePrice)
   const price = round2(servicePrice + addonsCost)
+
+  // Same three sources the server compares in resolveBestDiscount (never
+  // stacked, highest amount wins) — kept in the same loyalty/campaign/coupon
+  // order so a tie resolves identically here and at checkout.
+  const campaign = campaigns.find(c => isCampaignEligible(c, service.game?.id))
   const loyaltyDiscountAmount = tier?.discount ? round2(price * (tier.discount / 100)) : 0
+  const campaignDiscountAmount = campaign ? round2(price * (campaign.discountPct / 100)) : 0
   const couponDiscountAmount = couponPreview ? couponPreview.discountAmount : 0
-  const couponWins = couponDiscountAmount > loyaltyDiscountAmount
-  const bestDiscountAmount = Math.max(loyaltyDiscountAmount, couponDiscountAmount)
+  const discountCandidates = [
+    { source: 'loyalty', amount: loyaltyDiscountAmount },
+    { source: 'campaign', amount: campaignDiscountAmount },
+    { source: 'coupon', amount: couponDiscountAmount },
+  ].filter(c => c.amount > 0)
+  const bestDiscount = discountCandidates.reduce((a, b) => (b.amount > a.amount ? b : a), { source: null, amount: 0 })
+  const bestDiscountAmount = bestDiscount.amount
+  const bestSource = bestDiscount.source
   const finalPrice = round2(Math.max(0, price - bestDiscountAmount))
-  const discountPct = bestDiscountAmount > 0 && !couponWins ? tier?.discount || 0 : 0
 
   const selectionKey = JSON.stringify(selection) + JSON.stringify(selectedAddons)
   const skipCouponClear = useRef(true)
@@ -96,6 +108,12 @@ export default function OrderForm({ service }) {
     return () => clearTimeout(t)
   }, [])
 
+  useEffect(() => {
+    fetch('/api/campaigns/active').then(res => res.json()).then(d => {
+      if (d?.success) setCampaigns(d.data)
+    }).catch(() => {})
+  }, [])
+
   async function handleOrder() {
     if (!loggedIn) { router.push('/login'); return }
     setLoading(true)
@@ -107,7 +125,7 @@ export default function OrderForm({ service }) {
         body: JSON.stringify({
           serviceId: service.id,
           details: { note, selection, selectedAddons, calculatedPrice: finalPrice },
-          couponCode: couponWins ? couponPreview.code : undefined,
+          couponCode: bestSource === 'coupon' ? couponPreview.code : undefined,
         }),
       })
       if (!res) return
@@ -120,7 +138,7 @@ export default function OrderForm({ service }) {
           value: finalPrice,
           currency: 'USD',
           items: [{ item_id: service.id, item_name: service.name, item_category: service.game?.name }],
-          coupon: couponWins ? couponPreview.code : undefined,
+          coupon: bestSource === 'coupon' ? couponPreview.code : undefined,
         })
         router.push('/dashboard')
       } else {
@@ -151,6 +169,12 @@ export default function OrderForm({ service }) {
   }
 
   function handleAddToCart() {
+    // A coupon code isn't carried into the cart (the cart has its own coupon
+    // field, applied at checkout) — only loyalty/campaign discounts, which
+    // reapply automatically, are safe to bake into the stored cart price.
+    const cartCandidates = discountCandidates.filter(c => c.source !== 'coupon')
+    const cartDiscount = cartCandidates.reduce((a, b) => (b.amount > a.amount ? b : a), { source: null, amount: 0 })
+
     addItem({
       serviceId: service.id,
       serviceName: service.name,
@@ -161,7 +185,10 @@ export default function OrderForm({ service }) {
       selection,
       selectedAddons,
       note,
-      price: finalPrice,
+      price: round2(Math.max(0, price - cartDiscount.amount)),
+      originalPrice: price,
+      discountAmount: cartDiscount.amount,
+      discountSource: cartDiscount.source,
     })
     setAddedToCart(true)
     toast.success('Added to cart')
@@ -198,17 +225,23 @@ export default function OrderForm({ service }) {
           <div className="order-form-price" style={{ fontSize: '38px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)', lineHeight: 1 }}>
             {format(finalPrice)}
           </div>
-          {couponWins && (
+          {bestSource === 'coupon' && (
             <span style={{
               fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
               background: 'rgba(245,197,24,0.15)', color: 'var(--gold)',
             }}>🏷️ {couponPreview.code}</span>
           )}
-          {discountPct > 0 && (
+          {bestSource === 'campaign' && (
+            <span style={{
+              fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
+              background: 'rgba(147,51,234,0.15)', color: 'var(--violet)',
+            }}>🔥 {campaign?.name || 'Campaign'} -{campaign?.discountPct}%</span>
+          )}
+          {bestSource === 'loyalty' && (
             <span style={{
               fontSize: '11px', fontWeight: '700', padding: '3px 9px', borderRadius: '20px',
               background: `${tier.color}22`, color: tier.color,
-            }}>{tier.icon} -{discountPct}% {tier.name}</span>
+            }}>{tier.icon} -{tier.discount}% {tier.name}</span>
           )}
           {options?.type === 'range' && (
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>

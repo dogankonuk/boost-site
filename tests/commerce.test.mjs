@@ -104,6 +104,17 @@ test('stored cart restores valid items with numeric prices and removable ids', (
   )
 })
 
+test('stored cart preserves a valid discount breakdown but drops a bogus one', () => {
+  assert.deepEqual(
+    sanitizeCartItems([{ serviceId: 23, serviceName: 'Power Leveling', price: 70, originalPrice: 100, discountAmount: 30, discountSource: 'campaign' }]),
+    [{ serviceId: 23, serviceName: 'Power Leveling', price: 70, originalPrice: 100, discountAmount: 30, discountSource: 'campaign', cartId: 'restored-23-0' }],
+  )
+  assert.deepEqual(
+    sanitizeCartItems([{ serviceId: 23, serviceName: 'Power Leveling', price: 70, originalPrice: 50, discountAmount: -10 }]),
+    [{ serviceId: 23, serviceName: 'Power Leveling', price: 70, cartId: 'restored-23-0' }],
+  )
+})
+
 test('dashboard tab URLs survive refresh and discard stale order highlights', () => {
   assert.equal(
     buildDashboardTabUrl('orderId=42', 'orders'),

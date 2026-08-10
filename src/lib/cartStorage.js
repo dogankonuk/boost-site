@@ -10,10 +10,22 @@ export function sanitizeCartItems(value) {
     if (!Number.isFinite(price) || price < 0) return []
     if (typeof item.serviceName !== 'string' || !item.serviceName.trim()) return []
 
+    const originalPrice = Number(item.originalPrice)
+    const discountAmount = Number(item.discountAmount)
+    const hasDiscount = Number.isFinite(originalPrice) && originalPrice >= price
+      && Number.isFinite(discountAmount) && discountAmount > 0
+
+    const { originalPrice: _op, discountAmount: _da, discountSource: _ds, ...rest } = item
+
     return [{
-      ...item,
+      ...rest,
       serviceId,
       price,
+      ...(hasDiscount && {
+        originalPrice,
+        discountAmount,
+        ...(typeof item.discountSource === 'string' && { discountSource: item.discountSource }),
+      }),
       cartId: typeof item.cartId === 'string' && item.cartId
         ? item.cartId
         : `restored-${serviceId}-${index}`,

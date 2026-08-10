@@ -14,7 +14,14 @@ import { authFetch } from '@/lib/authFetch'
 import { celebrate } from '@/lib/celebrate'
 import { trackEvent } from '@/lib/analytics'
 import { buildCheckoutError } from '@/lib/cartCheckout'
+import { round2 } from '@/lib/pricing'
 import AnimatedEmptyIcon from '@/components/AnimatedEmptyIcon'
+
+function discountBadge(source) {
+  if (source === 'campaign') return { bg: 'rgba(147,51,234,0.15)', color: 'var(--violet)', icon: '🔥' }
+  if (source === 'loyalty') return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', icon: '⭐' }
+  return { bg: 'rgba(245,197,24,0.15)', color: 'var(--gold)', icon: '🏷️' }
+}
 
 function subscribeToAuth(onChange) {
   window.addEventListener('storage', onChange)
@@ -37,8 +44,73 @@ export default function CartPage() {
   const [checkingOut, setCheckingOut] = useState(false)
   const [error, setError] = useState('')
   const [couponCode, setCouponCode] = useState('')
+  const [couponPreview, setCouponPreview] = useState(null)
+  const [applyingCoupon, setApplyingCoupon] = useState(false)
+  const [couponError, setCouponError] = useState('')
   const [confirmClear, setConfirmClear] = useState(false)
   const [listRef] = useAutoAnimate()
+
+  // Folds the coupon preview (if it beats an item's already-baked-in
+  // loyalty/campaign discount) into what that item would actually cost.
+  function itemDisplay(item) {
+    const couponResult = couponPreview?.perItem?.[item.cartId]
+    const existingDiscount = item.discountAmount || 0
+    if (couponResult?.ok && couponResult.discountAmount > existingDiscount) {
+      const original = item.originalPrice ?? item.price
+      return {
+        price: round2(Math.max(0, original - couponResult.discountAmount)),
+        originalPrice: original,
+        discountAmount: couponResult.discountAmount,
+        discountSource: 'coupon',
+      }
+    }
+    return { price: item.price, originalPrice: item.originalPrice, discountAmount: existingDiscount, discountSource: item.discountSource }
+  }
+
+  const displayTotal = items.reduce((sum, item) => sum + itemDisplay(item).price, 0)
+  const originalTotal = items.reduce((sum, item) => sum + (item.originalPrice ?? item.price), 0)
+  const totalSavings = round2(Math.max(0, originalTotal - displayTotal))
+
+  async function applyCoupon() {
+    const code = couponCode.trim()
+    if (!code) return
+    setApplyingCoupon(true)
+    setCouponError('')
+    try {
+      const results = await Promise.all(items.map(async item => {
+        try {
+          const res = await authFetch('/api/coupons', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'validate', code, serviceId: item.serviceId, selection: item.selection }),
+          })
+          if (!res) return { cartId: item.cartId, ok: false, error: 'Could not connect to the server.' }
+          const d = await res.json()
+          return d.success
+            ? { cartId: item.cartId, ok: true, discountAmount: d.data.discountAmount }
+            : { cartId: item.cartId, ok: false, error: d.error }
+        } catch {
+          return { cartId: item.cartId, ok: false, error: 'Could not connect to the server.' }
+        }
+      }))
+      const eligible = results.filter(r => r.ok)
+      if (eligible.length === 0) {
+        setCouponError(results[0]?.error || 'This coupon is not valid for anything in your cart.')
+        setCouponPreview(null)
+      } else {
+        setCouponPreview({ code, perItem: Object.fromEntries(results.map(r => [r.cartId, r])) })
+        toast.success(`Coupon applied: ${code}`)
+      }
+    } catch {
+      setCouponError('Could not connect to the server.')
+    }
+    setApplyingCoupon(false)
+  }
+
+  function removeCoupon() {
+    setCouponCode('')
+    setCouponPreview(null)
+    setCouponError('')
+  }
 
   async function handleCheckout() {
     if (!loggedIn) { router.push('/login'); return }
@@ -48,13 +120,17 @@ export default function CartPage() {
       value: totalUSD,
       currency: 'USD',
       items: items.map(i => ({ item_id: i.serviceId, item_name: i.serviceName, item_category: i.gameName })),
-      coupon: couponCode.trim() || undefined,
+      coupon: couponPreview?.code || undefined,
     })
 
     const failed = []
     let placedCount = 0
 
     for (const item of items) {
+      // Only send the coupon for items it was actually validated against —
+      // sending it for an ineligible one (e.g. wrong game) would fail that
+      // order outright instead of just skipping the discount for it.
+      const itemCoupon = couponPreview?.perItem?.[item.cartId]?.ok ? couponPreview.code : undefined
       try {
         const res = await authFetch('/api/orders', {
           method: 'POST',
@@ -62,7 +138,7 @@ export default function CartPage() {
           body: JSON.stringify({
             serviceId: item.serviceId,
             details: { note: item.note, selection: item.selection, selectedAddons: item.selectedAddons, calculatedPrice: item.price },
-            couponCode: couponCode.trim() || undefined,
+            couponCode: itemCoupon,
           }),
         })
         if (!res) return
@@ -74,7 +150,7 @@ export default function CartPage() {
             value: d.data.price,
             currency: 'USD',
             items: [{ item_id: item.serviceId, item_name: item.serviceName, item_category: item.gameName }],
-            coupon: couponCode.trim() || undefined,
+            coupon: itemCoupon,
           })
           removeItem(item.cartId)
         } else {
@@ -119,7 +195,10 @@ export default function CartPage() {
         ) : (
           <div className="content-sidebar-grid" style={{ '--sidebar-width': '340px', '--sidebar-gap': '24px' }}>
             <div ref={listRef} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {items.map(item => (
+              {items.map(item => {
+                const display = itemDisplay(item)
+                const badge = display.discountAmount > 0 ? discountBadge(display.discountSource) : null
+                return (
                 <div key={item.cartId} style={{
                   background: 'var(--bg-card)', border: '1px solid var(--border)',
                   borderRadius: '14px', padding: '16px 20px',
@@ -156,10 +235,21 @@ export default function CartPage() {
                     )}
                   </div>
 
-                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                    {display.discountAmount > 0 && (
+                      <div style={{ fontSize: '12px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                        {format(display.originalPrice)}
+                      </div>
+                    )}
                     <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--gold)', fontFamily: 'var(--font-montserrat)' }}>
-                      {format(item.price)}
+                      {format(display.price)}
                     </div>
+                    {badge && (
+                      <span style={{
+                        fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '20px',
+                        background: badge.bg, color: badge.color,
+                      }}>{badge.icon} -{format(display.discountAmount)}</span>
+                    )}
                     <button type="button" aria-label={`Remove ${item.serviceName} from cart`}
                       onClick={() => { removeItem(item.cartId); toast('Removed from cart', { icon: '🗑️' }) }} style={{
                       background: 'none', border: 'none', color: 'var(--text-dim)',
@@ -173,7 +263,8 @@ export default function CartPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             <div style={{
@@ -192,37 +283,68 @@ export default function CartPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                   <span>{items.length} {items.length === 1 ? 'item' : 'items'}</span>
                 </div>
+                {totalSavings > 0 && (
+                  <div style={{ fontSize: '15px', color: 'var(--text-dim)', textDecoration: 'line-through' }}>
+                    {format(originalTotal)}
+                  </div>
+                )}
                 <div style={{ fontSize: '30px', fontWeight: '700', fontFamily: 'var(--font-montserrat)', color: 'var(--gold)' }}>
-                  {format(totalUSD)}
+                  {format(displayTotal)}
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '3px' }}>
-                  Subtotal before discounts
+                <div style={{ fontSize: '11px', color: totalSavings > 0 ? 'var(--gold)' : 'var(--text-dim)', marginTop: '3px', fontWeight: totalSavings > 0 ? '700' : '400' }}>
+                  {totalSavings > 0 ? `You save ${format(totalSavings)}` : 'No discounts applied'}
                 </div>
               </div>
 
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div>
-                  <label htmlFor="cart-coupon-code" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                    Coupon code (optional)
-                  </label>
-                  <input
-                    id="cart-coupon-code"
-                    aria-describedby="cart-coupon-help"
-                    value={couponCode}
-                    onChange={e => setCouponCode(e.target.value)}
-                    placeholder="e.g. WELCOME10"
-                    style={{
-                      width: '100%', background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                      borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px',
-                      fontFamily: 'var(--font-inter)', outline: 'none', textTransform: 'uppercase',
-                    }}
-                  />
-                  <p id="cart-coupon-help" style={{
-                    fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5', marginTop: '6px',
+                {couponPreview ? (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+                    background: 'rgba(245,197,24,0.08)', border: '1px solid var(--gold)',
+                    borderRadius: '8px', padding: '9px 12px',
                   }}>
-                    Validated separately for each item at checkout. Eligible discounts appear on the created orders.
-                  </p>
-                </div>
+                    <span style={{ fontSize: '13px', color: 'var(--gold)', fontWeight: '600' }}>
+                      🏷️ {couponPreview.code} applied
+                    </span>
+                    <button type="button" onClick={removeCoupon} style={{
+                      background: 'none', border: 'none', color: 'var(--text-dim)',
+                      fontSize: '12px', cursor: 'pointer', padding: 0,
+                    }}>Remove</button>
+                  </div>
+                ) : (
+                  <div>
+                    <label htmlFor="cart-coupon-code" style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
+                      Coupon code (optional)
+                    </label>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        id="cart-coupon-code"
+                        aria-describedby="cart-coupon-help"
+                        value={couponCode}
+                        onChange={e => setCouponCode(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                        placeholder="e.g. WELCOME10"
+                        style={{
+                          flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                          borderRadius: '8px', padding: '9px 12px', color: '#fff', fontSize: '13px',
+                          fontFamily: 'var(--font-inter)', outline: 'none', textTransform: 'uppercase',
+                        }}
+                      />
+                      <button type="button" onClick={applyCoupon} disabled={applyingCoupon || !couponCode.trim()} className="btn-secondary"
+                        style={{ minHeight: '40px', padding: '9px 16px', fontSize: '13px', flexShrink: 0, opacity: (applyingCoupon || !couponCode.trim()) ? 0.6 : 1 }}>
+                        {applyingCoupon ? '...' : 'Apply'}
+                      </button>
+                    </div>
+                    <p id="cart-coupon-help" style={{
+                      fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5', marginTop: '6px',
+                    }}>
+                      Applies to whichever cart items it&apos;s eligible for — each still gets whichever discount is best for it.
+                    </p>
+                    {couponError && (
+                      <p role="alert" style={{ fontSize: '11px', color: '#ff6666', marginTop: '5px' }}>{couponError}</p>
+                    )}
+                  </div>
+                )}
                 {error && (
                   <div role="alert" style={{ background: '#2a1a1a', border: '1px solid #4a2a2a', borderRadius: '8px', padding: '10px 14px', color: '#ff6666', fontSize: '12px', lineHeight: '1.5' }}>
                     {error}
